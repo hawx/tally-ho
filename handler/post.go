@@ -26,6 +26,12 @@ func Post(store postStore) http.Handler {
 			return
 		}
 
+		for key := range data.Properties {
+			if strings.HasPrefix(key, "mp-") {
+				delete(data.Properties, key)
+			}
+		}
+
 		id, err := store.Create(data)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -74,7 +80,7 @@ func Post(store postStore) http.Handler {
 	}
 
 	handleMultiPart := func(w http.ResponseWriter, r *http.Request) {
-
+		// todo
 	}
 
 	return mux.ContentType{

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -27,9 +28,10 @@ func TestPostEntry(t *testing.T) {
 	defer s.Close()
 
 	resp, err := http.PostForm(s.URL, url.Values{
-		"h":          {"entry"},
-		"content":    {"This is a test"},
-		"category[]": {"test", "ignore"},
+		"h":            {"entry"},
+		"content":      {"This is a test"},
+		"category[]":   {"test", "ignore"},
+		"mp-something": {"what"},
 	})
 
 	assert.Nil(err)
@@ -43,6 +45,9 @@ func TestPostEntry(t *testing.T) {
 		assert.Equal("This is a test", data.Properties["content"][0])
 		assert.Equal("test", data.Properties["category"][0])
 		assert.Equal("ignore", data.Properties["category"][1])
+
+		_, ok := data.Properties["mp-something"]
+		assert.False(ok)
 	}
 }
 
@@ -57,7 +62,8 @@ func TestPostEntryJSON(t *testing.T) {
   "type": ["h-entry"],
   "properties": {
     "content": ["This is a test"],
-    "category": ["test", "ignore"]
+    "category": ["test", "ignore"],
+    "mp-something": ["what"]
   }
 }`))
 
@@ -67,10 +73,14 @@ func TestPostEntryJSON(t *testing.T) {
 
 	if assert.Len(store.datas, 1) {
 		data := store.datas[0]
+		log.Println(data)
 
 		assert.Equal("h-entry", data.Type[0])
 		assert.Equal("This is a test", data.Properties["content"][0])
 		assert.Equal("test", data.Properties["category"][0])
 		assert.Equal("ignore", data.Properties["category"][1])
+
+		_, ok := data.Properties["mp-something"]
+		assert.False(ok)
 	}
 }
