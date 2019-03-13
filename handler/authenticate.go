@@ -21,14 +21,12 @@ func Authenticate(me, scope string, next http.Handler) http.HandlerFunc {
 			auth = "Bearer " + r.FormValue("access_token")
 		}
 		if auth == "" {
-			log.Println("no auth")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
 		req, err := http.NewRequest("GET", endpoints.Token.String(), nil)
 		if err != nil {
-			log.Println("couldn't create request:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -36,12 +34,10 @@ func Authenticate(me, scope string, next http.Handler) http.HandlerFunc {
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			log.Println("token request failed:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		defer resp.Body.Close()
-		log.Println(resp.StatusCode)
 
 		var tokenData struct {
 			Me       string `json:"me"`
@@ -49,20 +45,17 @@ func Authenticate(me, scope string, next http.Handler) http.HandlerFunc {
 			Scope    string `json:"scope"`
 		}
 		if err := json.NewDecoder(resp.Body).Decode(&tokenData); err != nil {
-			log.Println("could not decode json:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
 		if tokenData.Me != me {
-			log.Println("not me:", tokenData.Me, me)
 			w.WriteHeader(http.StatusForbidden)
 			return
 		}
 
 		hasScope := contains(scope, strings.Fields(tokenData.Scope))
 		if !hasScope {
-			log.Println("no", scope, "scope:", tokenData.Scope)
 			w.WriteHeader(http.StatusForbidden)
 			return
 		}
