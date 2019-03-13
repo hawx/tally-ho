@@ -94,7 +94,11 @@ func TestPostEntryJSON(t *testing.T) {
 
 func TestUpdateEntry(t *testing.T) {
 	assert := assert.New(t)
-	store := &fakePostStore{}
+	store := &fakePostStore{
+		adds:     map[string][]map[string][]interface{}{},
+		deletes:  map[string][]map[string][]interface{}{},
+		replaces: map[string][]map[string][]interface{}{},
+	}
 
 	s := httptest.NewServer(Post(store))
 	defer s.Close()
@@ -105,24 +109,29 @@ func TestUpdateEntry(t *testing.T) {
   "replace": {
     "content": ["hello moon"]
   },
- "add": {
-    "syndication": ["http://web.archive.org/web/20040104110725/https://aaronpk.example/2014/06/01/9/indieweb"]
+  "add": {
+    "syndication": ["http://somewhere.com"]
+  },
+  "delete": {
+    "not-important": ["this"]
   }
 }`))
 
 	assert.Nil(err)
-	assert.Equal(http.StatusCreated, resp.StatusCode)
-	assert.Equal("/1", resp.Header.Get("Location"))
+	assert.Equal(http.StatusNoContent, resp.StatusCode)
 
-	if assert.Len(store.replaces, 1) {
-		data := store.replaces["1"][0]
+	replace, ok := store.replaces["https://example.com/post/100"]
+	if assert.True(ok) && assert.Len(replace, 1) {
+		assert.Equal("hello moon", replace[0]["content"][0])
+	}
 
-		assert.Equal("entry", data["h"][0])
-		assert.Equal("This is a test", data["content"][0])
-		assert.Equal("test", data["category"][0])
-		assert.Equal("ignore", data["category"][1])
+	add, ok := store.adds["https://example.com/post/100"]
+	if assert.True(ok) && assert.Len(add, 1) {
+		assert.Equal("http://somewhere.com", add[0]["syndication"][0])
+	}
 
-		_, ok := data["mp-something"]
-		assert.False(ok)
+	delete, ok := store.deletes["https://example.com/post/100"]
+	if assert.True(ok) && assert.Len(delete, 1) {
+		assert.Equal("this", delete[0]["not-important"][0])
 	}
 }

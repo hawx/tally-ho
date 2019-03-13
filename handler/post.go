@@ -11,10 +11,16 @@ import (
 type jsonMicroformat struct {
 	Type       []string                 `json:"type"`
 	Properties map[string][]interface{} `json:"properties"`
+	Action     string                   `json:"action"`
+	URL        string                   `json:"url"`
+	Add        map[string][]interface{} `json:"add"`
+	Delete     map[string][]interface{} `json:"delete"`
+	Replace    map[string][]interface{} `json:"replace"`
 }
 
 type postStore interface {
 	Create(data map[string][]interface{}) (id string, err error)
+	Update(url string, replace, add, delete map[string][]interface{}) error
 }
 
 func Post(store postStore) http.Handler {
@@ -42,6 +48,43 @@ func Post(store postStore) http.Handler {
 			}
 
 			data[key] = value
+		}
+
+		if v.Action == "update" {
+			replace := map[string][]interface{}{}
+			for key, value := range v.Replace {
+				if reservedKey(key) {
+					continue
+				}
+
+				replace[key] = value
+			}
+
+			add := map[string][]interface{}{}
+			for key, value := range v.Add {
+				if reservedKey(key) {
+					continue
+				}
+
+				add[key] = value
+			}
+
+			delete := map[string][]interface{}{}
+			for key, value := range v.Delete {
+				if reservedKey(key) {
+					continue
+				}
+
+				delete[key] = value
+			}
+
+			if err := store.Update(v.URL, replace, add, delete); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			w.WriteHeader(http.StatusNoContent)
+			return
 		}
 
 		id, err := store.Create(data)
