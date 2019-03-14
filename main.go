@@ -56,13 +56,7 @@ type Store struct {
 func (s *Store) Create(data map[string][]interface{}) (string, error) {
 	id := uuid.New().String()
 
-	for key, value := range data {
-		if err := s.db.InsertMany(id, key, value); err != nil {
-			return "", err
-		}
-	}
-
-	return id, nil
+	return id, s.db.SetProperties(id, data)
 }
 
 func (s *Store) Update(url string, replace, add, delete map[string][]interface{}) error {
