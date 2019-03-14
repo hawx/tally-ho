@@ -17,6 +17,7 @@ func main() {
 		port   = flag.String("port", "8080", "")
 		socket = flag.String("socket", "", "")
 		me     = flag.String("me", "", "")
+		dbPath = flag.String("db", "file::memory:", "")
 	)
 	flag.Parse()
 
@@ -24,7 +25,7 @@ func main() {
 		log.Fatal("--me must be provided")
 	}
 
-	store, err := newStore("file::memory:")
+	store, err := newStore(*dbPath)
 	if err != nil {
 		log.Fatal(err)
 	}
