@@ -9,16 +9,6 @@ import (
 	"hawx.me/code/mux"
 )
 
-type jsonMicroformat struct {
-	Type       []string                 `json:"type"`
-	Properties map[string][]interface{} `json:"properties"`
-	Action     string                   `json:"action"`
-	URL        string                   `json:"url"`
-	Add        map[string][]interface{} `json:"add"`
-	Delete     map[string][]interface{} `json:"delete"`
-	Replace    map[string][]interface{} `json:"replace"`
-}
-
 type postStore interface {
 	Create(data map[string][]interface{}) (id string, err error)
 	Update(id string, replace, add, delete map[string][]interface{}) error
@@ -33,23 +23,7 @@ func Post(store postStore, baseURL *url.URL) http.Handler {
 			return
 		}
 
-		if len(v.Type) == 0 {
-			v.Type = []string{"h-entry"}
-		}
-
-		data := map[string][]interface{}{
-			"h": []interface{}{
-				strings.TrimPrefix(v.Type[0], "h-"),
-			},
-		}
-
-		for key, value := range v.Properties {
-			if reservedKey(key) {
-				continue
-			}
-
-			data[key] = value
-		}
+		data := jsonToForm(v)
 
 		if v.Action == "update" {
 			replace := map[string][]interface{}{}

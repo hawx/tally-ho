@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"log"
 	"net/url"
@@ -31,15 +32,17 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer store.Close()
 
 	baseURL, err := url.Parse(*base)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	route.Handle("/micropub", mux.Method{
-		"POST": handler.Authenticate(*me, "create", handler.Post(store, baseURL)),
-	})
+	route.Handle("/micropub", handler.Authenticate(*me, "create", mux.Method{
+		"POST": handler.Post(store, baseURL),
+		"GET":  handler.Configuration(store, baseURL),
+	}))
 
 	route.Handle("/webmention", mux.Method{
 		// "POST":
@@ -61,6 +64,11 @@ type Store struct {
 	db *numbersix.DB
 }
 
+func (s *Store) Close() error {
+	// TODO: close sqlite connection from numbersix
+	return nil
+}
+
 func (s *Store) Create(data map[string][]interface{}) (string, error) {
 	id := uuid.New().String()
 
@@ -68,5 +76,33 @@ func (s *Store) Create(data map[string][]interface{}) (string, error) {
 }
 
 func (s *Store) Update(id string, replace, add, delete map[string][]interface{}) error {
+	for predicate, values := range replace {
+		s.db.DeletePredicate(id, predicate)
+		s.db.SetMany(id, predicate, values)
+	}
+
+	for predicate, values := range add {
+		s.db.SetMany(id, predicate, values)
+	}
+
+	for predicate, values := range delete {
+		for _, value := range values {
+			s.db.DeleteValue(id, predicate, value)
+		}
+	}
+
 	return nil
+}
+
+func (s *Store) Get(id string) (data map[string][]interface{}, err error) {
+	triples, err := s.db.List(numbersix.About(id))
+	if err != nil {
+		return
+	}
+	groups := numbersix.Grouped(triples)
+	if len(groups) == 0 {
+		return data, errors.New("no data for id: " + id)
+	}
+
+	return groups[0].Properties, nil
 }
