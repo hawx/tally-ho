@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"net/url"
 
 	"github.com/google/uuid"
 	"hawx.me/code/mux"
@@ -18,6 +19,7 @@ func main() {
 		socket = flag.String("socket", "", "")
 		me     = flag.String("me", "", "")
 		dbPath = flag.String("db", "file::memory:", "")
+		base   = flag.String("base-url", "http://localhost:8080/", "")
 	)
 	flag.Parse()
 
@@ -30,12 +32,17 @@ func main() {
 		log.Fatal(err)
 	}
 
+	baseURL, err := url.Parse(*base)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	route.Handle("/micropub", mux.Method{
-		"POST": handler.Authenticate(*me, "create", handler.Post(store)),
+		"POST": handler.Authenticate(*me, "create", handler.Post(store, baseURL)),
 	})
 
 	route.Handle("/webmention", mux.Method{
-	// "POST":
+		// "POST":
 	})
 
 	serve.Serve(*port, *socket, route.Default)
@@ -60,6 +67,6 @@ func (s *Store) Create(data map[string][]interface{}) (string, error) {
 	return id, s.db.SetProperties(id, data)
 }
 
-func (s *Store) Update(url string, replace, add, delete map[string][]interface{}) error {
+func (s *Store) Update(id string, replace, add, delete map[string][]interface{}) error {
 	return nil
 }

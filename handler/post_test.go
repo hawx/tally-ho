@@ -20,10 +20,10 @@ func (s *fakePostStore) Create(data map[string][]interface{}) (string, error) {
 	return "1", nil
 }
 
-func (s *fakePostStore) Update(url string, replace, add, delete map[string][]interface{}) error {
-	s.replaces[url] = append(s.replaces[url], replace)
-	s.adds[url] = append(s.adds[url], add)
-	s.deletes[url] = append(s.deletes[url], delete)
+func (s *fakePostStore) Update(id string, replace, add, delete map[string][]interface{}) error {
+	s.replaces[id] = append(s.replaces[id], replace)
+	s.adds[id] = append(s.adds[id], add)
+	s.deletes[id] = append(s.deletes[id], delete)
 
 	return nil
 }
@@ -31,8 +31,9 @@ func (s *fakePostStore) Update(url string, replace, add, delete map[string][]int
 func TestPostEntry(t *testing.T) {
 	assert := assert.New(t)
 	store := &fakePostStore{}
+	baseURL, _ := url.Parse("http://example.com/blog/")
 
-	s := httptest.NewServer(Post(store))
+	s := httptest.NewServer(Post(store, baseURL))
 	defer s.Close()
 
 	resp, err := http.PostForm(s.URL, url.Values{
@@ -44,7 +45,7 @@ func TestPostEntry(t *testing.T) {
 
 	assert.Nil(err)
 	assert.Equal(http.StatusCreated, resp.StatusCode)
-	assert.Equal("/1", resp.Header.Get("Location"))
+	assert.Equal("http://example.com/blog/p/1", resp.Header.Get("Location"))
 
 	if assert.Len(store.datas, 1) {
 		data := store.datas[0]
@@ -62,8 +63,9 @@ func TestPostEntry(t *testing.T) {
 func TestPostEntryJSON(t *testing.T) {
 	assert := assert.New(t)
 	store := &fakePostStore{}
+	baseURL, _ := url.Parse("http://example.com/blog/")
 
-	s := httptest.NewServer(Post(store))
+	s := httptest.NewServer(Post(store, baseURL))
 	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
@@ -77,7 +79,7 @@ func TestPostEntryJSON(t *testing.T) {
 
 	assert.Nil(err)
 	assert.Equal(http.StatusCreated, resp.StatusCode)
-	assert.Equal("/1", resp.Header.Get("Location"))
+	assert.Equal("http://example.com/blog/p/1", resp.Header.Get("Location"))
 
 	if assert.Len(store.datas, 1) {
 		data := store.datas[0]
@@ -94,18 +96,19 @@ func TestPostEntryJSON(t *testing.T) {
 
 func TestUpdateEntry(t *testing.T) {
 	assert := assert.New(t)
+	baseURL, _ := url.Parse("http://example.com/blog/")
 	store := &fakePostStore{
 		adds:     map[string][]map[string][]interface{}{},
 		deletes:  map[string][]map[string][]interface{}{},
 		replaces: map[string][]map[string][]interface{}{},
 	}
 
-	s := httptest.NewServer(Post(store))
+	s := httptest.NewServer(Post(store, baseURL))
 	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
   "action": "update",
-  "url": "https://example.com/post/100",
+  "url": "https://example.com/blog/p/100",
   "replace": {
     "content": ["hello moon"]
   },
@@ -120,17 +123,17 @@ func TestUpdateEntry(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(http.StatusNoContent, resp.StatusCode)
 
-	replace, ok := store.replaces["https://example.com/post/100"]
+	replace, ok := store.replaces["100"]
 	if assert.True(ok) && assert.Len(replace, 1) {
 		assert.Equal("hello moon", replace[0]["content"][0])
 	}
 
-	add, ok := store.adds["https://example.com/post/100"]
+	add, ok := store.adds["100"]
 	if assert.True(ok) && assert.Len(add, 1) {
 		assert.Equal("http://somewhere.com", add[0]["syndication"][0])
 	}
 
-	delete, ok := store.deletes["https://example.com/post/100"]
+	delete, ok := store.deletes["100"]
 	if assert.True(ok) && assert.Len(delete, 1) {
 		assert.Equal("this", delete[0]["not-important"][0])
 	}

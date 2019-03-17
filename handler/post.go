@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"hawx.me/code/mux"
@@ -20,10 +21,10 @@ type jsonMicroformat struct {
 
 type postStore interface {
 	Create(data map[string][]interface{}) (id string, err error)
-	Update(url string, replace, add, delete map[string][]interface{}) error
+	Update(id string, replace, add, delete map[string][]interface{}) error
 }
 
-func Post(store postStore) http.Handler {
+func Post(store postStore, baseURL *url.URL) http.Handler {
 	handleJSON := func(w http.ResponseWriter, r *http.Request) {
 		v := jsonMicroformat{Properties: map[string][]interface{}{}}
 
@@ -78,7 +79,9 @@ func Post(store postStore) http.Handler {
 				delete[key] = value
 			}
 
-			if err := store.Update(v.URL, replace, add, delete); err != nil {
+			id := v.URL[len(baseURL.String())+3:]
+
+			if err := store.Update(id, replace, add, delete); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -93,7 +96,8 @@ func Post(store postStore) http.Handler {
 			return
 		}
 
-		w.Header().Add("Location", "/"+id)
+		location, _ := baseURL.Parse("p/" + id)
+		w.Header().Add("Location", location.String())
 		w.WriteHeader(http.StatusCreated)
 	}
 
@@ -125,7 +129,8 @@ func Post(store postStore) http.Handler {
 			return
 		}
 
-		w.Header().Add("Location", "/"+id)
+		location, _ := baseURL.Parse("p/" + id)
+		w.Header().Add("Location", location.String())
 		w.WriteHeader(http.StatusCreated)
 	}
 
