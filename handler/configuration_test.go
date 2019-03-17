@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 
 	"hawx.me/code/assert"
@@ -24,12 +23,10 @@ func (s *fakeReadingStore) Get(url string) (map[string][]interface{}, error) {
 	return map[string][]interface{}{}, errors.New("what")
 }
 
-var baseURL, _ = url.Parse("http://example.com/weblog/")
-
 func TestConfigurationConfig(t *testing.T) {
 	assert := assert.New(t)
 
-	s := httptest.NewServer(Configuration(&fakeReadingStore{}, baseURL))
+	s := httptest.NewServer(Configuration(&fakeReadingStore{}, fakeConfig{}))
 	defer s.Close()
 
 	resp, err := http.Get(s.URL + "?q=config")
@@ -52,7 +49,7 @@ func TestConfigurationSource(t *testing.T) {
 		},
 	}
 
-	s := httptest.NewServer(Configuration(store, baseURL))
+	s := httptest.NewServer(Configuration(store, fakeConfig{}))
 	defer s.Close()
 
 	resp, err := http.Get(s.URL + "?q=source&url=https://example.com/weblog/p/1")
@@ -81,7 +78,7 @@ func TestConfigurationSourceWithProperties(t *testing.T) {
 		},
 	}
 
-	s := httptest.NewServer(Configuration(store, baseURL))
+	s := httptest.NewServer(Configuration(store, fakeConfig{}))
 	defer s.Close()
 
 	resp, err := http.Get(s.URL + "?q=source&properties=title&url=https://example.com/weblog/p/1")
@@ -112,7 +109,7 @@ func TestConfigurationSourceWithManyProperties(t *testing.T) {
 		},
 	}
 
-	s := httptest.NewServer(Configuration(store, baseURL))
+	s := httptest.NewServer(Configuration(store, fakeConfig{}))
 	defer s.Close()
 
 	resp, err := http.Get(s.URL + "?q=source&properties[]=title&properties[]=categories&url=https://example.com/weblog/p/1")

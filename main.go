@@ -4,13 +4,13 @@ import (
 	"errors"
 	"flag"
 	"log"
-	"net/url"
 
 	"github.com/google/uuid"
 	"hawx.me/code/mux"
 	"hawx.me/code/numbersix"
 	"hawx.me/code/route"
 	"hawx.me/code/serve"
+	"hawx.me/code/tally-ho/config"
 	"hawx.me/code/tally-ho/handler"
 )
 
@@ -34,14 +34,14 @@ func main() {
 	}
 	defer store.Close()
 
-	baseURL, err := url.Parse(*base)
+	config, err := config.New(*base, "p")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	route.Handle("/micropub", handler.Authenticate(*me, "create", mux.Method{
-		"POST": handler.Post(store, baseURL),
-		"GET":  handler.Configuration(store, baseURL),
+		"POST": handler.Post(store, config),
+		"GET":  handler.Configuration(store, config),
 	}))
 
 	route.Handle("/webmention", mux.Method{
@@ -65,8 +65,7 @@ type Store struct {
 }
 
 func (s *Store) Close() error {
-	// TODO: close sqlite connection from numbersix
-	return nil
+	return s.db.Close()
 }
 
 func (s *Store) Create(data map[string][]interface{}) (string, error) {

@@ -28,12 +28,21 @@ func (s *fakePostStore) Update(id string, replace, add, delete map[string][]inte
 	return nil
 }
 
+type fakeConfig struct{}
+
+func (c fakeConfig) ID(url string) (string, error) {
+	return "1", nil
+}
+
+func (c fakeConfig) Post(id string) (string, error) {
+	return "http://example.com/blog/p/1", nil
+}
+
 func TestPostEntry(t *testing.T) {
 	assert := assert.New(t)
 	store := &fakePostStore{}
-	baseURL, _ := url.Parse("http://example.com/blog/")
 
-	s := httptest.NewServer(Post(store, baseURL))
+	s := httptest.NewServer(Post(store, fakeConfig{}))
 	defer s.Close()
 
 	resp, err := http.PostForm(s.URL, url.Values{
@@ -63,9 +72,8 @@ func TestPostEntry(t *testing.T) {
 func TestPostEntryJSON(t *testing.T) {
 	assert := assert.New(t)
 	store := &fakePostStore{}
-	baseURL, _ := url.Parse("http://example.com/blog/")
 
-	s := httptest.NewServer(Post(store, baseURL))
+	s := httptest.NewServer(Post(store, fakeConfig{}))
 	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
@@ -96,14 +104,13 @@ func TestPostEntryJSON(t *testing.T) {
 
 func TestUpdateEntry(t *testing.T) {
 	assert := assert.New(t)
-	baseURL, _ := url.Parse("http://example.com/blog/")
 	store := &fakePostStore{
 		adds:     map[string][]map[string][]interface{}{},
 		deletes:  map[string][]map[string][]interface{}{},
 		replaces: map[string][]map[string][]interface{}{},
 	}
 
-	s := httptest.NewServer(Post(store, baseURL))
+	s := httptest.NewServer(Post(store, fakeConfig{}))
 	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
@@ -123,17 +130,17 @@ func TestUpdateEntry(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(http.StatusNoContent, resp.StatusCode)
 
-	replace, ok := store.replaces["100"]
+	replace, ok := store.replaces["1"]
 	if assert.True(ok) && assert.Len(replace, 1) {
 		assert.Equal("hello moon", replace[0]["content"][0])
 	}
 
-	add, ok := store.adds["100"]
+	add, ok := store.adds["1"]
 	if assert.True(ok) && assert.Len(add, 1) {
 		assert.Equal("http://somewhere.com", add[0]["syndication"][0])
 	}
 
-	delete, ok := store.deletes["100"]
+	delete, ok := store.deletes["1"]
 	if assert.True(ok) && assert.Len(delete, 1) {
 		assert.Equal("this", delete[0]["not-important"][0])
 	}

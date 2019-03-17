@@ -26,6 +26,8 @@ hawx.me/code/mux v0.0.0-20171229202905-76b5c781b7be h1:9VsLoSnY4fuT3s3FGN0FfvLyx
 hawx.me/code/mux v0.0.0-20171229202905-76b5c781b7be/go.mod h1:giDiKi08+l32ySywBkUVYkqQWuJgTLbK+RYR9qbvNw8=
 hawx.me/code/numbersix v0.0.0-20190314183504-38f7efc9fd22 h1:ExPrDa/6U8K/J1bRsLD1T5HioVlwIUnJdoWMGmWolbc=
 hawx.me/code/numbersix v0.0.0-20190314183504-38f7efc9fd22/go.mod h1:01SfZty+XY7sFK1M1UkfhH7ijSVaLThACAIgSpWk+v4=
+hawx.me/code/numbersix v0.0.0-20190317150423-fe1448fdc040 h1:BVeAThFFoeUs2BksRRW8u0TYf0btUXMsAWf7y9c554c=
+hawx.me/code/numbersix v0.0.0-20190317150423-fe1448fdc040/go.mod h1:01SfZty+XY7sFK1M1UkfhH7ijSVaLThACAIgSpWk+v4=
 hawx.me/code/route v1.0.0 h1:oSH04y0xTXUY5dflvRyUYl+yqs5J/lDvbOwMJc80sYY=
 hawx.me/code/route v1.0.0/go.mod h1:SKWPgx9IKsK2Yy66xj1bSRBOTMwR6kFQcLMjgajaeAc=
 hawx.me/code/serve v0.0.0-20190207181551-eb94630184cf h1:8rHeLEfK+pyTPkL/kH5THN2HgtfbuMeHnnneMFijo3Y=

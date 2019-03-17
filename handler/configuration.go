@@ -3,14 +3,13 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
-	"net/url"
 )
 
 type readingStore interface {
 	Get(id string) (map[string][]interface{}, error)
 }
 
-func Configuration(store readingStore, baseURL *url.URL) http.HandlerFunc {
+func Configuration(store readingStore, postURL postURL) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.FormValue("q") == "config" {
 			w.Write([]byte("{}")) // for now
@@ -26,7 +25,11 @@ func Configuration(store readingStore, baseURL *url.URL) http.HandlerFunc {
 				}
 			}
 
-			id := url[len(baseURL.String())+3:]
+			id, err := postURL.ID(url)
+			if err != nil {
+				http.Error(w, "not found", http.StatusNotFound)
+				return
+			}
 
 			obj, err := store.Get(id)
 			if err != nil {
