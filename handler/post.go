@@ -14,11 +14,15 @@ type postStore interface {
 }
 
 type postURL interface {
-	ID(url string) (string, error)
-	Post(id string) (string, error)
+	PostID(url string) (string, error)
+	PostURL(id string) (string, error)
 }
 
-func Post(store postStore, postURL postURL) http.Handler {
+type renderer interface {
+	RenderPost(id string, properties map[string][]interface{}) error
+}
+
+func Post(store postStore, render renderer, config postURL) http.Handler {
 	handleJSON := func(w http.ResponseWriter, r *http.Request) {
 		v := jsonMicroformat{Properties: map[string][]interface{}{}}
 
@@ -57,7 +61,7 @@ func Post(store postStore, postURL postURL) http.Handler {
 				delete[key] = value
 			}
 
-			id, err := postURL.ID(v.URL)
+			id, err := config.PostID(v.URL)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -77,7 +81,7 @@ func Post(store postStore, postURL postURL) http.Handler {
 			return
 		}
 
-		location, _ := postURL.Post(id)
+		location, _ := config.PostID(id)
 		w.Header().Add("Location", location)
 		w.WriteHeader(http.StatusCreated)
 	}
@@ -110,7 +114,12 @@ func Post(store postStore, postURL postURL) http.Handler {
 			return
 		}
 
-		location, _ := postURL.Post(id)
+		if err := render.RenderPost(id, data); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		location, _ := config.PostURL(id)
 		w.Header().Add("Location", location)
 		w.WriteHeader(http.StatusCreated)
 	}

@@ -9,7 +9,7 @@ type readingStore interface {
 	Get(id string) (map[string][]interface{}, error)
 }
 
-func Configuration(store readingStore, postURL postURL) http.HandlerFunc {
+func Configuration(store readingStore, config postURL) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.FormValue("q") == "config" {
 			w.Write([]byte("{}")) // for now
@@ -25,7 +25,7 @@ func Configuration(store readingStore, postURL postURL) http.HandlerFunc {
 				}
 			}
 
-			id, err := postURL.ID(url)
+			id, err := config.PostID(url)
 			if err != nil {
 				http.Error(w, "not found", http.StatusNotFound)
 				return

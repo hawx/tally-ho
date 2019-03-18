@@ -30,11 +30,11 @@ func (s *fakePostStore) Update(id string, replace, add, delete map[string][]inte
 
 type fakeConfig struct{}
 
-func (c fakeConfig) ID(url string) (string, error) {
+func (c fakeConfig) PostID(url string) (string, error) {
 	return "1", nil
 }
 
-func (c fakeConfig) Post(id string) (string, error) {
+func (c fakeConfig) PostURL(id string) (string, error) {
 	return "http://example.com/blog/p/1", nil
 }
 

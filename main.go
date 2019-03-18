@@ -10,15 +10,17 @@ import (
 	"hawx.me/code/tally-ho/config"
 	"hawx.me/code/tally-ho/data"
 	"hawx.me/code/tally-ho/handler"
+	"hawx.me/code/tally-ho/renderer"
 )
 
 func main() {
 	var (
-		port    = flag.String("port", "8080", "")
-		socket  = flag.String("socket", "", "")
-		me      = flag.String("me", "", "")
-		dbPath  = flag.String("db", "file::memory:", "")
-		baseURL = flag.String("base-url", "http://localhost:8080/", "")
+		port     = flag.String("port", "8080", "")
+		socket   = flag.String("socket", "", "")
+		me       = flag.String("me", "", "")
+		dbPath   = flag.String("db", "file::memory:", "")
+		baseURL  = flag.String("base-url", "http://localhost:8080/", "")
+		basePath = flag.String("base-path", "/tmp", "")
 	)
 	flag.Parse()
 
@@ -32,13 +34,15 @@ func main() {
 	}
 	defer store.Close()
 
-	config, err := config.New(*baseURL, "p")
+	config, err := config.New(*baseURL, *basePath, "p")
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	render, err := renderer.New(config, "web/template/*.gotmpl")
+
 	route.Handle("/micropub", handler.Authenticate(*me, "create", mux.Method{
-		"POST": handler.Post(store, config),
+		"POST": handler.Post(store, render, config),
 		"GET":  handler.Configuration(store, config),
 	}))
 
