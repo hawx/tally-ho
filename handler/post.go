@@ -6,23 +6,12 @@ import (
 	"strings"
 
 	"hawx.me/code/mux"
+	"hawx.me/code/tally-ho/config"
+	"hawx.me/code/tally-ho/data"
+	"hawx.me/code/tally-ho/renderer"
 )
 
-type postStore interface {
-	Create(data map[string][]interface{}) (id string, err error)
-	Update(id string, replace, add, delete map[string][]interface{}) error
-}
-
-type postURL interface {
-	PostID(url string) (string, error)
-	PostURL(id string) (string, error)
-}
-
-type renderer interface {
-	RenderPost(id string, properties map[string][]interface{}) error
-}
-
-func Post(store postStore, render renderer, config postURL) http.Handler {
+func Post(store *data.Store, render *renderer.Renderer, config *config.Config) http.Handler {
 	handleJSON := func(w http.ResponseWriter, r *http.Request) {
 		v := jsonMicroformat{Properties: map[string][]interface{}{}}
 
@@ -61,12 +50,27 @@ func Post(store postStore, render renderer, config postURL) http.Handler {
 				delete[key] = value
 			}
 
-			id, err := config.PostID(v.URL)
-			if err != nil {
+			id := config.PostID(v.URL)
+			if err := store.Update(id, replace, add, delete); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			if err := store.Update(id, replace, add, delete); err != nil {
+
+			w.WriteHeader(http.StatusNoContent)
+			return
+		} else if v.Action == "page" {
+			if names, ok := v.Properties["name"]; !ok || len(names) != 1 {
+				http.Error(w, "expected 'name'", http.StatusBadRequest)
+				return
+			}
+
+			name, ok := v.Properties["name"][0].(string)
+			if !ok {
+				http.Error(w, "expected 'name' to be a string", http.StatusBadRequest)
+				return
+			}
+
+			if err := store.SetNextPage(name); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -75,13 +79,13 @@ func Post(store postStore, render renderer, config postURL) http.Handler {
 			return
 		}
 
-		id, err := store.Create(data)
+		data, err := store.Create(data)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		location, _ := config.PostID(id)
+		location := data["url"][0].(string)
 		w.Header().Add("Location", location)
 		w.WriteHeader(http.StatusCreated)
 	}
@@ -108,18 +112,20 @@ func Post(store postStore, render renderer, config postURL) http.Handler {
 			}
 		}
 
-		id, err := store.Create(data)
+		data, err := store.Create(data)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		if err := render.RenderPost(id, data); err != nil {
+		id := data["uid"][0].(string)
+
+		if err := render.RenderPost(id, data, store); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		location, _ := config.PostURL(id)
+		location := data["url"][0].(string)
 		w.Header().Add("Location", location)
 		w.WriteHeader(http.StatusCreated)
 	}

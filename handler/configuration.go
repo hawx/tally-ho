@@ -3,13 +3,15 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+
+	"hawx.me/code/tally-ho/config"
 )
 
 type readingStore interface {
 	Get(id string) (map[string][]interface{}, error)
 }
 
-func Configuration(store readingStore, config postURL) http.HandlerFunc {
+func Configuration(store readingStore, config *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.FormValue("q") == "config" {
 			w.Write([]byte("{}")) // for now
@@ -25,11 +27,7 @@ func Configuration(store readingStore, config postURL) http.HandlerFunc {
 				}
 			}
 
-			id, err := config.PostID(url)
-			if err != nil {
-				http.Error(w, "not found", http.StatusNotFound)
-				return
-			}
+			id := config.PostID(url)
 
 			obj, err := store.Get(id)
 			if err != nil {

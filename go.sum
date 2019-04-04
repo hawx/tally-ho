@@ -47,8 +47,8 @@ hawx.me/code/numbersix v0.0.0-20190314183504-38f7efc9fd22 h1:ExPrDa/6U8K/J1bRsLD
 hawx.me/code/numbersix v0.0.0-20190314183504-38f7efc9fd22/go.mod h1:01SfZty+XY7sFK1M1UkfhH7ijSVaLThACAIgSpWk+v4=
 hawx.me/code/numbersix v0.0.0-20190317150423-fe1448fdc040 h1:BVeAThFFoeUs2BksRRW8u0TYf0btUXMsAWf7y9c554c=
 hawx.me/code/numbersix v0.0.0-20190317150423-fe1448fdc040/go.mod h1:01SfZty+XY7sFK1M1UkfhH7ijSVaLThACAIgSpWk+v4=
-hawx.me/code/relme-auth v0.0.0-20190225085155-272228a68509 h1:Qw5myM/A0NlrV2P3V1N/tqgOgeet9Ax+xJOkHWriUVU=
-hawx.me/code/relme-auth v0.0.0-20190225085155-272228a68509/go.mod h1:r3ON0npIaaOkjKEfjahwCgjQ/fumLOOM8Vstp1sB+w8=
+hawx.me/code/numbersix v0.0.0-20190404181615-6acf61b06293 h1:g0iqtAd7+Q6y68uBTVm0Q3VvVjJlf9eXmpeBpnYKKL8=
+hawx.me/code/numbersix v0.0.0-20190404181615-6acf61b06293/go.mod h1:01SfZty+XY7sFK1M1UkfhH7ijSVaLThACAIgSpWk+v4=
 hawx.me/code/route v1.0.0 h1:oSH04y0xTXUY5dflvRyUYl+yqs5J/lDvbOwMJc80sYY=
 hawx.me/code/route v1.0.0/go.mod h1:SKWPgx9IKsK2Yy66xj1bSRBOTMwR6kFQcLMjgajaeAc=
 hawx.me/code/serve v0.0.0-20190207181551-eb94630184cf h1:8rHeLEfK+pyTPkL/kH5THN2HgtfbuMeHnnneMFijo3Y=

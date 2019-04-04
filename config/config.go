@@ -2,53 +2,72 @@ package config
 
 import (
 	"errors"
-	"net/url"
-	"path/filepath"
 	"strings"
 )
 
+const indexHTML = "index.html"
+
 // Config contains URLs and filepaths for determining where things should live.
 type Config struct {
-	postsURL  *url.URL
-	postsPath string
+	rootURL  string
+	rootPath string
 }
 
-// New e.g. New("https://example.com/weblog/", "/wwwroot/weblog", "posts")
-func New(rootURL, rootPath, postsPath string) (Config, error) {
-	baseURL, err := url.Parse(rootURL)
-	if err != nil {
-		return Config{}, err
+// New e.g. New("https://example.com/weblog/", "/wwwroot/weblog/")
+func New(rootURL, rootPath string) (*Config, error) {
+	if len(rootURL) == 0 {
+		return nil, errors.New("rootURL must be something")
+	}
+	if rootURL[len(rootURL)-1] != '/' {
+		return nil, errors.New("rootURL must end with a '/'")
+	}
+	if rootPath[len(rootPath)-1] != '/' {
+		return nil, errors.New("rootPath must end with a '/'")
 	}
 
-	postsURL, err := baseURL.Parse(postsPath)
-
-	return Config{
-		postsURL:  postsURL,
-		postsPath: filepath.Join(rootPath, postsPath),
-	}, err
+	return &Config{
+		rootURL:  rootURL,
+		rootPath: rootPath,
+	}, nil
 }
 
 // PostID takes a URL for a post and returns the ID.
-func (c Config) PostID(url string) (string, error) {
-	if !strings.HasPrefix(url, c.postsURL.String()) {
-		return "", errors.New("url does not match expected for posts")
-	}
+func (c *Config) PostID(url string) string {
+	parts := strings.Split(url, "/")
 
-	id := url[len(c.postsURL.String()):]
-	return id, nil
+	return parts[len(parts)-1]
 }
 
 // PostURL takes an ID for a post and returns the URL.
-func (c Config) PostURL(id string) (string, error) {
-	postURL, err := c.postsURL.Parse(id)
-	if err != nil {
-		return "", err
-	}
-
-	return postURL.String(), nil
+func (c *Config) PostURL(pageURL, uid string) string {
+	return pageURL + "/" + uid
 }
 
-// PostPath takes an ID for a post and returns the URL.
-func (c Config) PostPath(id string) string {
-	return filepath.Join(c.postsPath, id)
+func (c *Config) URLToPath(url string) string {
+	if url == c.rootURL {
+		return c.rootPath + indexHTML
+	}
+
+	return c.rootPath + url[len(c.rootURL):] + "/" + indexHTML
+}
+
+func (c *Config) PathToURL(path string) string {
+	return c.rootURL + path[len(c.rootPath):len(path)-len(indexHTML)-1]
+}
+
+// PostPath takes an ID for a post and returns the path.
+func (c *Config) PostPath(pageSlug, id string) string {
+	return c.rootPath + pageSlug + "/" + id + "/" + indexHTML
+}
+
+func (c *Config) PageURL(pageSlug string) string {
+	return c.rootURL + pageSlug
+}
+
+func (c *Config) PagePath(pageSlug string) string {
+	return c.rootPath + pageSlug + "/" + indexHTML
+}
+
+func (c *Config) RootURL() string {
+	return c.rootURL
 }
