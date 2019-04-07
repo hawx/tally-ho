@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>{{ .Title }}</title>
+    <title>{{ getOr .Properties "name" "some post" }}</title>
     <link rel="stylesheet" href="css/screen.css" type="text/css" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
@@ -11,19 +11,19 @@
     <link rel="stylesheet" href="https://hawx.me/weblog/print.css" media="print" />
 
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="{{ .Title }}" />
-    <meta property="og:url" content="{{ .Permalink }}" />
-    <meta property="og:description" content="{{ .Description }}" />
+    <meta property="og:title" content="{{ getOr .Properties "name" "some post" }}" />
+    <meta property="og:url" content="{{ mustGet .Properties "url" }}" />
+    <!-- <meta property="og:description" content="{{ content .Properties }}" /> -->
 
   </head>
   <body>
     <nav>
       <span>
-        <a href="..">↟ {{ mustGet . "hx-page" }}</a>
+        <a href="{{ .PageURL }}">↟ {{ mustGet .Properties "hx-page" }}</a>
       </span>
     </nav>
 
-    {{ template "entry.gotmpl" . }}
+    {{ template "entry.gotmpl" .Properties }}
 
     {{ . }}
   </body>

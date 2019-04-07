@@ -7,10 +7,10 @@ import (
 	"hawx.me/code/mux"
 	"hawx.me/code/route"
 	"hawx.me/code/serve"
+	"hawx.me/code/tally-ho/blog"
 	"hawx.me/code/tally-ho/config"
 	"hawx.me/code/tally-ho/data"
 	"hawx.me/code/tally-ho/handler"
-	"hawx.me/code/tally-ho/renderer"
 )
 
 func main() {
@@ -29,7 +29,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	render, err := renderer.New(config, "web/template/*.gotmpl")
+	templates, err := blog.ParseTemplates("web/template/*.gotmpl")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -41,7 +41,7 @@ func main() {
 	defer store.Close()
 
 	if flag.NArg() == 1 && flag.Arg(0) == "render" {
-		if err := render.All(store); err != nil {
+		if err := blog.RenderAll(store, templates, config); err != nil {
 			log.Fatal(err)
 		}
 
@@ -53,7 +53,7 @@ func main() {
 	}
 
 	route.Handle("/micropub", handler.Authenticate(*me, "create", mux.Method{
-		"POST": handler.Post(store, render, config),
+		"POST": handler.Post(store, templates, config),
 		"GET":  handler.Configuration(store, config),
 	}))
 

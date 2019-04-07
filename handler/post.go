@@ -2,16 +2,17 @@ package handler
 
 import (
 	"encoding/json"
+	"html/template"
 	"net/http"
 	"strings"
 
 	"hawx.me/code/mux"
+	"hawx.me/code/tally-ho/blog"
 	"hawx.me/code/tally-ho/config"
 	"hawx.me/code/tally-ho/data"
-	"hawx.me/code/tally-ho/renderer"
 )
 
-func Post(store *data.Store, render *renderer.Renderer, config *config.Config) http.Handler {
+func Post(store *data.Store, tmpl *template.Template, config *config.Config) http.Handler {
 	handleJSON := func(w http.ResponseWriter, r *http.Request) {
 		v := jsonMicroformat{Properties: map[string][]interface{}{}}
 
@@ -118,9 +119,7 @@ func Post(store *data.Store, render *renderer.Renderer, config *config.Config) h
 			return
 		}
 
-		id := data["uid"][0].(string)
-
-		if err := render.RenderPost(id, data, store); err != nil {
+		if err := blog.RenderPost(data, store, tmpl, config); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
