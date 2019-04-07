@@ -3,6 +3,8 @@ package blog
 import (
 	"errors"
 	"html/template"
+	"log"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -73,7 +75,9 @@ func (b *Blog) Update(id string, replace, add, delete map[string][]interface{}) 
 }
 
 func (b *Blog) SetNextPage(name string) error {
-	return b.store.SetNextPage(name)
+	url := b.PageURL(slugify(name))
+
+	return b.store.SetNextPage(name, url)
 }
 
 func (b *Blog) Create(data map[string][]interface{}) (map[string][]interface{}, error) {
@@ -117,4 +121,40 @@ func slugify(s string) string {
 	s = strings.ReplaceAll(s, " ", "-")
 
 	return s
+}
+
+type writer interface {
+	writePost(url string, data interface{}) error
+	writePage(url string, data interface{}) error
+	writeRoot(data interface{}) error
+}
+
+func (b *Blog) writePost(url string, data interface{}) error {
+	return b.write(url, "post.gotmpl", data)
+}
+
+func (b *Blog) writePage(url string, data interface{}) error {
+	return b.write(url, "page.gotmpl", data)
+}
+
+func (b *Blog) writeRoot(data interface{}) error {
+	return b.write(b.RootURL(), "page.gotmpl", data)
+}
+
+func (b *Blog) write(url, tmpl string, data interface{}) error {
+	path := b.URLToPath(url)
+	dir := filepath.Dir(path)
+
+	log.Println("mkdir", dir)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
+	log.Println("writing", path)
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+
+	return b.templates.ExecuteTemplate(file, tmpl, data)
 }

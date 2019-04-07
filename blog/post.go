@@ -2,9 +2,6 @@ package blog
 
 import (
 	"html/template"
-	"log"
-	"os"
-	"path/filepath"
 )
 
 func (page *Page) Post(properties map[string][]interface{}) (*Post, error) {
@@ -22,21 +19,8 @@ type Post struct {
 	PageURL string
 }
 
-func (p *Post) Render(tmpl *template.Template, conf *Blog) error {
+func (p *Post) Render(tmpl *template.Template, w writer) error {
 	url := p.Properties["url"][0].(string)
-	path := conf.URLToPath(url)
-	dir := filepath.Dir(path)
 
-	log.Println("mkdir", dir)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
-	}
-
-	log.Println("writing", path)
-	file, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-
-	return tmpl.ExecuteTemplate(file, "post.gotmpl", p)
+	return w.writePost(url, p)
 }

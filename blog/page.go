@@ -4,9 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"html/template"
-	"log"
-	"os"
-	"path/filepath"
 
 	"hawx.me/code/tally-ho/data"
 )
@@ -134,11 +131,11 @@ func (p *Page) Prev(store *data.Store) (*Page, error) {
 // Render writes the page, if it IsRoot then the root page will also be
 // written. To ensure the next page link works it will write the previous page
 // if there is only one post.
-func (p *Page) Render(store *data.Store, tmpl *template.Template, conf *Blog, maybePrev bool) error {
-	if err := p.write(p.URL, tmpl, conf); err != nil {
+func (p *Page) Render(store *data.Store, tmpl *template.Template, w writer, maybePrev bool) error {
+	if err := w.writePage(p.URL, p); err != nil {
 		return err
 	}
-	if err := p.write(conf.RootURL(), tmpl, conf); err != nil {
+	if err := w.writeRoot(p); err != nil {
 		return err
 	}
 
@@ -151,7 +148,7 @@ func (p *Page) Render(store *data.Store, tmpl *template.Template, conf *Blog, ma
 		if prev != nil {
 			// Don't use Render because if the previous page only had 1 post we'll start
 			// doing everything...
-			if err := prev.write(prev.URL, tmpl, conf); err != nil {
+			if err := w.writePage(prev.URL, prev); err != nil {
 				return err
 			}
 		}
@@ -159,22 +156,4 @@ func (p *Page) Render(store *data.Store, tmpl *template.Template, conf *Blog, ma
 
 	// render index.html somehow...
 	return nil
-}
-
-func (p *Page) write(url string, tmpl *template.Template, conf *Blog) error {
-	path := conf.URLToPath(url)
-	dir := filepath.Dir(path)
-
-	log.Println("mkdir", dir)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
-	}
-
-	log.Println("writing", path)
-	file, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-
-	return tmpl.ExecuteTemplate(file, "page.gotmpl", p)
 }
