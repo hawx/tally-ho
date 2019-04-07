@@ -8,11 +8,10 @@ import (
 
 	"hawx.me/code/mux"
 	"hawx.me/code/tally-ho/blog"
-	"hawx.me/code/tally-ho/config"
 	"hawx.me/code/tally-ho/data"
 )
 
-func Post(store *data.Store, tmpl *template.Template, config *config.Config) http.Handler {
+func Post(store *data.Store, tmpl *template.Template, config *blog.Config) http.Handler {
 	handleJSON := func(w http.ResponseWriter, r *http.Request) {
 		v := jsonMicroformat{Properties: map[string][]interface{}{}}
 

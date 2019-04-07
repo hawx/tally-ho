@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"hawx.me/code/tally-ho/config"
+	"hawx.me/code/tally-ho/blog"
 )
 
 type readingStore interface {
 	Get(id string) (map[string][]interface{}, error)
 }
 
-func Configuration(store readingStore, config *config.Config) http.HandlerFunc {
+func Configuration(store readingStore, config *blog.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.FormValue("q") == "config" {
 			w.Write([]byte("{}")) // for now

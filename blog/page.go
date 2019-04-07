@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"hawx.me/code/tally-ho/config"
 	"hawx.me/code/tally-ho/data"
 )
 
@@ -135,7 +134,7 @@ func (p *Page) Prev(store *data.Store) (*Page, error) {
 // Render writes the page, if it IsRoot then the root page will also be
 // written. To ensure the next page link works it will write the previous page
 // if there is only one post.
-func (p *Page) Render(store *data.Store, tmpl *template.Template, conf *config.Config, maybePrev bool) error {
+func (p *Page) Render(store *data.Store, tmpl *template.Template, conf *Config, maybePrev bool) error {
 	if err := p.write(p.URL, tmpl, conf); err != nil {
 		return err
 	}
@@ -162,7 +161,7 @@ func (p *Page) Render(store *data.Store, tmpl *template.Template, conf *config.C
 	return nil
 }
 
-func (p *Page) write(url string, tmpl *template.Template, conf *config.Config) error {
+func (p *Page) write(url string, tmpl *template.Template, conf *Config) error {
 	path := conf.URLToPath(url)
 	dir := filepath.Dir(path)
 

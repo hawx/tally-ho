@@ -1,4 +1,4 @@
-package config
+package blog
 
 import (
 	"testing"
@@ -9,7 +9,7 @@ import (
 func TestConfig(t *testing.T) {
 	assert := assert.New(t)
 
-	conf, err := New("http://example.com/blog/", "/wwwroot/blog/")
+	conf, err := NewConfig("http://example.com/blog/", "/wwwroot/blog/")
 	assert.Nil(err)
 
 	const (

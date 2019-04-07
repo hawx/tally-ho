@@ -4,7 +4,6 @@ import (
 	"html/template"
 	"log"
 
-	"hawx.me/code/tally-ho/config"
 	"hawx.me/code/tally-ho/data"
 )
 
@@ -14,7 +13,7 @@ func RenderPost(
 	properties map[string][]interface{},
 	store *data.Store,
 	tmpl *template.Template,
-	conf *config.Config,
+	conf *Config,
 ) error {
 	log.Println("rendering", properties["uid"][0].(string))
 
@@ -41,7 +40,7 @@ func RenderPost(
 
 // RenderAll will render the whole site, possibly again, overwriting any old
 // files.
-func RenderAll(store *data.Store, tmpl *template.Template, conf *config.Config) error {
+func RenderAll(store *data.Store, tmpl *template.Template, conf *Config) error {
 	pages, err := store.Pages()
 	if err != nil {
 		return err

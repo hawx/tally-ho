@@ -1,4 +1,4 @@
-package config
+package blog
 
 import (
 	"errors"
@@ -13,8 +13,8 @@ type Config struct {
 	rootPath string
 }
 
-// New e.g. New("https://example.com/weblog/", "/wwwroot/weblog/")
-func New(rootURL, rootPath string) (*Config, error) {
+// NewConfig e.g. NewConfig("https://example.com/weblog/", "/wwwroot/weblog/")
+func NewConfig(rootURL, rootPath string) (*Config, error) {
 	if len(rootURL) == 0 {
 		return nil, errors.New("rootURL must be something")
 	}

@@ -9,13 +9,17 @@ import (
 
 	"github.com/google/uuid"
 	"hawx.me/code/numbersix"
-	"hawx.me/code/tally-ho/config"
 
 	// register sqlite3 for database/sql
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func Open(path string, conf *config.Config) (*Store, error) {
+type urlFactory interface {
+	PostURL(pageURL, slug string) string
+	PageURL(pageSlug string) string
+}
+
+func Open(path string, conf urlFactory) (*Store, error) {
 	sqlite, err := sql.Open("sqlite3", path)
 	if err != nil {
 		return nil, err
@@ -44,7 +48,7 @@ func migrate(db *sql.DB) error {
 type Store struct {
 	sqlite *sql.DB
 	db     *numbersix.DB
-	conf   *config.Config
+	conf   urlFactory
 }
 
 func (s *Store) Close() error {

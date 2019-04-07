@@ -8,7 +8,6 @@ import (
 	"hawx.me/code/route"
 	"hawx.me/code/serve"
 	"hawx.me/code/tally-ho/blog"
-	"hawx.me/code/tally-ho/config"
 	"hawx.me/code/tally-ho/data"
 	"hawx.me/code/tally-ho/handler"
 )
@@ -24,7 +23,7 @@ func main() {
 	)
 	flag.Parse()
 
-	config, err := config.New(*baseURL, *basePath)
+	config, err := blog.NewConfig(*baseURL, *basePath)
 	if err != nil {
 		log.Fatal(err)
 	}

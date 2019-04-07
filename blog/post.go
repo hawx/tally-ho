@@ -5,8 +5,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-
-	"hawx.me/code/tally-ho/config"
 )
 
 func (page *Page) Post(properties map[string][]interface{}) (*Post, error) {
@@ -24,7 +22,7 @@ type Post struct {
 	PageURL string
 }
 
-func (p *Post) Render(tmpl *template.Template, conf *config.Config) error {
+func (p *Post) Render(tmpl *template.Template, conf *Config) error {
 	url := p.Properties["url"][0].(string)
 	path := conf.URLToPath(url)
 	dir := filepath.Dir(path)
