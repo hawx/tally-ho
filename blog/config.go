@@ -1,73 +1,48 @@
 package blog
 
 import (
-	"errors"
 	"strings"
 )
 
 const indexHTML = "index.html"
 
-// Config contains URLs and filepaths for determining where things should live.
-type Config struct {
-	rootURL  string
-	rootPath string
-}
-
-// NewConfig e.g. NewConfig("https://example.com/weblog/", "/wwwroot/weblog/")
-func NewConfig(rootURL, rootPath string) (*Config, error) {
-	if len(rootURL) == 0 {
-		return nil, errors.New("rootURL must be something")
-	}
-	if rootURL[len(rootURL)-1] != '/' {
-		return nil, errors.New("rootURL must end with a '/'")
-	}
-	if rootPath[len(rootPath)-1] != '/' {
-		return nil, errors.New("rootPath must end with a '/'")
-	}
-
-	return &Config{
-		rootURL:  rootURL,
-		rootPath: rootPath,
-	}, nil
-}
-
 // PostID takes a URL for a post and returns the ID.
-func (c *Config) PostID(url string) string {
+func (b *Blog) PostID(url string) string {
 	parts := strings.Split(url, "/")
 
 	return parts[len(parts)-1]
 }
 
 // PostURL takes an ID for a post and returns the URL.
-func (c *Config) PostURL(pageURL, uid string) string {
+func (b *Blog) PostURL(pageURL, uid string) string {
 	return pageURL + "/" + uid
 }
 
-func (c *Config) URLToPath(url string) string {
-	if url == c.rootURL {
-		return c.rootPath + indexHTML
+func (b *Blog) URLToPath(url string) string {
+	if url == b.baseURL {
+		return b.basePath + indexHTML
 	}
 
-	return c.rootPath + url[len(c.rootURL):] + "/" + indexHTML
+	return b.basePath + url[len(b.baseURL):] + "/" + indexHTML
 }
 
-func (c *Config) PathToURL(path string) string {
-	return c.rootURL + path[len(c.rootPath):len(path)-len(indexHTML)-1]
+func (b *Blog) PathToURL(path string) string {
+	return b.baseURL + path[len(b.basePath):len(path)-len(indexHTML)-1]
 }
 
 // PostPath takes an ID for a post and returns the path.
-func (c *Config) PostPath(pageSlug, id string) string {
-	return c.rootPath + pageSlug + "/" + id + "/" + indexHTML
+func (b *Blog) PostPath(pageSlug, id string) string {
+	return b.basePath + pageSlug + "/" + id + "/" + indexHTML
 }
 
-func (c *Config) PageURL(pageSlug string) string {
-	return c.rootURL + pageSlug
+func (b *Blog) PageURL(pageSlug string) string {
+	return b.baseURL + pageSlug
 }
 
-func (c *Config) PagePath(pageSlug string) string {
-	return c.rootPath + pageSlug + "/" + indexHTML
+func (b *Blog) PagePath(pageSlug string) string {
+	return b.basePath + pageSlug + "/" + indexHTML
 }
 
-func (c *Config) RootURL() string {
-	return c.rootURL
+func (b *Blog) RootURL() string {
+	return b.baseURL
 }

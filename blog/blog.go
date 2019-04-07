@@ -1,6 +1,7 @@
 package blog
 
 import (
+	"errors"
 	"html/template"
 	"path/filepath"
 	"regexp"
@@ -12,7 +13,8 @@ import (
 )
 
 type Blog struct {
-	config    *Config
+	baseURL   string
+	basePath  string
 	templates *template.Template
 	store     *data.Store
 }
@@ -32,9 +34,14 @@ type Options struct {
 }
 
 func New(options Options) (*Blog, error) {
-	config, err := NewConfig(options.BaseURL, options.BasePath)
-	if err != nil {
-		return nil, err
+	if len(options.BaseURL) == 0 {
+		return nil, errors.New("BaseURL must be something")
+	}
+	if options.BaseURL[len(options.BaseURL)-1] != '/' {
+		return nil, errors.New("BaseURL must end with a '/'")
+	}
+	if options.BasePath[len(options.BasePath)-1] != '/' {
+		return nil, errors.New("BasePath must end with a '/'")
 	}
 
 	templates, err := ParseTemplates(filepath.Join(options.WebPath, "template/*.gotmpl"))
@@ -42,13 +49,14 @@ func New(options Options) (*Blog, error) {
 		return nil, err
 	}
 
-	store, err := data.Open(options.DbPath, config)
+	store, err := data.Open(options.DbPath, nil) // TODO: fix this nil
 	if err != nil {
 		return nil, err
 	}
 
 	return &Blog{
-		config:    config,
+		basePath:  options.BasePath,
+		baseURL:   options.BaseURL,
 		templates: templates,
 		store:     store,
 	}, nil
@@ -59,9 +67,6 @@ func (b *Blog) Close() error {
 }
 
 // post.go
-func (b *Blog) PostID(url string) string {
-	return b.config.PostID(url)
-}
 
 func (b *Blog) Update(id string, replace, add, delete map[string][]interface{}) error {
 	return b.store.Update(id, replace, add, delete)
@@ -89,7 +94,7 @@ func (b *Blog) Create(data map[string][]interface{}) (map[string][]interface{}, 
 
 	data["uid"] = []interface{}{id}
 	data["hx-page"] = []interface{}{page.Name}
-	data["url"] = []interface{}{b.config.PostURL(page.URL, slug)}
+	data["url"] = []interface{}{b.PostURL(page.URL, slug)}
 	data["published"] = []interface{}{time.Now().UTC().Format(time.RFC3339)}
 
 	return data, b.store.Create(id, data)
@@ -97,7 +102,7 @@ func (b *Blog) Create(data map[string][]interface{}) (map[string][]interface{}, 
 
 // configuration.go
 func (b *Blog) PostByURL(url string) (map[string][]interface{}, error) {
-	id := b.config.PostID(url)
+	id := b.PostID(url)
 
 	return b.store.Get(id)
 }

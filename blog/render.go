@@ -14,7 +14,7 @@ func (b *Blog) RenderPost(properties map[string][]interface{}) error {
 		return err
 	}
 
-	if err := page.Render(b.store, b.templates, b.config, true); err != nil {
+	if err := page.Render(b.store, b.templates, b, true); err != nil {
 		return err
 	}
 
@@ -23,7 +23,7 @@ func (b *Blog) RenderPost(properties map[string][]interface{}) error {
 		return err
 	}
 
-	if err := post.Render(b.templates, b.config); err != nil {
+	if err := post.Render(b.templates, b); err != nil {
 		return err
 	}
 
@@ -44,7 +44,7 @@ func (b *Blog) RenderAll() error {
 			return err
 		}
 
-		if err := page.Render(b.store, b.templates, b.config, false); err != nil {
+		if err := page.Render(b.store, b.templates, b, false); err != nil {
 			return err
 		}
 
@@ -54,7 +54,7 @@ func (b *Blog) RenderAll() error {
 				return err
 			}
 
-			if err := post.Render(b.templates, b.config); err != nil {
+			if err := post.Render(b.templates, b); err != nil {
 				return err
 			}
 		}
