@@ -7,11 +7,7 @@ import (
 	"hawx.me/code/tally-ho/blog"
 )
 
-type readingStore interface {
-	Get(id string) (map[string][]interface{}, error)
-}
-
-func Configuration(store readingStore, config *blog.Config) http.HandlerFunc {
+func Configuration(blog *blog.Blog) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.FormValue("q") == "config" {
 			w.Write([]byte("{}")) // for now
@@ -27,9 +23,7 @@ func Configuration(store readingStore, config *blog.Config) http.HandlerFunc {
 				}
 			}
 
-			id := config.PostID(url)
-
-			obj, err := store.Get(id)
+			obj, err := blog.PostByURL(url)
 			if err != nil {
 				http.Error(w, "not found", http.StatusNotFound)
 				return

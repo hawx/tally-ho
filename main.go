@@ -8,7 +8,6 @@ import (
 	"hawx.me/code/route"
 	"hawx.me/code/serve"
 	"hawx.me/code/tally-ho/blog"
-	"hawx.me/code/tally-ho/data"
 	"hawx.me/code/tally-ho/handler"
 )
 
@@ -20,27 +19,24 @@ func main() {
 		dbPath   = flag.String("db", "file::memory:", "")
 		baseURL  = flag.String("base-url", "http://localhost:8080/", "")
 		basePath = flag.String("base-path", "/tmp/", "")
+		webPath  = flag.String("web", "web", "")
 	)
 	flag.Parse()
 
-	config, err := blog.NewConfig(*baseURL, *basePath)
+	blog, err := blog.New(blog.Options{
+		WebPath:  *webPath,
+		BaseURL:  *baseURL,
+		BasePath: *basePath,
+		DbPath:   *dbPath,
+	})
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return
 	}
-
-	templates, err := blog.ParseTemplates("web/template/*.gotmpl")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	store, err := data.Open(*dbPath, config)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer store.Close()
+	defer blog.Close()
 
 	if flag.NArg() == 1 && flag.Arg(0) == "render" {
-		if err := blog.RenderAll(store, templates, config); err != nil {
+		if err := blog.RenderAll(); err != nil {
 			log.Fatal(err)
 		}
 
@@ -52,8 +48,8 @@ func main() {
 	}
 
 	route.Handle("/micropub", handler.Authenticate(*me, "create", mux.Method{
-		"POST": handler.Post(store, templates, config),
-		"GET":  handler.Configuration(store, config),
+		"POST": handler.Post(blog),
+		"GET":  handler.Configuration(blog),
 	}))
 
 	route.Handle("/webmention", mux.Method{

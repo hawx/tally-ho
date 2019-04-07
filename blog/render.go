@@ -1,28 +1,20 @@
 package blog
 
 import (
-	"html/template"
 	"log"
-
-	"hawx.me/code/tally-ho/data"
 )
 
 // RenderPost can be called when a new post is added. It will render the post,
 // the page the post is on, and the root page.
-func RenderPost(
-	properties map[string][]interface{},
-	store *data.Store,
-	tmpl *template.Template,
-	conf *Config,
-) error {
+func (b *Blog) RenderPost(properties map[string][]interface{}) error {
 	log.Println("rendering", properties["uid"][0].(string))
 
-	page, err := FindPage(properties["hx-page"][0].(string), store)
+	page, err := FindPage(properties["hx-page"][0].(string), b.store)
 	if err != nil {
 		return err
 	}
 
-	if err := page.Render(store, tmpl, conf, true); err != nil {
+	if err := page.Render(b.store, b.templates, b.config, true); err != nil {
 		return err
 	}
 
@@ -31,7 +23,7 @@ func RenderPost(
 		return err
 	}
 
-	if err := post.Render(tmpl, conf); err != nil {
+	if err := post.Render(b.templates, b.config); err != nil {
 		return err
 	}
 
@@ -40,19 +32,19 @@ func RenderPost(
 
 // RenderAll will render the whole site, possibly again, overwriting any old
 // files.
-func RenderAll(store *data.Store, tmpl *template.Template, conf *Config) error {
-	pages, err := store.Pages()
+func (b *Blog) RenderAll() error {
+	pages, err := b.store.Pages()
 	if err != nil {
 		return err
 	}
 
 	for _, page := range pages {
-		page, err := FindPage(page.Name, store)
+		page, err := FindPage(page.Name, b.store)
 		if err != nil {
 			return err
 		}
 
-		if err := page.Render(store, tmpl, conf, false); err != nil {
+		if err := page.Render(b.store, b.templates, b.config, false); err != nil {
 			return err
 		}
 
@@ -62,7 +54,7 @@ func RenderAll(store *data.Store, tmpl *template.Template, conf *Config) error {
 				return err
 			}
 
-			if err := post.Render(tmpl, conf); err != nil {
+			if err := post.Render(b.templates, b.config); err != nil {
 				return err
 			}
 		}

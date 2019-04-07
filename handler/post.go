@@ -2,16 +2,14 @@ package handler
 
 import (
 	"encoding/json"
-	"html/template"
 	"net/http"
 	"strings"
 
 	"hawx.me/code/mux"
 	"hawx.me/code/tally-ho/blog"
-	"hawx.me/code/tally-ho/data"
 )
 
-func Post(store *data.Store, tmpl *template.Template, config *blog.Config) http.Handler {
+func Post(blog *blog.Blog) http.Handler {
 	handleJSON := func(w http.ResponseWriter, r *http.Request) {
 		v := jsonMicroformat{Properties: map[string][]interface{}{}}
 
@@ -50,8 +48,8 @@ func Post(store *data.Store, tmpl *template.Template, config *blog.Config) http.
 				delete[key] = value
 			}
 
-			id := config.PostID(v.URL)
-			if err := store.Update(id, replace, add, delete); err != nil {
+			id := blog.PostID(v.URL)
+			if err := blog.Update(id, replace, add, delete); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -70,7 +68,7 @@ func Post(store *data.Store, tmpl *template.Template, config *blog.Config) http.
 				return
 			}
 
-			if err := store.SetNextPage(name); err != nil {
+			if err := blog.SetNextPage(name); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -79,7 +77,7 @@ func Post(store *data.Store, tmpl *template.Template, config *blog.Config) http.
 			return
 		}
 
-		data, err := store.Create(data)
+		data, err := blog.Create(data)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -112,13 +110,13 @@ func Post(store *data.Store, tmpl *template.Template, config *blog.Config) http.
 			}
 		}
 
-		data, err := store.Create(data)
+		data, err := blog.Create(data)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		if err := blog.RenderPost(data, store, tmpl, config); err != nil {
+		if err := blog.RenderPost(data); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -140,5 +138,5 @@ func Post(store *data.Store, tmpl *template.Template, config *blog.Config) http.
 }
 
 func reservedKey(key string) bool {
-	return key == "access_token" || key == "action" || key == "url" || strings.HasPrefix(key, "mp-")
+	return key == "access_token" || key == "action" || key == "url" // || strings.HasPrefix(key, "mp-")
 }

@@ -1,5 +1,10 @@
 package data
 
+import (
+	"regexp"
+	"strings"
+)
+
 type Page struct {
 	Name string
 	URL  string
@@ -67,4 +72,16 @@ func (s *Store) Pages() (pages []Page, err error) {
 	}
 
 	return pages, rows.Err()
+}
+
+var nonWord = regexp.MustCompile("\\W+")
+
+func slugify(s string) string {
+	s = strings.ReplaceAll(s, "'", "")
+	s = nonWord.ReplaceAllString(s, " ")
+	s = strings.TrimSpace(s)
+	s = strings.ToLower(s)
+	s = strings.ReplaceAll(s, " ", "-")
+
+	return s
 }
