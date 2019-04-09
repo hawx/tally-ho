@@ -56,5 +56,9 @@ func main() {
 		// "POST":
 	})
 
+	route.Handle("/media", mux.Method{
+		// "POST":
+	})
+
 	serve.Serve(*port, *socket, route.Default)
 }

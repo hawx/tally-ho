@@ -1,9 +1,24 @@
+// Package data wraps the underlying database used by the blog.
+//
+// It uses three tables.
+//
+// 1. pages
+//
+// This is a simple list of page names and urls.
+//
+// 2. entries
+//
+// This contains the blog posts and stuff. It stores everything as triples
+// assuming that the input is micropubbed in the x-url-encoded format.
+//
+// 3. mentions
+//
+// Contains webmentions also stored as triples from the parsed h-entry that
+// mentioned a entry.
 package data
 
 import (
 	"database/sql"
-	"errors"
-	"time"
 
 	"hawx.me/code/numbersix"
 
@@ -21,12 +36,22 @@ func Open(path string, conf urlFactory) (*Store, error) {
 		return nil, err
 	}
 
-	db, err := numbersix.For(sqlite, "triples")
+	entries, err := numbersix.For(sqlite, "entries")
 	if err != nil {
 		return nil, err
 	}
 
-	return &Store{sqlite: sqlite, db: db, conf: conf}, migrate(sqlite)
+	mentions, err := numbersix.For(sqlite, "mentions")
+	if err != nil {
+		return nil, err
+	}
+
+	return &Store{
+		sqlite:   sqlite,
+		entries:  entries,
+		mentions: mentions,
+		conf:     conf,
+	}, migrate(sqlite)
 }
 
 func migrate(db *sql.DB) error {
@@ -42,58 +67,12 @@ func migrate(db *sql.DB) error {
 }
 
 type Store struct {
-	sqlite *sql.DB
-	db     *numbersix.DB
-	conf   urlFactory
+	sqlite   *sql.DB
+	entries  *numbersix.DB
+	mentions *numbersix.DB
+	conf     urlFactory
 }
 
 func (s *Store) Close() error {
 	return s.sqlite.Close()
-}
-
-func (s *Store) Create(id string, data map[string][]interface{}) error {
-	return s.db.SetProperties(id, data)
-}
-
-func (s *Store) Update(id string, replace, add, delete map[string][]interface{}) error {
-	replace["updated"] = []interface{}{time.Now().UTC().Format(time.RFC3339)}
-
-	for predicate, values := range replace {
-		s.db.DeletePredicate(id, predicate)
-		s.db.SetMany(id, predicate, values)
-	}
-
-	for predicate, values := range add {
-		s.db.SetMany(id, predicate, values)
-	}
-
-	for predicate, values := range delete {
-		for _, value := range values {
-			s.db.DeleteValue(id, predicate, value)
-		}
-	}
-
-	return nil
-}
-
-func (s *Store) Get(id string) (data map[string][]interface{}, err error) {
-	triples, err := s.db.List(numbersix.About(id))
-	if err != nil {
-		return
-	}
-	groups := numbersix.Grouped(triples)
-	if len(groups) == 0 {
-		return data, errors.New("no data for id: " + id)
-	}
-
-	return groups[0].Properties, nil
-}
-
-func (s *Store) Entries(page string) (groups []numbersix.Group, err error) {
-	triples, err := s.db.List(numbersix.Descending("published").Where("hx-page", page))
-	if err != nil {
-		return
-	}
-
-	return numbersix.Grouped(triples), nil
 }
