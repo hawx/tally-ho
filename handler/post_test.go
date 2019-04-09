@@ -10,39 +10,42 @@ import (
 	"hawx.me/code/assert"
 )
 
-type fakePostStore struct {
+type fakePostBlog struct {
 	datas                   []map[string][]interface{}
 	replaces, adds, deletes map[string][]map[string][]interface{}
 }
 
-func (s *fakePostStore) Create(data map[string][]interface{}) (string, error) {
-	s.datas = append(s.datas, data)
-	return "1", nil
+func (b *fakePostBlog) PostID(url string) string {
+	return "1"
 }
 
-func (s *fakePostStore) Update(id string, replace, add, delete map[string][]interface{}) error {
-	s.replaces[id] = append(s.replaces[id], replace)
-	s.adds[id] = append(s.adds[id], add)
-	s.deletes[id] = append(s.deletes[id], delete)
+func (b *fakePostBlog) Update(id string, replace, add, delete map[string][]interface{}) error {
+	b.replaces[id] = append(b.replaces[id], replace)
+	b.adds[id] = append(b.adds[id], add)
+	b.deletes[id] = append(b.deletes[id], delete)
 
 	return nil
 }
 
-type fakeConfig struct{}
-
-func (c fakeConfig) PostID(url string) (string, error) {
-	return "1", nil
+func (b *fakePostBlog) SetNextPage(name string) error {
+	return nil
 }
 
-func (c fakeConfig) PostURL(id string) (string, error) {
-	return "http://example.com/blog/p/1", nil
+func (b *fakePostBlog) Create(data map[string][]interface{}) (map[string][]interface{}, error) {
+	b.datas = append(b.datas, data)
+
+	return map[string][]interface{}{"url": {"http://example.com/blog/p/1"}}, nil
+}
+
+func (b *fakePostBlog) RenderPost(data map[string][]interface{}) error {
+	return nil
 }
 
 func TestPostEntry(t *testing.T) {
 	assert := assert.New(t)
-	store := &fakePostStore{}
+	blog := &fakePostBlog{}
 
-	s := httptest.NewServer(Post(store, fakeConfig{}))
+	s := httptest.NewServer(Post(blog))
 	defer s.Close()
 
 	resp, err := http.PostForm(s.URL, url.Values{
@@ -56,8 +59,8 @@ func TestPostEntry(t *testing.T) {
 	assert.Equal(http.StatusCreated, resp.StatusCode)
 	assert.Equal("http://example.com/blog/p/1", resp.Header.Get("Location"))
 
-	if assert.Len(store.datas, 1) {
-		data := store.datas[0]
+	if assert.Len(blog.datas, 1) {
+		data := blog.datas[0]
 
 		assert.Equal("entry", data["h"][0])
 		assert.Equal("This is a test", data["content"][0])
@@ -71,9 +74,9 @@ func TestPostEntry(t *testing.T) {
 
 func TestPostEntryJSON(t *testing.T) {
 	assert := assert.New(t)
-	store := &fakePostStore{}
+	blog := &fakePostBlog{}
 
-	s := httptest.NewServer(Post(store, fakeConfig{}))
+	s := httptest.NewServer(Post(blog))
 	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
@@ -89,8 +92,8 @@ func TestPostEntryJSON(t *testing.T) {
 	assert.Equal(http.StatusCreated, resp.StatusCode)
 	assert.Equal("http://example.com/blog/p/1", resp.Header.Get("Location"))
 
-	if assert.Len(store.datas, 1) {
-		data := store.datas[0]
+	if assert.Len(blog.datas, 1) {
+		data := blog.datas[0]
 
 		assert.Equal("entry", data["h"][0])
 		assert.Equal("This is a test", data["content"][0])
@@ -104,13 +107,13 @@ func TestPostEntryJSON(t *testing.T) {
 
 func TestUpdateEntry(t *testing.T) {
 	assert := assert.New(t)
-	store := &fakePostStore{
+	blog := &fakePostBlog{
 		adds:     map[string][]map[string][]interface{}{},
 		deletes:  map[string][]map[string][]interface{}{},
 		replaces: map[string][]map[string][]interface{}{},
 	}
 
-	s := httptest.NewServer(Post(store, fakeConfig{}))
+	s := httptest.NewServer(Post(blog))
 	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
@@ -130,17 +133,17 @@ func TestUpdateEntry(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(http.StatusNoContent, resp.StatusCode)
 
-	replace, ok := store.replaces["1"]
+	replace, ok := blog.replaces["1"]
 	if assert.True(ok) && assert.Len(replace, 1) {
 		assert.Equal("hello moon", replace[0]["content"][0])
 	}
 
-	add, ok := store.adds["1"]
+	add, ok := blog.adds["1"]
 	if assert.True(ok) && assert.Len(add, 1) {
 		assert.Equal("http://somewhere.com", add[0]["syndication"][0])
 	}
 
-	delete, ok := store.deletes["1"]
+	delete, ok := blog.deletes["1"]
 	if assert.True(ok) && assert.Len(delete, 1) {
 		assert.Equal("this", delete[0]["not-important"][0])
 	}

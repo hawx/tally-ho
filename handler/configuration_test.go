@@ -11,22 +11,22 @@ import (
 	"hawx.me/code/assert"
 )
 
-type fakeReadingStore struct {
+type fakeConfigurationBlog struct {
 	entries map[string]map[string][]interface{}
 }
 
-func (s *fakeReadingStore) Get(url string) (map[string][]interface{}, error) {
-	if entry, ok := s.entries[url]; ok {
+func (b *fakeConfigurationBlog) PostByURL(url string) (map[string][]interface{}, error) {
+	if entry, ok := b.entries[url]; ok {
 		return entry, nil
 	}
 
-	return map[string][]interface{}{}, errors.New("what")
+	return nil, errors.New("nope")
 }
 
 func TestConfigurationConfig(t *testing.T) {
 	assert := assert.New(t)
 
-	s := httptest.NewServer(Configuration(&fakeReadingStore{}, fakeConfig{}))
+	s := httptest.NewServer(Configuration(&fakeConfigurationBlog{}))
 	defer s.Close()
 
 	resp, err := http.Get(s.URL + "?q=config")
@@ -40,16 +40,16 @@ func TestConfigurationConfig(t *testing.T) {
 func TestConfigurationSource(t *testing.T) {
 	assert := assert.New(t)
 
-	store := &fakeReadingStore{
+	blog := &fakeConfigurationBlog{
 		entries: map[string]map[string][]interface{}{
-			"1": {
+			"https://example.com/weblog/p/1": {
 				"h":     {"entry"},
 				"title": {"Cool post"},
 			},
 		},
 	}
 
-	s := httptest.NewServer(Configuration(store, fakeConfig{}))
+	s := httptest.NewServer(Configuration(blog))
 	defer s.Close()
 
 	resp, err := http.Get(s.URL + "?q=source&url=https://example.com/weblog/p/1")
@@ -69,16 +69,16 @@ func TestConfigurationSource(t *testing.T) {
 func TestConfigurationSourceWithProperties(t *testing.T) {
 	assert := assert.New(t)
 
-	store := &fakeReadingStore{
+	blog := &fakeConfigurationBlog{
 		entries: map[string]map[string][]interface{}{
-			"1": {
+			"https://example.com/weblog/p/1": {
 				"h":     {"entry"},
 				"title": {"Cool post"},
 			},
 		},
 	}
 
-	s := httptest.NewServer(Configuration(store, fakeConfig{}))
+	s := httptest.NewServer(Configuration(blog))
 	defer s.Close()
 
 	resp, err := http.Get(s.URL + "?q=source&properties=title&url=https://example.com/weblog/p/1")
@@ -98,9 +98,9 @@ func TestConfigurationSourceWithProperties(t *testing.T) {
 func TestConfigurationSourceWithManyProperties(t *testing.T) {
 	assert := assert.New(t)
 
-	store := &fakeReadingStore{
+	blog := &fakeConfigurationBlog{
 		entries: map[string]map[string][]interface{}{
-			"1": {
+			"https://example.com/weblog/p/1": {
 				"h":          {"entry"},
 				"title":      {"Cool post"},
 				"summary":    {"goodness"},
@@ -109,7 +109,7 @@ func TestConfigurationSourceWithManyProperties(t *testing.T) {
 		},
 	}
 
-	s := httptest.NewServer(Configuration(store, fakeConfig{}))
+	s := httptest.NewServer(Configuration(blog))
 	defer s.Close()
 
 	resp, err := http.Get(s.URL + "?q=source&properties[]=title&properties[]=categories&url=https://example.com/weblog/p/1")

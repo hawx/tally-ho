@@ -9,8 +9,10 @@ import (
 func TestConfig(t *testing.T) {
 	assert := assert.New(t)
 
-	conf, err := NewConfig("http://example.com/blog/", "/wwwroot/blog/")
-	assert.Nil(err)
+	blog := &Blog{
+		baseURL:  "http://example.com/blog/",
+		basePath: "/wwwroot/blog/",
+	}
 
 	const (
 		rootPath = "/wwwroot/blog/index.html"
@@ -20,12 +22,12 @@ func TestConfig(t *testing.T) {
 		postPath = "/wwwroot/blog/my-page/my-post/index.html"
 	)
 
-	assert.Equal("my-post", conf.PostID(postURL))
-	assert.Equal(postURL, conf.PostURL(pageURL, "my-post"))
-	assert.Equal(postPath, conf.URLToPath(postURL))
-	assert.Equal(postURL, conf.PathToURL(postPath))
-	assert.Equal(postPath, conf.PostPath("my-page", "my-post"))
-	assert.Equal(pageURL, conf.PageURL("my-page"))
-	assert.Equal(pagePath, conf.PagePath("my-page"))
-	assert.Equal(rootPath, conf.URLToPath(conf.RootURL()))
+	assert.Equal("my-post", blog.PostID(postURL))
+	assert.Equal(postURL, blog.PostURL(pageURL, "my-post"))
+	assert.Equal(postPath, blog.URLToPath(postURL))
+	assert.Equal(postURL, blog.PathToURL(postPath))
+	assert.Equal(postPath, blog.PostPath("my-page", "my-post"))
+	assert.Equal(pageURL, blog.PageURL("my-page"))
+	assert.Equal(pagePath, blog.PagePath("my-page"))
+	assert.Equal(rootPath, blog.URLToPath(blog.RootURL()))
 }

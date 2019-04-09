@@ -3,11 +3,13 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
-
-	"hawx.me/code/tally-ho/blog"
 )
 
-func Configuration(blog *blog.Blog) http.HandlerFunc {
+type configurationBlog interface {
+	PostByURL(url string) (map[string][]interface{}, error)
+}
+
+func Configuration(blog configurationBlog) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.FormValue("q") == "config" {
 			w.Write([]byte("{}")) // for now

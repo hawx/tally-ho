@@ -2,7 +2,7 @@ package blog
 
 import "html/template"
 
-func ParseTemplates(glob string) (*template.Template, error) {
+func parseTemplates(glob string) (*template.Template, error) {
 	return template.New("t").Funcs(template.FuncMap{
 		"has": func(m map[string][]interface{}, key string) bool {
 			value, ok := m[key]

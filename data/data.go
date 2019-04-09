@@ -13,7 +13,6 @@ import (
 
 type urlFactory interface {
 	PostURL(pageURL, slug string) string
-	PageURL(pageSlug string) string
 }
 
 func Open(path string, conf urlFactory) (*Store, error) {

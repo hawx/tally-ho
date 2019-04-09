@@ -6,10 +6,17 @@ import (
 	"strings"
 
 	"hawx.me/code/mux"
-	"hawx.me/code/tally-ho/blog"
 )
 
-func Post(blog *blog.Blog) http.Handler {
+type postBlog interface {
+	PostID(url string) string
+	Update(id string, replace, add, delete map[string][]interface{}) error
+	SetNextPage(name string) error
+	Create(data map[string][]interface{}) (map[string][]interface{}, error)
+	RenderPost(data map[string][]interface{}) error
+}
+
+func Post(blog postBlog) http.Handler {
 	handleJSON := func(w http.ResponseWriter, r *http.Request) {
 		v := jsonMicroformat{Properties: map[string][]interface{}{}}
 
@@ -138,5 +145,5 @@ func Post(blog *blog.Blog) http.Handler {
 }
 
 func reservedKey(key string) bool {
-	return key == "access_token" || key == "action" || key == "url" // || strings.HasPrefix(key, "mp-")
+	return key == "access_token" || key == "action" || key == "url" || strings.HasPrefix(key, "mp-")
 }

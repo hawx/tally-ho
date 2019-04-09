@@ -46,7 +46,7 @@ func New(options Options) (*Blog, error) {
 		return nil, errors.New("BasePath must end with a '/'")
 	}
 
-	templates, err := ParseTemplates(filepath.Join(options.WebPath, "template/*.gotmpl"))
+	templates, err := parseTemplates(filepath.Join(options.WebPath, "template/*.gotmpl"))
 	if err != nil {
 		return nil, err
 	}

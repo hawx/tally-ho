@@ -16,8 +16,6 @@ func Authenticate(me, scope string, next http.Handler) http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(w, r)
-		return
 		auth := r.Header.Get("Authorization")
 		if auth == "" {
 			auth = "Bearer " + r.FormValue("access_token")
