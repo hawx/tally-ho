@@ -15,6 +15,8 @@ github.com/gorilla/securecookie v1.1.1 h1:miw7JPhV+b/lAHSXz4qd/nN9jRiAFV5FwjeKyC
 github.com/gorilla/securecookie v1.1.1/go.mod h1:ra0sb63/xPlUeL+yeDciTfxMRAA+MP+HVt/4epWDjd4=
 github.com/gorilla/sessions v1.1.3 h1:uXoZdcdA5XdXF3QzuSlheVRUvjl+1rKY7zBXL68L9RU=
 github.com/gorilla/sessions v1.1.3/go.mod h1:8KCfur6+4Mqcc6S0FEfKuN15Vl5MgXW92AE8ovaJD0w=
+github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348 h1:MtvEpTB6LX3vkb4ax0b5D2DHbNAUsen0Gx5wZoq3lV4=
+github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348/go.mod h1:B69LEHPfb2qLo0BaaOLcbitczOKLWTsrBG9LczfCD4k=
 github.com/mattn/go-sqlite3 v1.10.0 h1:jbhqpg7tQe4SupckyijYiy0mJJ/pRyHvXf7JdWK860o=
 github.com/mattn/go-sqlite3 v1.10.0/go.mod h1:FPy6KqzDD04eiIsT53CuJW3U88zkxoIYsOqkbpncsNc=
 github.com/peterhellberg/link v1.0.0 h1:mUWkiegowUXEcmlb+ybF75Q/8D2Y0BjZtR8cxoKhaQo=
@@ -49,6 +51,8 @@ hawx.me/code/numbersix v0.0.0-20190317150423-fe1448fdc040 h1:BVeAThFFoeUs2BksRRW
 hawx.me/code/numbersix v0.0.0-20190317150423-fe1448fdc040/go.mod h1:01SfZty+XY7sFK1M1UkfhH7ijSVaLThACAIgSpWk+v4=
 hawx.me/code/numbersix v0.0.0-20190404181615-6acf61b06293 h1:g0iqtAd7+Q6y68uBTVm0Q3VvVjJlf9eXmpeBpnYKKL8=
 hawx.me/code/numbersix v0.0.0-20190404181615-6acf61b06293/go.mod h1:01SfZty+XY7sFK1M1UkfhH7ijSVaLThACAIgSpWk+v4=
+hawx.me/code/numbersix v0.0.0-20190411150752-c950ba47ee32 h1:EicsPaYcsPbSXGcriWWZtcE+s6E3TV58i/M40mLxONA=
+hawx.me/code/numbersix v0.0.0-20190411150752-c950ba47ee32/go.mod h1:01SfZty+XY7sFK1M1UkfhH7ijSVaLThACAIgSpWk+v4=
 hawx.me/code/route v1.0.0 h1:oSH04y0xTXUY5dflvRyUYl+yqs5J/lDvbOwMJc80sYY=
 hawx.me/code/route v1.0.0/go.mod h1:SKWPgx9IKsK2Yy66xj1bSRBOTMwR6kFQcLMjgajaeAc=
 hawx.me/code/serve v0.0.0-20190207181551-eb94630184cf h1:8rHeLEfK+pyTPkL/kH5THN2HgtfbuMeHnnneMFijo3Y=

@@ -53,7 +53,7 @@ func main() {
 	}))
 
 	route.Handle("/webmention", mux.Method{
-		// "POST":
+		// "POST": handler.Mention(blog),
 	})
 
 	route.Handle("/media", mux.Method{
