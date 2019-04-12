@@ -3,8 +3,6 @@ package blog
 import (
 	"errors"
 	"html/template"
-	"log"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -15,10 +13,10 @@ import (
 )
 
 type Blog struct {
-	baseURL   string
-	basePath  string
-	templates *template.Template
-	store     *data.Store
+	basePath, baseURL   string
+	mediaPath, mediaURL string
+	templates           *template.Template
+	store               *data.Store
 }
 
 type Options struct {
@@ -33,17 +31,29 @@ type Options struct {
 
 	// DbPath is the path to the sqlite database.
 	DbPath string
+
+	// MediaURL is the URL that the media will be hosted at.
+	MediaURL string
+
+	// MediaPath is the path media files will be written to.
+	MediaPath string
 }
 
 func New(options Options) (*Blog, error) {
 	if len(options.BaseURL) == 0 {
 		return nil, errors.New("BaseURL must be something")
 	}
-	if options.BaseURL[len(options.BaseURL)-1] != '/' {
+	if len(options.BaseURL) == 0 || options.BaseURL[len(options.BaseURL)-1] != '/' {
 		return nil, errors.New("BaseURL must end with a '/'")
 	}
-	if options.BasePath[len(options.BasePath)-1] != '/' {
+	if len(options.BasePath) == 0 || options.BasePath[len(options.BasePath)-1] != '/' {
 		return nil, errors.New("BasePath must end with a '/'")
+	}
+	if len(options.MediaURL) == 0 || options.MediaURL[len(options.MediaURL)-1] != '/' {
+		return nil, errors.New("MediaURL must end with a '/'")
+	}
+	if len(options.MediaPath) == 0 || options.MediaPath[len(options.MediaPath)-1] != '/' {
+		return nil, errors.New("MediaPath must end with a '/'")
 	}
 
 	templates, err := parseTemplates(filepath.Join(options.WebPath, "template/*.gotmpl"))
@@ -57,8 +67,10 @@ func New(options Options) (*Blog, error) {
 	}
 
 	return &Blog{
-		basePath:  options.BasePath,
 		baseURL:   options.BaseURL,
+		basePath:  options.BasePath,
+		mediaURL:  options.MediaURL,
+		mediaPath: options.MediaPath,
 		templates: templates,
 		store:     store,
 	}, nil
@@ -135,40 +147,4 @@ func slugify(s string) string {
 	s = strings.ReplaceAll(s, " ", "-")
 
 	return s
-}
-
-type writer interface {
-	writePost(url string, data interface{}) error
-	writePage(url string, data interface{}) error
-	writeRoot(data interface{}) error
-}
-
-func (b *Blog) writePost(url string, data interface{}) error {
-	return b.write(url, "post.gotmpl", data)
-}
-
-func (b *Blog) writePage(url string, data interface{}) error {
-	return b.write(url, "page.gotmpl", data)
-}
-
-func (b *Blog) writeRoot(data interface{}) error {
-	return b.write(b.RootURL(), "page.gotmpl", data)
-}
-
-func (b *Blog) write(url, tmpl string, data interface{}) error {
-	path := b.URLToPath(url)
-	dir := filepath.Dir(path)
-
-	log.Println("mkdir", dir)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
-	}
-
-	log.Println("writing", path)
-	file, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-
-	return b.templates.ExecuteTemplate(file, tmpl, data)
 }

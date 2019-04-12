@@ -62,7 +62,7 @@ func main() {
 	})
 
 	route.Handle("/media", mux.Method{
-		// "POST":
+		"POST": handler.Media(blog),
 	})
 
 	serve.Serve(*port, *socket, route.Default)

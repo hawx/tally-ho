@@ -9,10 +9,12 @@ import (
 
 func TestCreate(t *testing.T) {
 	blog, err := New(Options{
-		BaseURL:  "http://example.com/weblog/",
-		BasePath: "/wwwroot/weblog/",
-		DbPath:   "file::memory:",
-		WebPath:  "../web",
+		BaseURL:   "http://example.com/weblog/",
+		BasePath:  "/wwwroot/weblog/",
+		MediaURL:  "http://example.com/media/",
+		MediaPath: "/wwwroot/media/",
+		DbPath:    "file::memory:",
+		WebPath:   "../web",
 	})
 	if !assert.Nil(t, err) {
 		return

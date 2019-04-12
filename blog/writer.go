@@ -1,0 +1,43 @@
+package blog
+
+import (
+	"log"
+	"os"
+	"path/filepath"
+)
+
+type writer interface {
+	writePost(url string, data interface{}) error
+	writePage(url string, data interface{}) error
+	writeRoot(data interface{}) error
+}
+
+func (b *Blog) writePost(url string, data interface{}) error {
+	return b.write(url, "post.gotmpl", data)
+}
+
+func (b *Blog) writePage(url string, data interface{}) error {
+	return b.write(url, "page.gotmpl", data)
+}
+
+func (b *Blog) writeRoot(data interface{}) error {
+	return b.write(b.RootURL(), "page.gotmpl", data)
+}
+
+func (b *Blog) write(url, tmpl string, data interface{}) error {
+	path := b.URLToPath(url)
+	dir := filepath.Dir(path)
+
+	log.Println("mkdir", dir)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
+	log.Println("writing", path)
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+
+	return b.templates.ExecuteTemplate(file, tmpl, data)
+}
