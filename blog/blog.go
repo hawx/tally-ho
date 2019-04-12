@@ -111,6 +111,20 @@ func (b *Blog) PostByURL(url string) (map[string][]interface{}, error) {
 	return b.store.Get(id)
 }
 
+// mention.go
+
+// MentionSourceAllowed will check if the source URL or host of the source URL
+// has been blacklisted.
+func (b *Blog) MentionSourceAllowed(source string) bool {
+	return b.store.MentionSourceAllowed(source)
+}
+
+// AddMention will add the properties to a new webmention, or if a mention
+// already exists for the source update those properties.
+func (b *Blog) AddMention(source string, data map[string][]interface{}) error {
+	return b.store.AddMention(source, data)
+}
+
 var nonWord = regexp.MustCompile("\\W+")
 
 func slugify(s string) string {

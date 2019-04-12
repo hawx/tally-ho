@@ -12,7 +12,12 @@ type configurationBlog interface {
 func Configuration(blog configurationBlog) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.FormValue("q") == "config" {
-			w.Write([]byte("{}")) // for now
+			json.NewEncoder(w).Encode(struct {
+				MediaEndpoint string `json:"media-endpoint"`
+			}{
+				MediaEndpoint: "somewhere",
+			})
+			return
 		}
 
 		if r.FormValue("q") == "source" {

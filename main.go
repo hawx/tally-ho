@@ -47,13 +47,18 @@ func main() {
 		log.Fatal("--me must be provided")
 	}
 
+	route.Handle("/admin", mux.Method{
+		// want to be able to set page, block webmentions, etc.
+		// "GET":
+	})
+
 	route.Handle("/micropub", handler.Authenticate(*me, "create", mux.Method{
 		"POST": handler.Post(blog),
 		"GET":  handler.Configuration(blog),
 	}))
 
 	route.Handle("/webmention", mux.Method{
-		// "POST": handler.Mention(blog),
+		"POST": handler.Mention(blog),
 	})
 
 	route.Handle("/media", mux.Method{

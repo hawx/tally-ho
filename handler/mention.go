@@ -10,12 +10,8 @@ import (
 
 type mentionBlog interface {
 	PostByURL(url string) (map[string][]interface{}, error)
-	// MentionSourceAllowed will check if the source URL or host of the source URL
-	// has been blacklisted.
-	MentionSourceAllowed(url string) bool
-	// AddMention will add the properties to a new webmention, or if a mention
-	// already exists for the sourceURL update those properties.
-	AddMention(sourceURL string, data map[string][]interface{}) error
+	MentionSourceAllowed(source string) bool
+	AddMention(source string, data map[string][]interface{}) error
 }
 
 type webmention struct {
