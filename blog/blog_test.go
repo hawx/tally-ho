@@ -30,7 +30,7 @@ func TestCreate(t *testing.T) {
 		}
 		assert.NotEmpty(t, data["uid"][0])
 		assert.Equal(t, "some page", data["hx-page"][0])
-		assert.Equal(t, "http://example.com/weblog/some-page/"+data["uid"][0].(string), data["url"][0])
+		assert.Equal(t, "http://example.com/weblog/some-page/"+data["uid"][0].(string)+"/", data["url"][0])
 
 		published, err := time.Parse(time.RFC3339, data["published"][0].(string))
 		if assert.Nil(t, err) {
@@ -48,7 +48,7 @@ func TestCreate(t *testing.T) {
 		}
 		assert.NotEmpty(t, data["uid"][0])
 		assert.Equal(t, "some page", data["hx-page"][0])
-		assert.Equal(t, "http://example.com/weblog/some-page/this-is-my-post", data["url"][0])
+		assert.Equal(t, "http://example.com/weblog/some-page/this-is-my-post/", data["url"][0])
 
 		published, err := time.Parse(time.RFC3339, data["published"][0].(string))
 		if assert.Nil(t, err) {
@@ -67,7 +67,7 @@ func TestCreate(t *testing.T) {
 		}
 		assert.NotEmpty(t, data["uid"][0])
 		assert.Equal(t, "some page", data["hx-page"][0])
-		assert.Equal(t, "http://example.com/weblog/some-page/please-use-this", data["url"][0])
+		assert.Equal(t, "http://example.com/weblog/some-page/please-use-this/", data["url"][0])
 
 		published, err := time.Parse(time.RFC3339, data["published"][0].(string))
 		if assert.Nil(t, err) {

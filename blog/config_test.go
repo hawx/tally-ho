@@ -10,15 +10,17 @@ func TestConfig(t *testing.T) {
 	assert := assert.New(t)
 
 	blog := &Blog{
-		baseURL:  "http://example.com/blog/",
-		basePath: "/wwwroot/blog/",
+		fw: aFileWriter{
+			url: "http://example.com/blog/",
+			dir: "/wwwroot/blog/",
+		},
 	}
 
 	const (
 		rootPath = "/wwwroot/blog/index.html"
-		pageURL  = "http://example.com/blog/my-page"
+		pageURL  = "http://example.com/blog/my-page/"
 		pagePath = "/wwwroot/blog/my-page/index.html"
-		postURL  = "http://example.com/blog/my-page/my-post"
+		postURL  = "http://example.com/blog/my-page/my-post/"
 		postPath = "/wwwroot/blog/my-page/my-post/index.html"
 	)
 

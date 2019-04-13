@@ -61,7 +61,7 @@ func (w aFileWriter) URL(path string) string {
 		path = path[len(w.dir):]
 	}
 
-	if path[0] == '/' {
+	if len(path) > 0 && path[0] == '/' {
 		path = path[1:]
 	}
 
@@ -73,7 +73,7 @@ func (w aFileWriter) Path(url string) string {
 		url = url[len(w.url):]
 	}
 
-	if url[len(url)-1] == '/' {
+	if len(url) == 0 || url[len(url)-1] == '/' {
 		url += "index.html"
 	}
 

@@ -1,7 +1,6 @@
 package blog
 
 import (
-	"errors"
 	"html/template"
 	"path/filepath"
 	"regexp"
@@ -13,9 +12,9 @@ import (
 )
 
 type Blog struct {
-	basePath, baseURL string
-	templates         *template.Template
-	store             *data.Store
+	fw        FileWriter
+	templates *template.Template
+	store     *data.Store
 }
 
 type Options struct {
@@ -33,14 +32,9 @@ type Options struct {
 }
 
 func New(options Options) (*Blog, error) {
-	if len(options.BaseURL) == 0 {
-		return nil, errors.New("BaseURL must be something")
-	}
-	if len(options.BaseURL) == 0 || options.BaseURL[len(options.BaseURL)-1] != '/' {
-		return nil, errors.New("BaseURL must end with a '/'")
-	}
-	if len(options.BasePath) == 0 || options.BasePath[len(options.BasePath)-1] != '/' {
-		return nil, errors.New("BasePath must end with a '/'")
+	fw, err := NewFileWriter(options.BasePath, options.BaseURL)
+	if err != nil {
+		return nil, err
 	}
 
 	templates, err := parseTemplates(filepath.Join(options.WebPath, "template/*.gotmpl"))
@@ -54,8 +48,7 @@ func New(options Options) (*Blog, error) {
 	}
 
 	return &Blog{
-		baseURL:   options.BaseURL,
-		basePath:  options.BasePath,
+		fw:        fw,
 		templates: templates,
 		store:     store,
 	}, nil
