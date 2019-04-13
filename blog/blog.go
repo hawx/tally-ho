@@ -13,10 +13,9 @@ import (
 )
 
 type Blog struct {
-	basePath, baseURL   string
-	mediaPath, mediaURL string
-	templates           *template.Template
-	store               *data.Store
+	basePath, baseURL string
+	templates         *template.Template
+	store             *data.Store
 }
 
 type Options struct {
@@ -31,12 +30,6 @@ type Options struct {
 
 	// DbPath is the path to the sqlite database.
 	DbPath string
-
-	// MediaURL is the URL that the media will be hosted at.
-	MediaURL string
-
-	// MediaPath is the path media files will be written to.
-	MediaPath string
 }
 
 func New(options Options) (*Blog, error) {
@@ -48,12 +41,6 @@ func New(options Options) (*Blog, error) {
 	}
 	if len(options.BasePath) == 0 || options.BasePath[len(options.BasePath)-1] != '/' {
 		return nil, errors.New("BasePath must end with a '/'")
-	}
-	if len(options.MediaURL) == 0 || options.MediaURL[len(options.MediaURL)-1] != '/' {
-		return nil, errors.New("MediaURL must end with a '/'")
-	}
-	if len(options.MediaPath) == 0 || options.MediaPath[len(options.MediaPath)-1] != '/' {
-		return nil, errors.New("MediaPath must end with a '/'")
 	}
 
 	templates, err := parseTemplates(filepath.Join(options.WebPath, "template/*.gotmpl"))
@@ -69,8 +56,6 @@ func New(options Options) (*Blog, error) {
 	return &Blog{
 		baseURL:   options.BaseURL,
 		basePath:  options.BasePath,
-		mediaURL:  options.MediaURL,
-		mediaPath: options.MediaPath,
 		templates: templates,
 		store:     store,
 	}, nil

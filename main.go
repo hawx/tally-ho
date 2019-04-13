@@ -4,6 +4,8 @@ import (
 	"flag"
 	"log"
 
+	"hawx.me/code/indieauth"
+	"hawx.me/code/indieauth/sessions"
 	"hawx.me/code/mux"
 	"hawx.me/code/route"
 	"hawx.me/code/serve"
@@ -13,15 +15,25 @@ import (
 
 func main() {
 	var (
-		port     = flag.String("port", "8080", "")
-		socket   = flag.String("socket", "", "")
-		me       = flag.String("me", "", "")
-		dbPath   = flag.String("db", "file::memory:", "")
-		baseURL  = flag.String("base-url", "http://localhost:8080/", "")
-		basePath = flag.String("base-path", "/tmp/", "")
-		webPath  = flag.String("web", "web", "")
+		port      = flag.String("port", "8080", "")
+		socket    = flag.String("socket", "", "")
+		me        = flag.String("me", "", "")
+		dbPath    = flag.String("db", "file::memory:", "")
+		baseURL   = flag.String("base-url", "http://localhost:8080/", "")
+		basePath  = flag.String("base-path", "/tmp/", "")
+		mediaURL  = flag.String("media-url", "http://localhost:8080/_media/", "")
+		mediaPath = flag.String("media-path", "/tmp/", "")
+		adminURL  = flag.String("admin-url", "http://localhost:8080/admin/", "")
+		webPath   = flag.String("web", "web", "")
+		secret    = flag.String("secret", "pls change", "")
 	)
 	flag.Parse()
+
+	mediaWriter, err := blog.NewFileWriter(*mediaPath, *mediaURL)
+	if err != nil {
+		log.Println("creating mediawriter:", err)
+		return
+	}
 
 	blog, err := blog.New(blog.Options{
 		WebPath:  *webPath,
@@ -43,13 +55,26 @@ func main() {
 		return
 	}
 
+	auth, err := indieauth.Authentication(*adminURL, *adminURL+"/callback")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	session, err := sessions.New(*me, *secret, auth)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	if *me == "" {
 		log.Fatal("--me must be provided")
 	}
 
+	route.HandleFunc("/admin/sign-in", session.SignIn())
+	route.HandleFunc("/admin/callback", session.Callback())
+	route.HandleFunc("/admin/sign-out", session.SignOut())
+
 	route.Handle("/admin", mux.Method{
-		// want to be able to set page, block webmentions, etc.
-		// "GET":
+		"GET": handler.Admin(),
 	})
 
 	route.Handle("/micropub", handler.Authenticate(*me, "create", mux.Method{
@@ -62,7 +87,7 @@ func main() {
 	})
 
 	route.Handle("/media", mux.Method{
-		"POST": handler.Media(blog),
+		"POST": handler.Media(mediaWriter),
 	})
 
 	serve.Serve(*port, *socket, route.Default)

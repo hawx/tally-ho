@@ -43,6 +43,7 @@ hawx.me/code/indieauth v0.0.0-20190302165148-d51e58d05695 h1:w+FjAGjRgZgJtWM0CiV
 hawx.me/code/indieauth v0.0.0-20190302165148-d51e58d05695/go.mod h1:xBly+ljsoTxJ4ZPCYm0jeFj+udB00ufyxKhec/rnWtQ=
 hawx.me/code/indieauth v0.0.0-20190304184613-8d4d8ce9ae73 h1:Li7pQ9dwg7vhnM9y5ukllV0/qUcQ7YS8sFAEjltr5eo=
 hawx.me/code/indieauth v0.0.0-20190304184613-8d4d8ce9ae73/go.mod h1:TYTLWey93ZhIFiHX/lqIlf2s5ADBsR4uVDcEK70/6wc=
+hawx.me/code/indieauth v1.0.0 h1:d54RMucTJ33YwmtZPCVaRyEpif0lpBw6PVyIQ4llNT4=
 hawx.me/code/mux v0.0.0-20171229202905-76b5c781b7be h1:9VsLoSnY4fuT3s3FGN0FfvLyxUBCf0fTTp83IPkWmvs=
 hawx.me/code/mux v0.0.0-20171229202905-76b5c781b7be/go.mod h1:giDiKi08+l32ySywBkUVYkqQWuJgTLbK+RYR9qbvNw8=
 hawx.me/code/numbersix v0.0.0-20190314183504-38f7efc9fd22 h1:ExPrDa/6U8K/J1bRsLD1T5HioVlwIUnJdoWMGmWolbc=

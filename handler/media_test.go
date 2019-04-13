@@ -12,23 +12,31 @@ import (
 	"hawx.me/code/assert"
 )
 
-type fakeMediaBlog struct {
+type fakeFileWriter struct {
 	data string
 }
 
-func (b *fakeMediaBlog) WriteMedia(r io.Reader) (string, error) {
+func (fw *fakeFileWriter) CopyToFile(path string, r io.Reader) error {
 	data, _ := ioutil.ReadAll(r)
-	b.data = string(data)
+	fw.data = string(data)
 
-	return "http://some.location/uuid", nil
+	return nil
+}
+
+func (fw *fakeFileWriter) URL(path string) string {
+	return "a url"
+}
+
+func (fw *fakeFileWriter) Path(url string) string {
+	return "a path"
 }
 
 func TestMedia(t *testing.T) {
 	assert := assert.New(t)
 	file := "this is an image"
-	blog := &fakeMediaBlog{}
+	fw := &fakeFileWriter{}
 
-	s := httptest.NewServer(Media(blog))
+	s := httptest.NewServer(Media(fw))
 	defer s.Close()
 
 	var buf bytes.Buffer
@@ -48,14 +56,14 @@ func TestMedia(t *testing.T) {
 	assert.Nil(err)
 
 	assert.Equal(http.StatusCreated, resp.StatusCode)
-	assert.Equal("http://some.location/uuid", resp.Header.Get("Location"))
-	assert.Equal(file, blog.data)
+	assert.Equal("a url", resp.Header.Get("Location"))
+	assert.Equal(file, fw.data)
 }
 
 func TestMediaWhenNoFilePart(t *testing.T) {
 	assert := assert.New(t)
 
-	s := httptest.NewServer(Media(&fakeMediaBlog{}))
+	s := httptest.NewServer(Media(&fakeFileWriter{}))
 	defer s.Close()
 
 	var buf bytes.Buffer
@@ -75,9 +83,9 @@ func TestMediaWhenNoFilePart(t *testing.T) {
 func TestMediaWhenMultipleFileParts(t *testing.T) {
 	assert := assert.New(t)
 	file := "this is an image"
-	blog := &fakeMediaBlog{}
+	fw := &fakeFileWriter{}
 
-	s := httptest.NewServer(Media(blog))
+	s := httptest.NewServer(Media(fw))
 	defer s.Close()
 
 	var buf bytes.Buffer
@@ -101,33 +109,6 @@ func TestMediaWhenMultipleFileParts(t *testing.T) {
 	assert.Nil(err)
 
 	assert.Equal(http.StatusCreated, resp.StatusCode)
-	assert.Equal("http://some.location/uuid", resp.Header.Get("Location"))
-	assert.Equal(file+"1", blog.data)
+	assert.Equal("a url", resp.Header.Get("Location"))
+	assert.Equal(file+"1", fw.data)
 }
-
-// func TestMediaWhenFilePartIsTooLarge(t *testing.T) {
-// 	assert := assert.New(t)
-// 	file := strings.NewReader(strings.Repeat("a", 50*1024*1024))
-
-// 	s := httptest.NewServer(Media(&fakeMediaBlog{}))
-// 	defer s.Close()
-
-// 	var buf bytes.Buffer
-// 	writer := multipart.NewWriter(&buf)
-
-// 	part, err := writer.CreateFormFile("file", "whatever.png")
-// 	assert.Nil(err)
-// 	io.Copy(part, file)
-
-// 	assert.Nil(writer.Close())
-
-// 	req, err := http.NewRequest("POST", s.URL, &buf)
-// 	assert.Nil(err)
-// 	req.Header.Set("Content-Type", writer.FormDataContentType())
-
-// 	resp, err := http.DefaultClient.Do(req)
-// 	assert.Nil(err)
-
-// 	assert.Equal(http.StatusCreated, resp.StatusCode)
-// 	assert.Equal("http://some.location/uuid", resp.Header.Get("Location"))
-// }
