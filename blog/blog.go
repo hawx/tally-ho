@@ -70,6 +70,12 @@ func (b *Blog) SetNextPage(name string) error {
 	return b.store.SetNextPage(name, url)
 }
 
+func (b *Blog) CurrentPage() (string, error) {
+	page, err := b.store.CurrentPage()
+
+	return page.Name, err
+}
+
 func (b *Blog) Create(data map[string][]interface{}) (map[string][]interface{}, error) {
 	id := uuid.New().String()
 
@@ -80,7 +86,10 @@ func (b *Blog) Create(data map[string][]interface{}) (map[string][]interface{}, 
 
 	slug := id
 	if len(data["name"]) == 1 {
-		slug = slugify(data["name"][0].(string))
+		name := data["name"][0].(string)
+		if len(name) > 0 {
+			slug = slugify(name)
+		}
 	}
 	if len(data["mp-slug"]) == 1 {
 		slug = data["mp-slug"][0].(string)
