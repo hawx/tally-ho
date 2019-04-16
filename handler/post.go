@@ -148,6 +148,7 @@ func Post(blog postBlog) http.Handler {
 		"application/json":                  http.HandlerFunc(handleJSON),
 		"application/x-www-form-urlencoded": http.HandlerFunc(handleForm),
 		"multipart/form-data":               http.HandlerFunc(handleMultiPart),
+		"*/*":                               http.HandlerFunc(handleForm), // I think
 	}
 }
 
