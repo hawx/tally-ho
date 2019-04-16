@@ -2,6 +2,7 @@ package blog
 
 import (
 	"html/template"
+	"io"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -134,4 +135,8 @@ func slugify(s string) string {
 	s = strings.ReplaceAll(s, " ", "-")
 
 	return s
+}
+
+func (b *Blog) RenderAdmin(w io.Writer, data interface{}) error {
+	return b.templates.ExecuteTemplate(w, "admin.gotmpl", data)
 }

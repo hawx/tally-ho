@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.4/css/bulma.min.css" type="text/css" />
+    <link rel="stylesheet" href="https://unpkg.com/pell/dist/pell.min.css" type="text/css" />
+
+    <style>
+      .is-hidden {
+        display: none;
+      }
+
+      .editor {
+        max-width: 850px;
+        border: 1px solid silver;
+      }
+
+      #notification {
+        max-width: 500px;
+        z-index: 999;
+        position: absolute;
+        bottom: 1rem;
+        right: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+
+    <nav class="navbar is-primary" role="navigation" aria-label="main navigation">
+      <div class="container">
+        <div class="navbar-brand">
+          <strong class="navbar-item">tally-ho</strong>
+        </div>
+        <div class="navbar-menu">
+          <div class="navbar-end">
+            <span class="navbar-item">{{ .Micropub }}</span>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    {{ if .SignedIn }}
+      <section class="section">
+        <div class="container block">
+          <div class="tabs">
+            <ul>
+              <li class="is-active"><a href="#page">Page</a></li>
+              <li><a href="#note">Note</a></li>
+              <li><a href="#post">Post</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div id="page" class="container tabbed">
+          <form method="post" action="{{ .Micropub }}" class="block">
+            <div class="field">
+              <label class="label" for="name">Page</label>
+              <div class="control">
+                <input class="input" name="name" id="name" />
+              </div>
+            </div>
+
+            <input type="hidden" name="access_token" value="{{ .AccessToken }}" />
+            <input type="hidden" name="action" value="hx-page" />
+
+            <div class="field">
+              <div class="control">
+                <button class="button" type="submit">Set next page</button>
+              </div>
+            </div>
+          </form>
+
+          <article class="message">
+            <div class="message-body content">
+              <p>The current page is &ldquo;{{ .CurrentPage }}&rdquo;.</p>
+
+              <p>This will only make sense if posting to a <strong>tally-ho</strong> instance.</p>
+            </div>
+          </article>
+        </div>
+
+        <div id="note" class="container tabbed">
+          <form method="post" action="{{ .Micropub }}">
+            <div class="field">
+              <label class="label" for="content">Content</label>
+              <div class="control">
+                <textarea class="textarea" name="content" id="content"></textarea>
+              </div>
+            </div>
+
+            <input type="hidden" name="access_token" value="{{ .AccessToken }}" />
+            <input type="hidden" name="h" value="entry" />
+
+            <div class="field">
+              <div class="control">
+                <button class="button" type="submit">Create new note</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div id="post" class="container tabbed">
+          <form method="post" action="{{ .Micropub }}" id="editorform">
+            <div class="field">
+              <label class="label" for="name">Name</label>
+              <div class="control">
+                <input class="input" name="name" id="name" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="label" for="post_content">Content</label>
+              <div class="control content" id="editor">
+                <input class="input is-hidden" name="content" id="post_content" />
+              </div>
+            </div>
+
+            <input type="hidden" name="access_token" value="{{ .AccessToken }}" />
+            <input type="hidden" name="h" value="entry" />
+
+            <div class="field">
+              <div class="control">
+                <button class="button" type="submit">Create new post</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <div id="notification" class="notification is-hidden">
+        <button class="delete"></button>
+        Post created at <a></a>
+      </div>
+
+    {{ else }}
+      <a href="/admin/sign-in">Sign-in</a>
+    {{ end }}
+
+    <script src="https://unpkg.com/pell"></script>
+    <script>
+      const tabs = document.querySelectorAll('.tabs li');
+      const tabbed = document.querySelectorAll('.tabbed');
+
+      window.onhashchange = function () {
+        const hash = window.location.hash;
+
+        for (const tab of tabs) {
+          tab.classList.remove('is-active');
+
+          if (tab.firstChild.hash === hash) {
+            tab.classList.add('is-active');
+          }
+        }
+
+        for (const container of tabbed) {
+          container.classList.add('is-hidden');
+
+          if (container.id === hash.slice(1)) {
+            container.classList.remove('is-hidden');
+          }
+        }
+      }
+
+      window.onhashchange();
+
+      if (!window.location.hash) {
+        window.location.hash = tabs[0].firstChild.hash;
+      }
+
+      const content = document.getElementById('post_content');
+      const editor = document.getElementById('editor');
+      const notification = document.getElementById('notification');
+
+      pell.init({
+        element: editor,
+        defaultParagraphSeparator: 'p',
+        onChange(data) {
+          content.value = data;
+        },
+      });
+
+      const editorForm = document.getElementById('editorform');
+
+      editorform.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        fetch('{{ .Micropub }}', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${ editorForm.elements['access_token'].value }`,
+          },
+          body: JSON.stringify({
+            type: ['h-entry'],
+            properties: {
+              name: [editorForm.elements['name'].value],
+              content: [
+                { html: editorForm.elements['content'].value },
+              ],
+            },
+          }),
+        })
+          .then(resp => {
+            if (resp.status === 201) {
+              const a = notification.querySelector('a');
+              a.textContent = resp.headers.get('Location');
+              a.href = resp.headers.get('Location');
+
+              notification.classList.remove('is-hidden');
+            } else {
+              console.log('There was a problem', resp);
+            }
+          });
+      });
+
+      notification.querySelector('.delete').onclick = function() {
+        notification.classList.add('is-hidden');
+      }
+
+    </script>
+
+  </body>
+</html>

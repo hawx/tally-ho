@@ -63,25 +63,6 @@ func Post(blog postBlog) http.Handler {
 
 			w.WriteHeader(http.StatusNoContent)
 			return
-		} else if v.Action == "page" {
-			if names, ok := v.Properties["name"]; !ok || len(names) != 1 {
-				http.Error(w, "expected 'name'", http.StatusBadRequest)
-				return
-			}
-
-			name, ok := v.Properties["name"][0].(string)
-			if !ok {
-				http.Error(w, "expected 'name' to be a string", http.StatusBadRequest)
-				return
-			}
-
-			if err := blog.SetNextPage(name); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			w.WriteHeader(http.StatusNoContent)
-			return
 		}
 
 		data, err := blog.Create(data)
@@ -97,12 +78,17 @@ func Post(blog postBlog) http.Handler {
 
 	handleForm := func(w http.ResponseWriter, r *http.Request) {
 		data := map[string][]interface{}{}
+		setPage := false
 
 		if err := r.ParseForm(); err != nil {
 			http.Error(w, "could not parse form: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 		for key, values := range r.Form {
+			if key == "action" && len(values) == 1 && values[0] == "hx-page" {
+				setPage = true
+			}
+
 			if reservedKey(key) {
 				continue
 			}
@@ -115,6 +101,27 @@ func Post(blog postBlog) http.Handler {
 			} else {
 				data[key] = []interface{}{values[0]}
 			}
+		}
+
+		if setPage {
+			if names, ok := data["name"]; !ok || len(names) != 1 {
+				http.Error(w, "expected 'name'", http.StatusBadRequest)
+				return
+			}
+
+			name, ok := data["name"][0].(string)
+			if !ok {
+				http.Error(w, "expected 'name' to be a string", http.StatusBadRequest)
+				return
+			}
+
+			if err := blog.SetNextPage(name); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			w.WriteHeader(http.StatusNoContent)
+			return
 		}
 
 		data, err := blog.Create(data)

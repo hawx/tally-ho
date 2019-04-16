@@ -81,10 +81,7 @@ func main() {
 	route.HandleFunc("/admin/sign-out", session.SignOut())
 
 	route.Handle("/admin", mux.Method{
-		"GET": session.Choose(handler.Admin(true, blog), handler.Admin(false, blog)),
-	})
-	route.Handle("/admin/page", mux.Method{
-		"POST": session.Shield(handler.SetPage(blog)),
+		"GET": session.WithToken(handler.Admin(blog)),
 	})
 
 	route.Handle("/micropub", handler.Authenticate(*me, "create", mux.Method{
@@ -182,13 +179,13 @@ func (s *scopedSessions) getState(r *http.Request) string {
 
 // Choose allows you to switch between two handlers depending on whether the
 // expected user is signed in or not.
-func (s *scopedSessions) Choose(signedIn, signedOut http.Handler) http.HandlerFunc {
+func (s *scopedSessions) WithToken(h http.Handler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if me, accessToken := s.get(r); me == s.me {
 			ctx := context.WithValue(r.Context(), "access_token", accessToken)
-			signedIn.ServeHTTP(w, r.WithContext(ctx))
+			h.ServeHTTP(w, r.WithContext(ctx))
 		} else {
-			signedOut.ServeHTTP(w, r)
+			h.ServeHTTP(w, r)
 		}
 	})
 }
@@ -196,7 +193,14 @@ func (s *scopedSessions) Choose(signedIn, signedOut http.Handler) http.HandlerFu
 // Shield will let the request continue if the expected user is signed in,
 // otherwise they will be shown the DefaultSignedOut handler.
 func (s *scopedSessions) Shield(signedIn http.Handler) http.HandlerFunc {
-	return s.Choose(signedIn, s.defaultSignedOut)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if me, accessToken := s.get(r); me == s.me {
+			ctx := context.WithValue(r.Context(), "access_token", accessToken)
+			signedIn.ServeHTTP(w, r.WithContext(ctx))
+		} else {
+			s.defaultSignedOut.ServeHTTP(w, r)
+		}
+	})
 }
 
 // SignIn should be assigned to a route like /sign-in, it redirects users to the
