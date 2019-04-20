@@ -134,7 +134,11 @@
       </div>
 
     {{ else }}
-      <a href="{{.AdminURL}}sign-in">Sign-in</a>
+      <section class="section">
+        <div class="container has-text-centered">
+          <a class="button" href="{{.AdminURL}}sign-in">Sign-in</a>
+        </div>
+      </section>
     {{ end }}
 
     <script src="https://unpkg.com/pell"></script>
