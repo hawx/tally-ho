@@ -11,9 +11,8 @@
         display: none;
       }
 
-      .editor {
-        max-width: 850px;
-        border: 1px solid silver;
+      #editor img {
+        max-width: 200px !important;
       }
 
       #notification {
@@ -133,6 +132,37 @@
         Post created at <a></a>
       </div>
 
+      <div id="modal" class="modal">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+          <header class="modal-card-head">
+            <p class="modal-card-title">Insert image</p>
+            <button class="delete" aria-label="close"></button>
+          </header>
+          <section class="modal-card-body">
+            <div class="file has-name is-fullwidth is-right">
+              <label class="file-label">
+                <input class="file-input" type="file" accept="image/*" name="image" id="file-upload">
+                <span class="file-cta">
+                  <span class="file-icon">
+                    <i class="fas fa-upload"></i>
+                  </span>
+                  <span class="file-label">
+                    Choose a file…
+                  </span>
+                </span>
+                <span id="file-name" class="file-name"></span>
+              </label>
+            </div>
+          </section>
+          <footer class="modal-card-foot">
+            <button id="do-upload" class="button is-success">Upload & Insert</button>
+            <button class="button">Cancel</button>
+          </footer>
+        </div>
+      </div>
+
+
     {{ else }}
       <section class="section">
         <div class="container has-text-centered">
@@ -172,9 +202,40 @@
         window.location.hash = tabs[0].firstChild.hash;
       }
 
+      const fileUpload = document.getElementById('file-upload');
+
+      fileUpload.onchange = function() {
+        if (fileUpload.files.length === 1) {
+          document.getElementById('file-name').textContent = fileUpload.files[0].name;
+        }
+      };
+
       const content = document.getElementById('post_content');
       const editor = document.getElementById('editor');
       const notification = document.getElementById('notification');
+      const modal = document.getElementById('modal');
+
+      const doUpload = document.getElementById('do-upload');
+
+      doUpload.onclick = function() {
+        const formData = new FormData();
+
+        formData.append('file', fileUpload.files[0]);
+
+        fetch('{{ .Media }}', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${ editorForm.elements['access_token'].value }`,
+          },
+          body: formData,
+        })
+          .then(resp => {
+            const location = resp.headers.get('Location');
+            pell.exec('insertImage', location);
+            modal.classList.remove('is-active');
+          })
+          .catch(err => console.warn(err));
+      };
 
       pell.init({
         element: editor,
@@ -182,6 +243,33 @@
         onChange(data) {
           content.value = data;
         },
+        actions: [
+          'bold',
+          'italic',
+          'underline',
+          'strikethrough',
+          'heading1',
+          'heading2',
+          'paragraph',
+          'quote',
+          'olist',
+          'ulist',
+          'code',
+          'line',
+          'link',
+          {
+            name: 'image',
+            icon: '&#128247;',
+            title: 'Image',
+            result: () => modal.classList.add('is-active'),
+          },
+          {
+            name: 'clear',
+            icon: '-',
+            title: 'Clear formatting',
+            result: () => pell.exec('removeFormat'),
+          },
+        ],
       });
 
       const editorForm = document.getElementById('editorform');

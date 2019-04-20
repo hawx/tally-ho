@@ -17,12 +17,14 @@ func Admin(blog *blog.Blog, adminURL string) http.HandlerFunc {
 			CurrentPage string
 			AccessToken string
 			Micropub    string
+			Media       string
 			AdminURL    string
 		}{
 			SignedIn:    ok,
 			CurrentPage: currentPage,
 			AccessToken: token.AccessToken,
 			Micropub:    "/micropub",
+			Media:       "/media",
 			AdminURL:    adminURL,
 		})
 	}
