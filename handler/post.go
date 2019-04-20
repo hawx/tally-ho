@@ -18,6 +18,43 @@ type postBlog interface {
 }
 
 func Post(blog postBlog) http.Handler {
+	createAndRender := func(w http.ResponseWriter, data map[string][]interface{}) {
+		data, err := blog.Create(data)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if err := blog.RenderPost(data); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		location := data["url"][0].(string)
+		w.Header().Add("Location", location)
+		w.WriteHeader(http.StatusCreated)
+	}
+
+	handleSetPage := func(w http.ResponseWriter, data map[string][]interface{}) {
+		if names, ok := data["name"]; !ok || len(names) != 1 {
+			http.Error(w, "expected 'name'", http.StatusBadRequest)
+			return
+		}
+
+		name, ok := data["name"][0].(string)
+		if !ok {
+			http.Error(w, "expected 'name' to be a string", http.StatusBadRequest)
+			return
+		}
+
+		if err := blog.SetNextPage(name); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}
+
 	handleJSON := func(w http.ResponseWriter, r *http.Request) {
 		v := jsonMicroformat{Properties: map[string][]interface{}{}}
 
@@ -66,15 +103,7 @@ func Post(blog postBlog) http.Handler {
 			return
 		}
 
-		data, err := blog.Create(data)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		location := data["url"][0].(string)
-		w.Header().Add("Location", location)
-		w.WriteHeader(http.StatusCreated)
+		createAndRender(w, data)
 	}
 
 	handleForm := func(w http.ResponseWriter, r *http.Request) {
@@ -105,40 +134,11 @@ func Post(blog postBlog) http.Handler {
 		}
 
 		if setPage {
-			if names, ok := data["name"]; !ok || len(names) != 1 {
-				http.Error(w, "expected 'name'", http.StatusBadRequest)
-				return
-			}
-
-			name, ok := data["name"][0].(string)
-			if !ok {
-				http.Error(w, "expected 'name' to be a string", http.StatusBadRequest)
-				return
-			}
-
-			if err := blog.SetNextPage(name); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			w.WriteHeader(http.StatusNoContent)
+			handleSetPage(w, data)
 			return
 		}
 
-		data, err := blog.Create(data)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		if err := blog.RenderPost(data); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		location := data["url"][0].(string)
-		w.Header().Add("Location", location)
-		w.WriteHeader(http.StatusCreated)
+		createAndRender(w, data)
 	}
 
 	handleMultiPart := func(w http.ResponseWriter, r *http.Request) {
