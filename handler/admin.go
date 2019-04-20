@@ -3,13 +3,14 @@ package handler
 import (
 	"net/http"
 
+	"hawx.me/code/indieauth"
 	"hawx.me/code/tally-ho/blog"
 )
 
 func Admin(blog *blog.Blog, adminURL string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		currentPage, _ := blog.CurrentPage()
-		accessToken, ok := r.Context().Value("access_token").(string)
+		token, ok := r.Context().Value("token").(indieauth.Token)
 
 		blog.RenderAdmin(w, struct {
 			SignedIn    bool
@@ -20,7 +21,7 @@ func Admin(blog *blog.Blog, adminURL string) http.HandlerFunc {
 		}{
 			SignedIn:    ok,
 			CurrentPage: currentPage,
-			AccessToken: accessToken,
+			AccessToken: token.AccessToken,
 			Micropub:    "/micropub",
 			AdminURL:    adminURL,
 		})

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/gob"
 	"errors"
 	"flag"
 	"io"
@@ -20,6 +21,8 @@ import (
 )
 
 func main() {
+	gob.Register(indieauth.Token{})
+
 	var (
 		port      = flag.String("port", "8080", "")
 		socket    = flag.String("socket", "", "")
@@ -134,22 +137,16 @@ func newScopedSessions(me, secret string, auth *indieauth.AuthorizationConfig) (
 	}, nil
 }
 
-func (s *scopedSessions) get(r *http.Request) (me, accessToken string) {
+func (s *scopedSessions) get(r *http.Request) (token indieauth.Token, ok bool) {
 	session, _ := s.store.Get(r, "session")
 
-	if me, ok := session.Values["me"].(string); ok {
-		if accessToken, ok = session.Values["access_token"].(string); ok {
-			return me, accessToken
-		}
-	}
-
-	return "", ""
+	token, ok = session.Values["token"].(indieauth.Token)
+	return token, ok
 }
 
 func (s *scopedSessions) set(w http.ResponseWriter, r *http.Request, token indieauth.Token) {
 	session, _ := s.store.Get(r, "session")
-	session.Values["me"] = token.Me
-	session.Values["access_token"] = token.AccessToken
+	session.Values["token"] = token
 	session.Save(r, w)
 }
 
@@ -181,8 +178,8 @@ func (s *scopedSessions) getState(r *http.Request) string {
 // expected user is signed in or not.
 func (s *scopedSessions) WithToken(h http.Handler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if me, accessToken := s.get(r); me == s.me {
-			ctx := context.WithValue(r.Context(), "access_token", accessToken)
+		if token, ok := s.get(r); ok && token.Me == s.me {
+			ctx := context.WithValue(r.Context(), "token", token)
 			h.ServeHTTP(w, r.WithContext(ctx))
 		} else {
 			h.ServeHTTP(w, r)
@@ -194,8 +191,8 @@ func (s *scopedSessions) WithToken(h http.Handler) http.HandlerFunc {
 // otherwise they will be shown the DefaultSignedOut handler.
 func (s *scopedSessions) Shield(signedIn http.Handler) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if me, accessToken := s.get(r); me == s.me {
-			ctx := context.WithValue(r.Context(), "access_token", accessToken)
+		if token, ok := s.get(r); ok && token.Me == s.me {
+			ctx := context.WithValue(r.Context(), "token", token)
 			signedIn.ServeHTTP(w, r.WithContext(ctx))
 		} else {
 			s.defaultSignedOut.ServeHTTP(w, r)
