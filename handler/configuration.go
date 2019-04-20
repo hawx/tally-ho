@@ -9,13 +9,13 @@ type configurationBlog interface {
 	PostByURL(url string) (map[string][]interface{}, error)
 }
 
-func Configuration(blog configurationBlog) http.HandlerFunc {
+func Configuration(blog configurationBlog, mediaURL string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.FormValue("q") == "config" {
 			json.NewEncoder(w).Encode(struct {
 				MediaEndpoint string `json:"media-endpoint"`
 			}{
-				MediaEndpoint: "somewhere",
+				MediaEndpoint: mediaURL,
 			})
 			return
 		}
