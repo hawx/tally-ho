@@ -70,7 +70,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	session.root = "/admin"
+	session.root = *adminURL
 
 	if *me == "" {
 		log.Fatal("--me must be provided")
@@ -81,7 +81,7 @@ func main() {
 	route.HandleFunc("/admin/sign-out", session.SignOut())
 
 	route.Handle("/admin", mux.Method{
-		"GET": session.WithToken(handler.Admin(blog)),
+		"GET": session.WithToken(handler.Admin(blog, *adminURL)),
 	})
 
 	route.Handle("/micropub", handler.Authenticate(*me, "create", mux.Method{

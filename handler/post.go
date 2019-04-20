@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 
@@ -142,13 +143,13 @@ func Post(blog postBlog) http.Handler {
 
 	handleMultiPart := func(w http.ResponseWriter, r *http.Request) {
 		// todo
+		log.Println("received multi-part request")
 	}
 
 	return mux.ContentType{
 		"application/json":                  http.HandlerFunc(handleJSON),
 		"application/x-www-form-urlencoded": http.HandlerFunc(handleForm),
 		"multipart/form-data":               http.HandlerFunc(handleMultiPart),
-		"*/*":                               http.HandlerFunc(handleForm), // I think
 	}
 }
 

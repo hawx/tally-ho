@@ -6,7 +6,7 @@ import (
 	"hawx.me/code/tally-ho/blog"
 )
 
-func Admin(blog *blog.Blog) http.HandlerFunc {
+func Admin(blog *blog.Blog, adminURL string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		currentPage, _ := blog.CurrentPage()
 		accessToken, ok := r.Context().Value("access_token").(string)
@@ -16,11 +16,13 @@ func Admin(blog *blog.Blog) http.HandlerFunc {
 			CurrentPage string
 			AccessToken string
 			Micropub    string
+			AdminURL    string
 		}{
 			SignedIn:    ok,
 			CurrentPage: currentPage,
 			AccessToken: accessToken,
 			Micropub:    "/micropub",
+			AdminURL:    adminURL,
 		})
 	}
 }
