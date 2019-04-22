@@ -14,6 +14,7 @@ import (
 
 type Blog struct {
 	fw        FileWriter
+	baseURL   string
 	templates *template.Template
 	store     *data.Store
 }
@@ -50,6 +51,7 @@ func New(options Options) (*Blog, error) {
 
 	return &Blog{
 		fw:        fw,
+		baseURL:   options.BaseURL,
 		templates: templates,
 		store:     store,
 	}, nil

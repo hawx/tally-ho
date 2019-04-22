@@ -9,7 +9,7 @@ import (
 func (b *Blog) RenderPost(properties map[string][]interface{}) error {
 	log.Println("rendering", properties["uid"][0].(string))
 
-	page, err := FindPage(properties["hx-page"][0].(string), b.store)
+	page, err := FindPage(b.baseURL, properties["hx-page"][0].(string), b.store)
 	if err != nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func (b *Blog) RenderAll() error {
 	}
 
 	for _, page := range pages {
-		page, err := FindPage(page.Name, b.store)
+		page, err := FindPage(b.baseURL, page.Name, b.store)
 		if err != nil {
 			return err
 		}

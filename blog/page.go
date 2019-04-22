@@ -12,7 +12,7 @@ var ErrNoPage = errors.New("there is no such page")
 
 // FindPage returns the page with the given name, or ErrNoPage if no such page
 // exists.
-func FindPage(name string, store *data.Store) (*Page, error) {
+func FindPage(baseURL, name string, store *data.Store) (*Page, error) {
 	current, err := store.CurrentPage()
 	if err != nil {
 		return nil, err
@@ -63,6 +63,7 @@ func FindPage(name string, store *data.Store) (*Page, error) {
 
 	return &Page{
 		Name:     p.Name,
+		BaseURL:  baseURL,
 		URL:      p.URL,
 		Posts:    posts,
 		IsRoot:   p.Name == current.Name,
@@ -78,6 +79,9 @@ func FindPage(name string, store *data.Store) (*Page, error) {
 type Page struct {
 	// Name of the page.
 	Name string
+
+	// BaseURL for the blog.
+	BaseURL string
 
 	// URL the page will be located at.
 	URL string
@@ -112,7 +116,7 @@ func (p *Page) Next(store *data.Store) (*Page, error) {
 		return nil, err
 	}
 
-	return FindPage(next.Name, store)
+	return FindPage(p.BaseURL, next.Name, store)
 }
 
 // Prev returns the previous, older page, if such a page exists.
@@ -125,7 +129,7 @@ func (p *Page) Prev(store *data.Store) (*Page, error) {
 		return nil, err
 	}
 
-	return FindPage(prev.Name, store)
+	return FindPage(p.BaseURL, prev.Name, store)
 }
 
 // Render writes the page, if it IsRoot then the root page will also be

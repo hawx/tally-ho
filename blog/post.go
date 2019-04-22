@@ -7,6 +7,7 @@ import (
 func (page *Page) Post(properties map[string][]interface{}) (*Post, error) {
 	return &Post{
 		Properties: properties,
+		BaseURL:    page.BaseURL,
 		PageURL:    page.URL,
 	}, nil
 }
@@ -14,6 +15,9 @@ func (page *Page) Post(properties map[string][]interface{}) (*Post, error) {
 type Post struct {
 	// Properties of the post.
 	Properties map[string][]interface{}
+
+	// BaseURL for the blog.
+	BaseURL string
 
 	// PageURL is the full URL of the page the post belongs to.
 	PageURL string
