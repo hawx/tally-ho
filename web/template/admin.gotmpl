@@ -11,8 +11,12 @@
         display: none;
       }
 
-      #editor img {
+      .editor img {
         max-width: 200px !important;
+      }
+
+      #json_content {
+        font-family: monospace;
       }
 
       #notification {
@@ -47,6 +51,7 @@
               <li class="is-active"><a href="#page">Page</a></li>
               <li><a href="#note">Note</a></li>
               <li><a href="#post">Post</a></li>
+              <li><a href="#json">JSON</a></li>
             </ul>
           </div>
         </div>
@@ -109,14 +114,36 @@
             </div>
 
             <div class="field">
-              <label class="label" for="post_content">Content</label>
-              <div class="control content" id="editor">
-                <input class="input is-hidden" name="content" id="post_content" />
+              <label class="label">Content</label>
+              <div class="control content editor">
+                <input class="input is-hidden" name="content" />
               </div>
             </div>
 
             <input type="hidden" name="access_token" value="{{ .AccessToken }}" />
             <input type="hidden" name="h" value="entry" />
+
+            <div class="field">
+              <div class="control">
+                <button class="button" type="submit">Create new post</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div id="json" class="container tabbed">
+          <form id="jsonform">
+            <div class="field">
+              <label class="label" for="json_content">JSON</label>
+              <div class="control">
+                <textarea class="textarea" name="content" id="json_content" rows="15">{
+  "type": ["h-entry"],
+  "properties": {
+
+  }
+}</textarea>
+              </div>
+            </div>
 
             <div class="field">
               <div class="control">
@@ -142,7 +169,7 @@
           <section class="modal-card-body">
             <div class="file has-name is-fullwidth is-right">
               <label class="file-label">
-                <input class="file-input" type="file" accept="image/*" name="image" id="file-upload">
+                <input class="file-input" type="file" accept="image/*" name="image">
                 <span class="file-cta">
                   <span class="file-icon">
                     <i class="fas fa-upload"></i>
@@ -156,12 +183,11 @@
             </div>
           </section>
           <footer class="modal-card-foot">
-            <button id="do-upload" class="button is-success">Upload & Insert</button>
+            <button class="button is-success">Upload & Insert</button>
             <button class="button">Cancel</button>
           </footer>
         </div>
       </div>
-
 
     {{ else }}
       <section class="section">
@@ -173,144 +199,10 @@
 
     <script src="https://unpkg.com/pell"></script>
     <script>
-      const tabs = document.querySelectorAll('.tabs li');
-      const tabbed = document.querySelectorAll('.tabbed');
-
-      window.onhashchange = function () {
-        const hash = window.location.hash;
-
-        for (const tab of tabs) {
-          tab.classList.remove('is-active');
-
-          if (tab.firstChild.hash === hash) {
-            tab.classList.add('is-active');
-          }
-        }
-
-        for (const container of tabbed) {
-          container.classList.add('is-hidden');
-
-          if (container.id === hash.slice(1)) {
-            container.classList.remove('is-hidden');
-          }
-        }
-      }
-
-      window.onhashchange();
-
-      if (!window.location.hash) {
-        window.location.hash = tabs[0].firstChild.hash;
-      }
-
-      const fileUpload = document.getElementById('file-upload');
-
-      fileUpload.onchange = function() {
-        if (fileUpload.files.length === 1) {
-          document.getElementById('file-name').textContent = fileUpload.files[0].name;
-        }
-      };
-
-      const content = document.getElementById('post_content');
-      const editor = document.getElementById('editor');
-      const notification = document.getElementById('notification');
-      const modal = document.getElementById('modal');
-
-      const doUpload = document.getElementById('do-upload');
-
-      doUpload.onclick = function() {
-        const formData = new FormData();
-
-        formData.append('file', fileUpload.files[0]);
-
-        fetch('{{ .Media }}', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${ editorForm.elements['access_token'].value }`,
-          },
-          body: formData,
-        })
-          .then(resp => {
-            const location = resp.headers.get('Location');
-            pell.exec('insertImage', location);
-            modal.classList.remove('is-active');
-          })
-          .catch(err => console.warn(err));
-      };
-
-      pell.init({
-        element: editor,
-        defaultParagraphSeparator: 'p',
-        onChange(data) {
-          content.value = data;
-        },
-        actions: [
-          'bold',
-          'italic',
-          'underline',
-          'strikethrough',
-          'heading1',
-          'heading2',
-          'paragraph',
-          'quote',
-          'olist',
-          'ulist',
-          'code',
-          'line',
-          'link',
-          {
-            name: 'image',
-            icon: '&#128247;',
-            title: 'Image',
-            result: () => modal.classList.add('is-active'),
-          },
-          {
-            name: 'clear',
-            icon: '-',
-            title: 'Clear formatting',
-            result: () => pell.exec('removeFormat'),
-          },
-        ],
-      });
-
-      const editorForm = document.getElementById('editorform');
-
-      editorform.addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        fetch('{{ .Micropub }}', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${ editorForm.elements['access_token'].value }`,
-          },
-          body: JSON.stringify({
-            type: ['h-entry'],
-            properties: {
-              name: [editorForm.elements['name'].value],
-              content: [
-                { html: editorForm.elements['content'].value },
-              ],
-            },
-          }),
-        })
-          .then(resp => {
-            if (resp.status === 201) {
-              const a = notification.querySelector('a');
-              a.textContent = resp.headers.get('Location');
-              a.href = resp.headers.get('Location');
-
-              notification.classList.remove('is-hidden');
-            } else {
-              console.log('There was a problem', resp);
-            }
-          });
-      });
-
-      notification.querySelector('.delete').onclick = function() {
-        notification.classList.add('is-hidden');
-      }
-
+      const token = '{{ .AccessToken }}';
+      const micropub = '{{ .Micropub }}';
+      const media = '{{ .Media }}';
     </script>
-
+    <script src="{{ .AdminURL }}public/admin.js"> </script>
   </body>
 </html>

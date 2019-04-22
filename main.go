@@ -78,6 +78,7 @@ func main() {
 	route.Handle("/admin", mux.Method{
 		"GET": session.WithToken(handler.Admin(blog, *adminURL)),
 	})
+	route.Handle("/admin/public/*path", http.StripPrefix("/admin/public", http.FileServer(http.Dir(*webPath+"/static"))))
 
 	route.Handle("/micropub", handler.Authenticate(*me, "create", mux.Method{
 		"POST": handler.Post(blog),

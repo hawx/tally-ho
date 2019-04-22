@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 
 	"hawx.me/code/tally-ho/blog"
@@ -11,7 +12,7 @@ func Admin(blog *blog.Blog, adminURL string) http.HandlerFunc {
 		currentPage, _ := blog.CurrentPage()
 		user, ok := r.Context().Value("user").(userSession)
 
-		blog.RenderAdmin(w, struct {
+		if err := blog.RenderAdmin(w, struct {
 			SignedIn    bool
 			CurrentPage string
 			AccessToken string
@@ -25,6 +26,8 @@ func Admin(blog *blog.Blog, adminURL string) http.HandlerFunc {
 			Micropub:    user.Micropub,
 			Media:       user.Media,
 			AdminURL:    adminURL,
-		})
+		}); err != nil {
+			log.Println(err)
+		}
 	}
 }
