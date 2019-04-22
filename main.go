@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"net/http"
 
 	"hawx.me/code/indieauth"
 	"hawx.me/code/mux"
@@ -90,6 +91,8 @@ func main() {
 	route.Handle("/media", mux.Method{
 		"POST": handler.Media(mediaWriter),
 	})
+
+	route.Handle("/public/*path", http.StripPrefix("/public", http.FileServer(http.Dir(*webPath+"/static"))))
 
 	serve.Serve(*port, *socket, route.Default)
 }
