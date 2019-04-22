@@ -3,12 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <title>{{ getOr .Properties "name" "some post" }}</title>
-    <link rel="stylesheet" href="css/screen.css" type="text/css" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/weblog/css/screen.css" />
+    <link rel="stylesheet" href="/weblog/css/print.css" media="print" />
     <link rel="alternate" type="application/rss+xml" title="feed" href="/weblog/feed.xml" />
-    <link rel="stylesheet" href="https://hawx.me/weblog/styles.css" />
-    <link rel="stylesheet" href="https://hawx.me/weblog/print.css" media="print" />
 
     <meta property="og:type" content="website" />
     <meta property="og:title" content="{{ getOr .Properties "name" "some post" }}" />
