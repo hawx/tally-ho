@@ -2,7 +2,6 @@ package data
 
 import (
 	"errors"
-	"time"
 
 	"hawx.me/code/numbersix"
 )
@@ -11,8 +10,12 @@ func (s *Store) Create(id string, data map[string][]interface{}) error {
 	return s.entries.SetProperties(id, data)
 }
 
-func (s *Store) Update(id string, replace, add, delete map[string][]interface{}) error {
-	replace["updated"] = []interface{}{time.Now().UTC().Format(time.RFC3339)}
+func (s *Store) Update(url string, replace, add, delete map[string][]interface{}) error {
+	triples, err := s.entries.List(numbersix.Where("url", url))
+	if err != nil {
+		return err
+	}
+	id := triples[0].Subject
 
 	for predicate, values := range replace {
 		s.entries.DeletePredicate(id, predicate)
@@ -32,14 +35,14 @@ func (s *Store) Update(id string, replace, add, delete map[string][]interface{})
 	return nil
 }
 
-func (s *Store) Get(id string) (data map[string][]interface{}, err error) {
-	triples, err := s.entries.List(numbersix.About(id))
+func (s *Store) GetByURL(url string) (data map[string][]interface{}, err error) {
+	triples, err := s.entries.List(numbersix.Where("url", url))
 	if err != nil {
 		return
 	}
 	groups := numbersix.Grouped(triples)
 	if len(groups) == 0 {
-		return data, errors.New("no data for id: " + id)
+		return data, errors.New("no data for url: " + url)
 	}
 
 	return groups[0].Properties, nil

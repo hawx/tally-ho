@@ -15,6 +15,10 @@
         max-width: 200px !important;
       }
 
+      .navbar-item a {
+        color: white;
+      }
+
       #json_content {
         font-family: monospace;
       }
@@ -133,6 +137,15 @@
 
         <div id="json" class="container tabbed">
           <form id="jsonform">
+            <div class="field is-grouped">
+              <p class="control is-expanded">
+                <input class="input" type="text" name="url" placeholder="http://example.com/blog/my-post">
+              </p>
+              <p class="control">
+                <button class="button is-info" type="button" name="load">Load</button>
+              </p>
+            </div>
+
             <div class="field">
               <label class="label" for="json_content">JSON</label>
               <div class="control">

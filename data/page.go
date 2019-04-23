@@ -27,6 +27,13 @@ func (s *Store) Page(name string) (page Page, err error) {
 	return
 }
 
+func (s *Store) PageByURL(url string) (page Page, err error) {
+	row := s.sqlite.QueryRow(`SELECT name, url FROM pages WHERE url = ?`, url)
+
+	err = row.Scan(&page.Name, &page.URL)
+	return
+}
+
 func (s *Store) PageBefore(name string) (page Page, err error) {
 	row := s.sqlite.QueryRow(`
 SELECT name, url FROM pages

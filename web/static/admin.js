@@ -12,23 +12,22 @@ function notify(href) {
   notification.classList.remove('is-hidden');
 }
 
-function postJSON(data) {
-  return fetch(micropub, {
+async function postJSON(data) {
+  const resp = await fetch(micropub, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${ token }`,
     },
     body: JSON.stringify(data),
-  })
-    .then(resp => {
-      if (resp.status === 201) {
-        const location = resp.headers.get('Location');
-        notify(location);
-      } else {
-        console.log('There was a problem', resp);
-      }
-    });
+  });
+
+  if (resp.status === 201) {
+    const location = resp.headers.get('Location');
+    notify(location);
+  } else {
+    console.log('There was a problem', resp, await resp.text());
+  }
 }
 
 function setupTabs(tabs, tabbed) {
@@ -169,6 +168,23 @@ function setupJSONForm(el) {
 
     postJSON(data);
   });
+
+  form.elements['load'].onclick = function(e) {
+    e.preventDefault();
+
+    const url = form.elements['url'].value;
+
+    fetch(`${ micropub }?q=source&url=${ url }`, {
+      headers: {
+        'Authorization': `Bearer ${ token }`,
+      },
+    })
+      .then(resp => resp.json())
+      .then(data => form.elements['content'].value = JSON.stringify(data, void 0, 2))
+      .catch(err => console.warn(err));
+
+    console.log(url);
+  };
 }
 
 setupPostForm(document.getElementById('post'));

@@ -1,6 +1,7 @@
 package blog
 
 import (
+	"errors"
 	"html/template"
 	"io"
 	"path/filepath"
@@ -63,8 +64,33 @@ func (b *Blog) Close() error {
 
 // post.go
 
-func (b *Blog) Update(id string, replace, add, delete map[string][]interface{}) error {
-	return b.store.Update(id, replace, add, delete)
+func (b *Blog) Update(url string, replace, add, delete map[string][]interface{}) error {
+	replace["updated"] = []interface{}{time.Now().UTC().Format(time.RFC3339)}
+
+	return b.store.Update(url, replace, add, delete)
+}
+
+func (b *Blog) Rerender(url string) error {
+	parts := strings.SplitAfter(url, "/")
+	pageURL := strings.Join(parts[:len(parts)-2], "")
+
+	page, err := FindPageByURL(b.baseURL, pageURL, b.store)
+	if err != nil {
+		return err
+	}
+
+	if err := page.Render(b.store, b.templates, b, false); err != nil {
+		return err
+	}
+
+	for _, post := range page.Posts {
+		if post["url"][0].(string) == url {
+			post, _ := page.Post(post)
+			return post.Render(b.templates, b)
+		}
+	}
+
+	return errors.New("could not find post to render")
 }
 
 func (b *Blog) SetNextPage(name string) error {
@@ -101,16 +127,17 @@ func (b *Blog) Create(data map[string][]interface{}) (map[string][]interface{}, 
 	data["uid"] = []interface{}{id}
 	data["hx-page"] = []interface{}{page.Name}
 	data["url"] = []interface{}{b.PostURL(page.URL, slug)}
-	data["published"] = []interface{}{time.Now().UTC().Format(time.RFC3339)}
+
+	if len(data["published"]) == 0 {
+		data["published"] = []interface{}{time.Now().UTC().Format(time.RFC3339)}
+	}
 
 	return data, b.store.Create(id, data)
 }
 
 // configuration.go
 func (b *Blog) PostByURL(url string) (map[string][]interface{}, error) {
-	id := b.PostID(url)
-
-	return b.store.Get(id)
+	return b.store.GetByURL(url)
 }
 
 // mention.go

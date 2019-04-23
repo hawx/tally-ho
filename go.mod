@@ -9,7 +9,7 @@ require (
 	hawx.me/code/assert v0.0.0-20150803185601-4570da094475
 	hawx.me/code/indieauth v1.0.2-0.20190414103535-e45980f3aa4d
 	hawx.me/code/mux v0.0.0-20171229202905-76b5c781b7be
-	hawx.me/code/numbersix v0.0.0-20190411150752-c950ba47ee32
+	hawx.me/code/numbersix v0.0.0-20190423131821-2ea2741582df
 	hawx.me/code/route v1.0.0
 	hawx.me/code/serve v0.0.0-20190207181551-eb94630184cf
 	willnorris.com/go/microformats v1.0.0

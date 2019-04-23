@@ -10,14 +10,21 @@ import (
 
 var ErrNoPage = errors.New("there is no such page")
 
-// FindPage returns the page with the given name, or ErrNoPage if no such page
-// exists.
-func FindPage(baseURL, name string, store *data.Store) (*Page, error) {
-	current, err := store.CurrentPage()
+func FindPageByURL(baseURL, pageURL string, store *data.Store) (*Page, error) {
+	p, err := store.PageByURL(pageURL)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, ErrNoPage
+		}
 		return nil, err
 	}
 
+	return doFindPage(baseURL, store, p)
+}
+
+// FindPage returns the page with the given name, or ErrNoPage if no such page
+// exists.
+func FindPage(baseURL, name string, store *data.Store) (*Page, error) {
 	p, err := store.Page(name)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -26,7 +33,16 @@ func FindPage(baseURL, name string, store *data.Store) (*Page, error) {
 		return nil, err
 	}
 
-	entries, err := store.Entries(name)
+	return doFindPage(baseURL, store, p)
+}
+
+func doFindPage(baseURL string, store *data.Store, p data.Page) (*Page, error) {
+	current, err := store.CurrentPage()
+	if err != nil {
+		return nil, err
+	}
+
+	entries, err := store.Entries(p.Name)
 	if err != nil {
 		return nil, err
 	}

@@ -7,17 +7,10 @@ import (
 	"strings"
 
 	"hawx.me/code/mux"
+	"hawx.me/code/tally-ho/blog"
 )
 
-type postBlog interface {
-	PostID(url string) string
-	Update(id string, replace, add, delete map[string][]interface{}) error
-	SetNextPage(name string) error
-	Create(data map[string][]interface{}) (map[string][]interface{}, error)
-	RenderPost(data map[string][]interface{}) error
-}
-
-func Post(blog postBlog) http.Handler {
+func Post(blog *blog.Blog) http.Handler {
 	createAndRender := func(w http.ResponseWriter, data map[string][]interface{}) {
 		data, err := blog.Create(data)
 		if err != nil {
@@ -93,8 +86,12 @@ func Post(blog postBlog) http.Handler {
 				delete[key] = value
 			}
 
-			id := blog.PostID(v.URL)
-			if err := blog.Update(id, replace, add, delete); err != nil {
+			if err := blog.Update(v.URL, replace, add, delete); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			if err := blog.Rerender(v.URL); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
