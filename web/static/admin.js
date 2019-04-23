@@ -22,7 +22,7 @@ async function postJSON(data) {
     body: JSON.stringify(data),
   });
 
-  if (resp.status === 201) {
+  if (resp.ok) {
     const location = resp.headers.get('Location');
     notify(location);
   } else {
@@ -72,23 +72,25 @@ function askForFile() {
       }
     };
 
-    doUpload.onclick = function() {
+    doUpload.onclick = async function() {
       const formData = new FormData();
 
       formData.append('file', fileUpload.files[0]);
 
-      fetch(media, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${ token }`,
-        },
-        body: formData,
-      })
-        .then(resp => {
-          resolve(resp.headers.get('Location'));
-          modal.classList.remove('is-active');
-        })
-        .catch(err => reject(err));
+      try {
+        const resp = await fetch(media, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${ token }`,
+          },
+          body: formData,
+        });
+
+        resolve(resp.headers.get('Location'));
+        modal.classList.remove('is-active');
+      } catch (err) {
+        reject(err);
+      }
     };
   });
 }
@@ -169,21 +171,23 @@ function setupJSONForm(el) {
     postJSON(data);
   });
 
-  form.elements['load'].onclick = function(e) {
+  form.elements['load'].onclick = async function(e) {
     e.preventDefault();
 
     const url = form.elements['url'].value;
 
-    fetch(`${ micropub }?q=source&url=${ url }`, {
-      headers: {
-        'Authorization': `Bearer ${ token }`,
-      },
-    })
-      .then(resp => resp.json())
-      .then(data => form.elements['content'].value = JSON.stringify(data, void 0, 2))
-      .catch(err => console.warn(err));
+    try {
+      const resp = await fetch(`${ micropub }?q=source&url=${ url }`, {
+        headers: {
+          'Authorization': `Bearer ${ token }`,
+        },
+      })
 
-    console.log(url);
+      const data = await resp.json();
+      form.elements['content'].value = JSON.stringify(data, void 0, 2);
+    } catch (err) {
+      console.warn(err);
+    }
   };
 }
 
