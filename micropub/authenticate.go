@@ -1,4 +1,4 @@
-package handler
+package micropub
 
 import (
 	"encoding/json"

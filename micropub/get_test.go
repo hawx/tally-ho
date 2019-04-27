@@ -1,9 +1,8 @@
-package handler
+package micropub
 
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -26,15 +25,18 @@ func (b *fakeConfigurationBlog) PostByURL(url string) (map[string][]interface{},
 func TestConfigurationConfig(t *testing.T) {
 	assert := assert.New(t)
 
-	s := httptest.NewServer(Configuration(&fakeConfigurationBlog{}))
+	s := httptest.NewServer(getHandler(&fakeConfigurationBlog{}, "http://media.example.com/"))
 	defer s.Close()
 
 	resp, err := http.Get(s.URL + "?q=config")
 	assert.Nil(err)
 	assert.Equal(http.StatusOK, resp.StatusCode)
 
-	data, _ := ioutil.ReadAll(resp.Body)
-	assert.Equal("{}", string(data))
+	var v struct {
+		MediaEndpoint string `json:"media-endpoint"`
+	}
+	json.NewDecoder(resp.Body).Decode(&v)
+	assert.Equal("http://media.example.com/", v.MediaEndpoint)
 }
 
 func TestConfigurationSource(t *testing.T) {
@@ -49,7 +51,7 @@ func TestConfigurationSource(t *testing.T) {
 		},
 	}
 
-	s := httptest.NewServer(Configuration(blog))
+	s := httptest.NewServer(getHandler(blog, ""))
 	defer s.Close()
 
 	resp, err := http.Get(s.URL + "?q=source&url=https://example.com/weblog/p/1")
@@ -78,7 +80,7 @@ func TestConfigurationSourceWithProperties(t *testing.T) {
 		},
 	}
 
-	s := httptest.NewServer(Configuration(blog))
+	s := httptest.NewServer(getHandler(blog, ""))
 	defer s.Close()
 
 	resp, err := http.Get(s.URL + "?q=source&properties=title&url=https://example.com/weblog/p/1")
@@ -109,7 +111,7 @@ func TestConfigurationSourceWithManyProperties(t *testing.T) {
 		},
 	}
 
-	s := httptest.NewServer(Configuration(blog))
+	s := httptest.NewServer(getHandler(blog, ""))
 	defer s.Close()
 
 	resp, err := http.Get(s.URL + "?q=source&properties[]=title&properties[]=categories&url=https://example.com/weblog/p/1")

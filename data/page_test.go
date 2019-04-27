@@ -4,6 +4,9 @@ import (
 	"database/sql"
 	"testing"
 
+	// register sqlite3 for database/sql
+	_ "github.com/mattn/go-sqlite3"
+
 	"hawx.me/code/assert"
 )
 
@@ -16,7 +19,12 @@ func (f fakeURLFactory) PostURL(pageURL, slug string) string {
 func TestPages(t *testing.T) {
 	assert := assert.New(t)
 
-	store, err := Open("file::memory:", fakeURLFactory{})
+	db, err := sql.Open("sqlite3", "file::memory:")
+	if !assert.Nil(err) {
+		return
+	}
+
+	store, err := Open(db, fakeURLFactory{})
 	if !assert.Nil(err) {
 		return
 	}

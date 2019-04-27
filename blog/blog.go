@@ -1,6 +1,7 @@
 package blog
 
 import (
+	"database/sql"
 	"errors"
 	"html/template"
 	"io"
@@ -30,8 +31,8 @@ type Options struct {
 	// BasePath is the path the site will be written to.
 	BasePath string
 
-	// DbPath is the path to the sqlite database.
-	DbPath string
+	// Db is the sqlite database.
+	Db *sql.DB
 }
 
 func New(options Options) (*Blog, error) {
@@ -45,7 +46,7 @@ func New(options Options) (*Blog, error) {
 		return nil, err
 	}
 
-	store, err := data.Open(options.DbPath, nil) // TODO: fix this nil
+	store, err := data.Open(options.Db, nil) // TODO: fix this nil
 	if err != nil {
 		return nil, err
 	}
@@ -138,20 +139,6 @@ func (b *Blog) Create(data map[string][]interface{}) (map[string][]interface{}, 
 // configuration.go
 func (b *Blog) PostByURL(url string) (map[string][]interface{}, error) {
 	return b.store.GetByURL(url)
-}
-
-// mention.go
-
-// MentionSourceAllowed will check if the source URL or host of the source URL
-// has been blacklisted.
-func (b *Blog) MentionSourceAllowed(source string) bool {
-	return b.store.MentionSourceAllowed(source)
-}
-
-// AddMention will add the properties to a new webmention, or if a mention
-// already exists for the source update those properties.
-func (b *Blog) AddMention(source string, data map[string][]interface{}) error {
-	return b.store.AddMention(source, data)
 }
 
 var nonWord = regexp.MustCompile("\\W+")

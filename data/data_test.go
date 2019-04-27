@@ -1,8 +1,11 @@
 package data
 
 import (
+	"database/sql"
 	"testing"
-	"time"
+
+	// register sqlite3 for database/sql
+	_ "github.com/mattn/go-sqlite3"
 
 	"hawx.me/code/assert"
 )
@@ -10,7 +13,12 @@ import (
 func TestCreateAndUpdate(t *testing.T) {
 	assert := assert.New(t)
 
-	store, err := Open("file::memory:", fakeURLFactory{})
+	db, err := sql.Open("sqlite3", "file::memory:")
+	if !assert.Nil(err) {
+		return
+	}
+
+	store, err := Open(db, fakeURLFactory{})
 	if !assert.Nil(err) {
 		return
 	}
@@ -20,15 +28,17 @@ func TestCreateAndUpdate(t *testing.T) {
 		"name":     {"A post"},
 		"category": {"cool", "post"},
 		"author":   {"someone"},
+		"url":      {"some-id"},
 	}); !assert.Nil(err) {
 		return
 	}
 
-	if post, err := store.Get("some-id"); assert.Nil(err) {
+	if post, err := store.GetByURL("some-id"); assert.Nil(err) {
 		assert.Equal(map[string][]interface{}{
 			"name":     {"A post"},
 			"category": {"cool", "post"},
 			"author":   {"someone"},
+			"url":      {"some-id"},
 		}, post)
 	}
 
@@ -40,15 +50,16 @@ func TestCreateAndUpdate(t *testing.T) {
 		return
 	}
 
-	if post, err := store.Get("some-id"); assert.Nil(err) {
-		updated, _ := time.Parse(time.RFC3339, post["updated"][0].(string))
-		delete(post, "updated")
+	if post, err := store.GetByURL("some-id"); assert.Nil(err) {
+		// updated, _ := time.Parse(time.RFC3339, post["updated"][0].(string))
+		// delete(post, "updated")
 
 		assert.Equal(map[string][]interface{}{
 			"name":     {"what post"},
 			"category": {"?", "post"},
+			"url":      {"some-id"},
 		}, post)
 
-		assert.WithinDuration(updated, time.Now(), time.Second)
+		// assert.WithinDuration(updated, time.Now(), time.Second)
 	}
 }

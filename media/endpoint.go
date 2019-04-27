@@ -1,4 +1,4 @@
-package handler
+package media
 
 import (
 	"io"
@@ -8,17 +8,31 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"hawx.me/code/mux"
 	"hawx.me/code/tally-ho/blog"
 )
 
-// Media returns a simple implementation of a media endpoint. It expects a
-// multipart form with at least a single part named 'file'. The first such part
-// will be written to the configured directory named with a uuid, any additional
-// parts will be ignored.
+// Endpoint returns a simple implementation of a media endpoint. Files will be
+// written to 'path' and then are expected to be hosted from 'url'.
+//
+//   Endpoint("/wwwfiles/media/", "https://example.com/media/")
+//
+// The handler expects a multipart form with at least a single part named
+// 'file'. The first such part will be written to the configured directory named
+// with a uuid, any additional parts will be ignored.
 //
 // No limits are imposed on requests made so care should be taken to configure
 // this using a reverse-proxy or similar.
-func Media(fw blog.FileWriter) http.HandlerFunc {
+func Endpoint(path, url string) (h http.Handler, err error) {
+	fw, err := blog.NewFileWriter(path, url)
+	if err != nil {
+		return
+	}
+
+	return mux.Method{"POST": postHandler(fw)}, nil
+}
+
+func postHandler(fw blog.FileWriter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		mediaType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 		if err != nil {

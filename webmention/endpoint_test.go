@@ -1,4 +1,4 @@
-package handler
+package webmention
 
 import (
 	"errors"
@@ -17,7 +17,6 @@ type fakeMention struct {
 }
 
 type fakeMentionBlog struct {
-	ch chan fakeMention
 }
 
 func (b *fakeMentionBlog) PostByURL(url string) (map[string][]interface{}, error) {
@@ -28,13 +27,17 @@ func (b *fakeMentionBlog) PostByURL(url string) (map[string][]interface{}, error
 	return map[string][]interface{}{}, nil
 }
 
-func (b *fakeMentionBlog) AddMention(sourceURL string, data map[string][]interface{}) error {
-	b.ch <- fakeMention{sourceURL, data}
-	return nil
+func (b *fakeMentionBlog) MentionSourceAllowed(url string) bool {
+	return true
 }
 
-func (b *fakeMentionBlog) MentionSourceAllowed(url string) bool {
-	return false
+type fakeWebmentionDB struct {
+	ch chan fakeMention
+}
+
+func (db *fakeWebmentionDB) Upsert(source string, data map[string][]interface{}) error {
+	db.ch <- fakeMention{source, data}
+	return nil
 }
 
 func stringHandler(s string) http.HandlerFunc {
@@ -66,7 +69,8 @@ func sequenceHandlers(hs ...http.Handler) http.HandlerFunc {
 func TestMention(t *testing.T) {
 	assert := assert.New(t)
 
-	blog := &fakeMentionBlog{ch: make(chan fakeMention)}
+	db := &fakeWebmentionDB{ch: make(chan fakeMention, 1)}
+	blog := &fakeMentionBlog{}
 
 	source := httptest.NewServer(stringHandler(`
 <div class="h-entry">
@@ -78,7 +82,7 @@ func TestMention(t *testing.T) {
 `))
 	defer source.Close()
 
-	s := httptest.NewServer(Mention(blog))
+	s := httptest.NewServer(postHandler(db, blog))
 	defer s.Close()
 
 	resp, err := http.PostForm(s.URL, url.Values{
@@ -89,7 +93,7 @@ func TestMention(t *testing.T) {
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
 	select {
-	case v := <-blog.ch:
+	case v := <-db.ch:
 		assert.Equal(map[string][]interface{}{
 			"name":        {"A reply to some post"},
 			"in-reply-to": {"http://example.com/weblog/post-id"},
@@ -103,7 +107,8 @@ func TestMention(t *testing.T) {
 func TestMentionWhenPostUpdated(t *testing.T) {
 	assert := assert.New(t)
 
-	blog := &fakeMentionBlog{ch: make(chan fakeMention)}
+	db := &fakeWebmentionDB{ch: make(chan fakeMention, 1)}
+	blog := &fakeMentionBlog{}
 
 	source := httptest.NewServer(sequenceHandlers(stringHandler(`
 <div class="h-entry">
@@ -122,7 +127,7 @@ func TestMentionWhenPostUpdated(t *testing.T) {
 `)))
 	defer source.Close()
 
-	s := httptest.NewServer(Mention(blog))
+	s := httptest.NewServer(postHandler(db, blog))
 	defer s.Close()
 
 	resp, err := http.PostForm(s.URL, url.Values{
@@ -133,7 +138,7 @@ func TestMentionWhenPostUpdated(t *testing.T) {
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
 	select {
-	case v := <-blog.ch:
+	case v := <-db.ch:
 		assert.Equal(map[string][]interface{}{
 			"name":        {"A reply to some post"},
 			"in-reply-to": {"http://example.com/weblog/post-id"},
@@ -151,7 +156,7 @@ func TestMentionWhenPostUpdated(t *testing.T) {
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
 	select {
-	case v := <-blog.ch:
+	case v := <-db.ch:
 		assert.Equal(map[string][]interface{}{
 			"name":        {"A great reply to some post"},
 			"in-reply-to": {"http://example.com/weblog/post-id"},
@@ -165,7 +170,8 @@ func TestMentionWhenPostUpdated(t *testing.T) {
 func TestMentionWithHCardAndHEntry(t *testing.T) {
 	assert := assert.New(t)
 
-	blog := &fakeMentionBlog{ch: make(chan fakeMention)}
+	db := &fakeWebmentionDB{ch: make(chan fakeMention, 1)}
+	blog := &fakeMentionBlog{}
 
 	source := httptest.NewServer(stringHandler(`
 <div class="h-card">
@@ -181,7 +187,7 @@ func TestMentionWithHCardAndHEntry(t *testing.T) {
 `))
 	defer source.Close()
 
-	s := httptest.NewServer(Mention(blog))
+	s := httptest.NewServer(postHandler(db, blog))
 	defer s.Close()
 
 	resp, err := http.PostForm(s.URL, url.Values{
@@ -192,7 +198,7 @@ func TestMentionWithHCardAndHEntry(t *testing.T) {
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
 	select {
-	case v := <-blog.ch:
+	case v := <-db.ch:
 		assert.Equal(map[string][]interface{}{
 			"name":        {"A reply to some post"},
 			"in-reply-to": {"http://example.com/weblog/post-id"},
@@ -206,7 +212,8 @@ func TestMentionWithHCardAndHEntry(t *testing.T) {
 func TestMentionWithoutMicroformats(t *testing.T) {
 	assert := assert.New(t)
 
-	blog := &fakeMentionBlog{ch: make(chan fakeMention)}
+	db := &fakeWebmentionDB{ch: make(chan fakeMention, 1)}
+	blog := &fakeMentionBlog{}
 
 	source := httptest.NewServer(stringHandler(`
 <p>
@@ -215,7 +222,7 @@ func TestMentionWithoutMicroformats(t *testing.T) {
 `))
 	defer source.Close()
 
-	s := httptest.NewServer(Mention(blog))
+	s := httptest.NewServer(postHandler(db, blog))
 	defer s.Close()
 
 	resp, err := http.PostForm(s.URL, url.Values{
@@ -226,7 +233,7 @@ func TestMentionWithoutMicroformats(t *testing.T) {
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
 	select {
-	case v := <-blog.ch:
+	case v := <-db.ch:
 		assert.Equal(map[string][]interface{}{
 			"hx-target": {"http://example.com/weblog/post-id"},
 		}, v.properties)
@@ -238,12 +245,13 @@ func TestMentionWithoutMicroformats(t *testing.T) {
 func TestMentionOfDeletedPost(t *testing.T) {
 	assert := assert.New(t)
 
-	blog := &fakeMentionBlog{ch: make(chan fakeMention)}
+	db := &fakeWebmentionDB{ch: make(chan fakeMention, 1)}
+	blog := &fakeMentionBlog{}
 
 	source := httptest.NewServer(goneHandler())
 	defer source.Close()
 
-	s := httptest.NewServer(Mention(blog))
+	s := httptest.NewServer(postHandler(db, blog))
 	defer s.Close()
 
 	resp, err := http.PostForm(s.URL, url.Values{
@@ -254,7 +262,7 @@ func TestMentionOfDeletedPost(t *testing.T) {
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
 	select {
-	case v := <-blog.ch:
+	case v := <-db.ch:
 		assert.Equal(map[string][]interface{}{
 			"hx-target": {"http://example.com/weblog/post-id"},
 			"gone":      {true},

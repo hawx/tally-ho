@@ -1,4 +1,4 @@
-package handler
+package micropub
 
 import (
 	"net/http"
@@ -41,11 +41,15 @@ func (b *fakePostBlog) RenderPost(data map[string][]interface{}) error {
 	return nil
 }
 
+func (b *fakePostBlog) Rerender(url string) error {
+	return nil
+}
+
 func TestPostEntry(t *testing.T) {
 	assert := assert.New(t)
 	blog := &fakePostBlog{}
 
-	s := httptest.NewServer(Post(blog))
+	s := httptest.NewServer(postHandler(blog))
 	defer s.Close()
 
 	resp, err := http.PostForm(s.URL, url.Values{
@@ -76,7 +80,7 @@ func TestPostEntryJSON(t *testing.T) {
 	assert := assert.New(t)
 	blog := &fakePostBlog{}
 
-	s := httptest.NewServer(Post(blog))
+	s := httptest.NewServer(postHandler(blog))
 	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
@@ -113,7 +117,7 @@ func TestUpdateEntry(t *testing.T) {
 		replaces: map[string][]map[string][]interface{}{},
 	}
 
-	s := httptest.NewServer(Post(blog))
+	s := httptest.NewServer(postHandler(blog))
 	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
@@ -133,17 +137,17 @@ func TestUpdateEntry(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(http.StatusNoContent, resp.StatusCode)
 
-	replace, ok := blog.replaces["1"]
+	replace, ok := blog.replaces["https://example.com/blog/p/100"]
 	if assert.True(ok) && assert.Len(replace, 1) {
 		assert.Equal("hello moon", replace[0]["content"][0])
 	}
 
-	add, ok := blog.adds["1"]
+	add, ok := blog.adds["https://example.com/blog/p/100"]
 	if assert.True(ok) && assert.Len(add, 1) {
 		assert.Equal("http://somewhere.com", add[0]["syndication"][0])
 	}
 
-	delete, ok := blog.deletes["1"]
+	delete, ok := blog.deletes["https://example.com/blog/p/100"]
 	if assert.True(ok) && assert.Len(delete, 1) {
 		assert.Equal("this", delete[0]["not-important"][0])
 	}

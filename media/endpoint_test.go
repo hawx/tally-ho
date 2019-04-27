@@ -1,4 +1,4 @@
-package handler
+package media
 
 import (
 	"bytes"
@@ -36,7 +36,7 @@ func TestMedia(t *testing.T) {
 	file := "this is an image"
 	fw := &fakeFileWriter{}
 
-	s := httptest.NewServer(Media(fw))
+	s := httptest.NewServer(postHandler(fw))
 	defer s.Close()
 
 	var buf bytes.Buffer
@@ -63,7 +63,7 @@ func TestMedia(t *testing.T) {
 func TestMediaWhenNoFilePart(t *testing.T) {
 	assert := assert.New(t)
 
-	s := httptest.NewServer(Media(&fakeFileWriter{}))
+	s := httptest.NewServer(postHandler(&fakeFileWriter{}))
 	defer s.Close()
 
 	var buf bytes.Buffer
@@ -85,7 +85,7 @@ func TestMediaWhenMultipleFileParts(t *testing.T) {
 	file := "this is an image"
 	fw := &fakeFileWriter{}
 
-	s := httptest.NewServer(Media(fw))
+	s := httptest.NewServer(postHandler(fw))
 	defer s.Close()
 
 	var buf bytes.Buffer

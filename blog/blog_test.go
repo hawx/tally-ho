@@ -1,6 +1,7 @@
 package blog
 
 import (
+	"database/sql"
 	"testing"
 	"time"
 
@@ -8,10 +9,15 @@ import (
 )
 
 func TestCreate(t *testing.T) {
+	db, err := sql.Open("sqlite3", "file::memory:")
+	if !assert.Nil(t, err) {
+		return
+	}
+
 	blog, err := New(Options{
 		BaseURL:  "http://example.com/weblog/",
 		BasePath: "/wwwroot/weblog/",
-		DbPath:   "file::memory:",
+		Db:       db,
 		WebPath:  "../web",
 	})
 	if !assert.Nil(t, err) {

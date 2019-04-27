@@ -21,21 +21,13 @@ import (
 	"database/sql"
 
 	"hawx.me/code/numbersix"
-
-	// register sqlite3 for database/sql
-	_ "github.com/mattn/go-sqlite3"
 )
 
 type urlFactory interface {
 	PostURL(pageURL, slug string) string
 }
 
-func Open(path string, conf urlFactory) (*Store, error) {
-	sqlite, err := sql.Open("sqlite3", path)
-	if err != nil {
-		return nil, err
-	}
-
+func Open(sqlite *sql.DB, conf urlFactory) (*Store, error) {
 	entries, err := numbersix.For(sqlite, "entries")
 	if err != nil {
 		return nil, err

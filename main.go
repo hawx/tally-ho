@@ -1,16 +1,20 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"log"
 	"net/http"
 
-	"hawx.me/code/indieauth"
-	"hawx.me/code/mux"
-	"hawx.me/code/route"
+	// register sqlite3 for database/sql
+	_ "github.com/mattn/go-sqlite3"
+
 	"hawx.me/code/serve"
+	"hawx.me/code/tally-ho/admin"
 	"hawx.me/code/tally-ho/blog"
-	"hawx.me/code/tally-ho/handler"
+	"hawx.me/code/tally-ho/media"
+	"hawx.me/code/tally-ho/micropub"
+	"hawx.me/code/tally-ho/webmention"
 )
 
 func main() {
@@ -30,70 +34,59 @@ func main() {
 	)
 	flag.Parse()
 
-	mediaWriter, err := blog.NewFileWriter(*mediaPath, *mediaURL)
+	db, err := sql.Open("sqlite3", *dbPath)
 	if err != nil {
-		log.Println("creating mediawriter:", err)
+		log.Println(err)
 		return
 	}
+	defer db.Close()
 
 	blog, err := blog.New(blog.Options{
 		WebPath:  *webPath,
 		BaseURL:  *baseURL,
 		BasePath: *basePath,
-		DbPath:   *dbPath,
+		Db:       db,
 	})
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	defer blog.Close()
 
 	if flag.NArg() == 1 && flag.Arg(0) == "render" {
 		if err := blog.RenderAll(); err != nil {
-			log.Fatal(err)
+			log.Println(err)
 		}
 
 		return
 	}
 
-	auth, err := indieauth.Authorization(*adminURL, *adminURL+"callback", []string{"create"})
+	adminEndpoint, err := admin.Endpoint(*adminURL, *me, *secret, *webPath, blog)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return
 	}
+	http.Handle("/admin", http.StripPrefix("/admin/", adminEndpoint))
 
-	session, err := handler.NewScopedSessions(*me, *secret, auth)
+	micropubEndpoint, err := micropub.Endpoint(*me, blog, *mediaUploadURL)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
+		return
 	}
-	session.Root = *adminURL
+	http.Handle("/micropub", micropubEndpoint)
 
-	if *me == "" {
-		log.Fatal("--me must be provided")
+	webmentionEndpoint, err := webmention.Endpoint(db, blog)
+	if err != nil {
+		log.Println(err)
+		return
 	}
+	http.Handle("/webmention", webmentionEndpoint)
 
-	route.HandleFunc("/admin/sign-in", session.SignIn())
-	route.HandleFunc("/admin/callback", session.Callback())
-	route.HandleFunc("/admin/sign-out", session.SignOut())
+	mediaEndpoint, err := media.Endpoint(*mediaPath, *mediaURL)
+	if err != nil {
+		log.Println("created media endpoint:", err)
+		return
+	}
+	http.Handle("/media", mediaEndpoint)
 
-	route.Handle("/admin", mux.Method{
-		"GET": session.WithToken(handler.Admin(blog, *adminURL)),
-	})
-	route.Handle("/admin/public/*path", http.StripPrefix("/admin/public", http.FileServer(http.Dir(*webPath+"/static"))))
-
-	route.Handle("/micropub", handler.Authenticate(*me, "create", mux.Method{
-		"POST": handler.Post(blog),
-		"GET":  handler.Configuration(blog, *mediaUploadURL),
-	}))
-
-	route.Handle("/webmention", mux.Method{
-		"POST": handler.Mention(blog),
-	})
-
-	route.Handle("/media", mux.Method{
-		"POST": handler.Media(mediaWriter),
-	})
-
-	route.Handle("/public/*path", http.StripPrefix("/public", http.FileServer(http.Dir(*webPath+"/static"))))
-
-	serve.Serve(*port, *socket, route.Default)
+	serve.Serve(*port, *socket, http.DefaultServeMux)
 }
