@@ -15,24 +15,30 @@ import (
 	"willnorris.com/go/microformats"
 )
 
-type mentionBlog interface {
+// Blog is a view of the methods required for processing webmentions. That is
+// the ability to check if a post by the URL specified in 'target' exists, and
+// some way of notifying that changes have occured to data for a post.
+type Blog interface {
 	PostByURL(url string) (map[string][]interface{}, error)
+	PostChanged(url string) error
 }
 
 type webmention struct {
 	source, target string
 }
 
-func Endpoint(db *sql.DB, blog mentionBlog) (h http.Handler, err error) {
+// Endpoint receives webmentions, immediately returning a response of Accepted,
+// and processing them asynchronously.
+func Endpoint(db *sql.DB, blog Blog) (h http.Handler, r *Reader, err error) {
 	mentions, err := numbersix.For(db, "mentions")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return mux.Method{"POST": postHandler(mentions, blog)}, nil
+	return mux.Method{"POST": postHandler(mentions, blog)}, &Reader{mentions}, nil
 }
 
-func postHandler(db *numbersix.DB, blog mentionBlog) http.HandlerFunc {
+func postHandler(db *numbersix.DB, blog Blog) http.HandlerFunc {
 	mentions := make(chan webmention, 100)
 
 	go func() {
@@ -62,7 +68,7 @@ func postHandler(db *numbersix.DB, blog mentionBlog) http.HandlerFunc {
 	}
 }
 
-func processMention(mention webmention, blog mentionBlog, db *numbersix.DB) error {
+func processMention(mention webmention, blog Blog, db *numbersix.DB) error {
 	_, err := blog.PostByURL(mention.target)
 	if err != nil {
 		return errors.New("  no such post at 'target'")
@@ -88,7 +94,7 @@ func processMention(mention webmention, blog mentionBlog, db *numbersix.DB) erro
 			return errors.New("  could not tombstone webmention: " + err.Error())
 		}
 
-		return nil
+		return blog.PostChanged(mention.target)
 	}
 
 	data := microformats.Parse(resp.Body, source)
@@ -106,7 +112,7 @@ func processMention(mention webmention, blog mentionBlog, db *numbersix.DB) erro
 		return errors.New("  could not add webmention: " + err.Error())
 	}
 
-	return nil
+	return blog.PostChanged(mention.target)
 }
 
 func contains(needle string, list []string) bool {

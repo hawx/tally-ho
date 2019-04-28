@@ -7,6 +7,21 @@ import (
 	"hawx.me/code/numbersix"
 )
 
+type Reader struct {
+	db *numbersix.DB
+}
+
+// ForPost returns all webmentions that references a post.
+func (r Reader) ForPost(url string) (list []numbersix.Group, err error) {
+	triples, err := r.db.List(numbersix.Where("hx-target", url))
+	if err != nil {
+		return
+	}
+
+	list = numbersix.Grouped(triples)
+	return
+}
+
 func upsertMention(db *numbersix.DB, source string, data map[string][]interface{}) error {
 	if err := db.DeleteSubject(source); err != nil {
 		return err

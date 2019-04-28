@@ -106,6 +106,11 @@ func (b *Blog) CurrentPage() (string, error) {
 	return page.Name, err
 }
 
+func (b *Blog) PostChanged(url string) error {
+	// TODO: re-render post and page
+	return nil
+}
+
 func (b *Blog) Create(data map[string][]interface{}) (map[string][]interface{}, error) {
 	id := uuid.New().String()
 

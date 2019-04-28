@@ -10,22 +10,9 @@ import (
 	"time"
 
 	"hawx.me/code/assert"
-	"hawx.me/code/numbersix"
 )
 
-func triplesToMap(triples []numbersix.Triple) (map[string][]interface{}, error) {
-	properties := map[string][]interface{}{}
-	for _, triple := range triples {
-		var value interface{}
-		if err := triple.Value(&value); err != nil {
-			return properties, err
-		}
-
-		properties[triple.Predicate] = append(properties[triple.Predicate], value)
-	}
-
-	return properties, nil
-}
+const waitTime = 5 * time.Millisecond
 
 type fakeMention struct {
 	source     string
@@ -33,6 +20,7 @@ type fakeMention struct {
 }
 
 type fakeMentionBlog struct {
+	ch chan string
 }
 
 func (b *fakeMentionBlog) PostByURL(url string) (map[string][]interface{}, error) {
@@ -41,6 +29,11 @@ func (b *fakeMentionBlog) PostByURL(url string) (map[string][]interface{}, error
 	}
 
 	return map[string][]interface{}{}, nil
+}
+
+func (b *fakeMentionBlog) PostChanged(url string) error {
+	b.ch <- url
+	return nil
 }
 
 func stringHandler(s string) http.HandlerFunc {
@@ -73,7 +66,7 @@ func TestMention(t *testing.T) {
 	assert := assert.New(t)
 
 	db, _ := sql.Open("sqlite3", "file::memory:")
-	blog := &fakeMentionBlog{}
+	blog := &fakeMentionBlog{ch: make(chan string, 1)}
 
 	source := httptest.NewServer(stringHandler(`
 <div class="h-entry">
@@ -85,7 +78,7 @@ func TestMention(t *testing.T) {
 `))
 	defer source.Close()
 
-	endpoint, _ := Endpoint(db, blog)
+	endpoint, reader, _ := Endpoint(db, blog)
 	s := httptest.NewServer(endpoint)
 	defer s.Close()
 
@@ -96,24 +89,27 @@ func TestMention(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
-	ndb, _ := numbersix.For(db, "mentions")
+	select {
+	case url := <-blog.ch:
+		grouped, _ := reader.ForPost(url)
 
-	time.Sleep(time.Millisecond)
-	triples, _ := ndb.List(numbersix.All())
-	data, _ := triplesToMap(triples)
-
-	assert.Equal(map[string][]interface{}{
-		"name":        {"A reply to some post"},
-		"in-reply-to": {"http://example.com/weblog/post-id"},
-		"hx-target":   {"http://example.com/weblog/post-id"},
-	}, data)
+		if assert.Len(grouped, 1) {
+			assert.Equal(map[string][]interface{}{
+				"name":        {"A reply to some post"},
+				"in-reply-to": {"http://example.com/weblog/post-id"},
+				"hx-target":   {"http://example.com/weblog/post-id"},
+			}, grouped[0].Properties)
+		}
+	case <-time.After(waitTime):
+		t.Fatal("failed to get notified")
+	}
 }
 
 func TestMentionWhenPostUpdated(t *testing.T) {
 	assert := assert.New(t)
 
 	db, _ := sql.Open("sqlite3", "file::memory:")
-	blog := &fakeMentionBlog{}
+	blog := &fakeMentionBlog{ch: make(chan string, 1)}
 
 	source := httptest.NewServer(sequenceHandlers(stringHandler(`
 <div class="h-entry">
@@ -132,7 +128,7 @@ func TestMentionWhenPostUpdated(t *testing.T) {
 `)))
 	defer source.Close()
 
-	endpoint, _ := Endpoint(db, blog)
+	endpoint, reader, _ := Endpoint(db, blog)
 	s := httptest.NewServer(endpoint)
 	defer s.Close()
 
@@ -143,17 +139,18 @@ func TestMentionWhenPostUpdated(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
-	ndb, _ := numbersix.For(db, "mentions")
+	select {
+	case url := <-blog.ch:
+		grouped, _ := reader.ForPost(url)
 
-	time.Sleep(time.Millisecond)
-	triples, _ := ndb.List(numbersix.All())
-	data, _ := triplesToMap(triples)
-
-	assert.Equal(map[string][]interface{}{
-		"name":        {"A reply to some post"},
-		"in-reply-to": {"http://example.com/weblog/post-id"},
-		"hx-target":   {"http://example.com/weblog/post-id"},
-	}, data)
+		assert.Equal(map[string][]interface{}{
+			"name":        {"A reply to some post"},
+			"in-reply-to": {"http://example.com/weblog/post-id"},
+			"hx-target":   {"http://example.com/weblog/post-id"},
+		}, grouped[0].Properties)
+	case <-time.After(waitTime):
+		t.Fatal("failed to get notified")
+	}
 
 	resp, err = http.PostForm(s.URL, url.Values{
 		"source": {source.URL},
@@ -162,22 +159,25 @@ func TestMentionWhenPostUpdated(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
-	time.Sleep(time.Millisecond)
-	triples, _ = ndb.List(numbersix.All())
-	data, _ = triplesToMap(triples)
+	select {
+	case url := <-blog.ch:
+		grouped, _ := reader.ForPost(url)
 
-	assert.Equal(map[string][]interface{}{
-		"name":        {"A great reply to some post"},
-		"in-reply-to": {"http://example.com/weblog/post-id"},
-		"hx-target":   {"http://example.com/weblog/post-id"},
-	}, data)
+		assert.Equal(map[string][]interface{}{
+			"name":        {"A great reply to some post"},
+			"in-reply-to": {"http://example.com/weblog/post-id"},
+			"hx-target":   {"http://example.com/weblog/post-id"},
+		}, grouped[0].Properties)
+	case <-time.After(waitTime):
+		t.Fatal("failed to get notified")
+	}
 }
 
 func TestMentionWithHCardAndHEntry(t *testing.T) {
 	assert := assert.New(t)
 
 	db, _ := sql.Open("sqlite3", "file::memory:")
-	blog := &fakeMentionBlog{}
+	blog := &fakeMentionBlog{ch: make(chan string, 1)}
 
 	source := httptest.NewServer(stringHandler(`
 <div class="h-card">
@@ -193,7 +193,7 @@ func TestMentionWithHCardAndHEntry(t *testing.T) {
 `))
 	defer source.Close()
 
-	endpoint, _ := Endpoint(db, blog)
+	endpoint, reader, _ := Endpoint(db, blog)
 	s := httptest.NewServer(endpoint)
 	defer s.Close()
 
@@ -204,24 +204,25 @@ func TestMentionWithHCardAndHEntry(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
-	ndb, _ := numbersix.For(db, "mentions")
+	select {
+	case url := <-blog.ch:
+		grouped, _ := reader.ForPost(url)
 
-	time.Sleep(time.Millisecond)
-	triples, _ := ndb.List(numbersix.All())
-	data, _ := triplesToMap(triples)
-
-	assert.Equal(map[string][]interface{}{
-		"name":        {"A reply to some post"},
-		"in-reply-to": {"http://example.com/weblog/post-id"},
-		"hx-target":   {"http://example.com/weblog/post-id"},
-	}, data)
+		assert.Equal(map[string][]interface{}{
+			"name":        {"A reply to some post"},
+			"in-reply-to": {"http://example.com/weblog/post-id"},
+			"hx-target":   {"http://example.com/weblog/post-id"},
+		}, grouped[0].Properties)
+	case <-time.After(waitTime):
+		t.Fatal("failed to get notified")
+	}
 }
 
 func TestMentionWithoutMicroformats(t *testing.T) {
 	assert := assert.New(t)
 
 	db, _ := sql.Open("sqlite3", "file::memory:")
-	blog := &fakeMentionBlog{}
+	blog := &fakeMentionBlog{ch: make(chan string, 1)}
 
 	source := httptest.NewServer(stringHandler(`
 <p>
@@ -230,7 +231,7 @@ func TestMentionWithoutMicroformats(t *testing.T) {
 `))
 	defer source.Close()
 
-	endpoint, _ := Endpoint(db, blog)
+	endpoint, reader, _ := Endpoint(db, blog)
 	s := httptest.NewServer(endpoint)
 	defer s.Close()
 
@@ -241,27 +242,28 @@ func TestMentionWithoutMicroformats(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
-	ndb, _ := numbersix.For(db, "mentions")
+	select {
+	case url := <-blog.ch:
+		grouped, _ := reader.ForPost(url)
 
-	time.Sleep(time.Millisecond)
-	triples, _ := ndb.List(numbersix.All())
-	data, _ := triplesToMap(triples)
-
-	assert.Equal(map[string][]interface{}{
-		"hx-target": {"http://example.com/weblog/post-id"},
-	}, data)
+		assert.Equal(map[string][]interface{}{
+			"hx-target": {"http://example.com/weblog/post-id"},
+		}, grouped[0].Properties)
+	case <-time.After(waitTime):
+		t.Fatal("failed to get notified")
+	}
 }
 
 func TestMentionOfDeletedPost(t *testing.T) {
 	assert := assert.New(t)
 
 	db, _ := sql.Open("sqlite3", "file::memory:")
-	blog := &fakeMentionBlog{}
+	blog := &fakeMentionBlog{ch: make(chan string, 1)}
 
 	source := httptest.NewServer(goneHandler())
 	defer source.Close()
 
-	endpoint, _ := Endpoint(db, blog)
+	endpoint, reader, _ := Endpoint(db, blog)
 	s := httptest.NewServer(endpoint)
 	defer s.Close()
 
@@ -272,14 +274,15 @@ func TestMentionOfDeletedPost(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
-	ndb, _ := numbersix.For(db, "mentions")
+	select {
+	case url := <-blog.ch:
+		grouped, _ := reader.ForPost(url)
 
-	time.Sleep(time.Millisecond)
-	triples, _ := ndb.List(numbersix.All())
-	data, _ := triplesToMap(triples)
-
-	assert.Equal(map[string][]interface{}{
-		"hx-target": {"http://example.com/weblog/post-id"},
-		"gone":      {true},
-	}, data)
+		assert.Equal(map[string][]interface{}{
+			"hx-target": {"http://example.com/weblog/post-id"},
+			"gone":      {true},
+		}, grouped[0].Properties)
+	case <-time.After(waitTime):
+		t.Fatal("failed to get notified")
+	}
 }

@@ -74,7 +74,7 @@ func main() {
 	}
 	http.Handle("/micropub", micropubEndpoint)
 
-	webmentionEndpoint, err := webmention.Endpoint(db, blog)
+	webmentionEndpoint, _, err := webmention.Endpoint(db, blog)
 	if err != nil {
 		log.Println(err)
 		return
