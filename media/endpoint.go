@@ -1,3 +1,6 @@
+// Package media implements a micropub media endpoint.
+//
+// See the specification https://www.w3.org/TR/micropub/#media-endpoint.
 package media
 
 import (

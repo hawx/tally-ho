@@ -9,7 +9,7 @@ import (
 	"hawx.me/code/indieauth"
 )
 
-func Authenticate(me, scope string, next http.Handler) http.HandlerFunc {
+func authenticate(me, scope string, next http.Handler) http.HandlerFunc {
 	endpoints, err := indieauth.FindEndpoints(me)
 	if err != nil {
 		log.Fatal("indieauth find endpoints:", err)
