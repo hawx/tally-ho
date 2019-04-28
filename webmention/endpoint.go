@@ -1,3 +1,6 @@
+// Package webmention implements a handler for receiving webmentions.
+//
+// See the specification https://www.w3.org/TR/webmention/.
 package webmention
 
 import (
@@ -8,6 +11,7 @@ import (
 	"net/url"
 
 	"hawx.me/code/mux"
+	"hawx.me/code/numbersix"
 	"willnorris.com/go/microformats"
 )
 
@@ -20,19 +24,15 @@ type webmention struct {
 }
 
 func Endpoint(db *sql.DB, blog mentionBlog) (h http.Handler, err error) {
-	mentionsDB, err := wrap(db)
+	mentions, err := numbersix.For(db, "mentions")
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	return mux.Method{"POST": postHandler(mentionsDB, blog)}, nil
+	return mux.Method{"POST": postHandler(mentions, blog)}, nil
 }
 
-type mentionAdder interface {
-	Upsert(source string, data map[string][]interface{}) error
-}
-
-func postHandler(db mentionAdder, blog mentionBlog) http.HandlerFunc {
+func postHandler(db *numbersix.DB, blog mentionBlog) http.HandlerFunc {
 	mentions := make(chan webmention, 100)
 
 	go func() {
@@ -62,7 +62,7 @@ func postHandler(db mentionAdder, blog mentionBlog) http.HandlerFunc {
 	}
 }
 
-func processMention(mention webmention, blog mentionBlog, db mentionAdder) error {
+func processMention(mention webmention, blog mentionBlog, db *numbersix.DB) error {
 	_, err := blog.PostByURL(mention.target)
 	if err != nil {
 		return errors.New("  no such post at 'target'")
@@ -81,7 +81,7 @@ func processMention(mention webmention, blog mentionBlog, db mentionAdder) error
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusGone {
-		if err := db.Upsert(mention.source, map[string][]interface{}{
+		if err := upsertMention(db, mention.source, map[string][]interface{}{
 			"hx-target": {mention.target},
 			"gone":      {true},
 		}); err != nil {
@@ -102,7 +102,7 @@ func processMention(mention webmention, blog mentionBlog, db mentionAdder) error
 	}
 	properties["hx-target"] = []interface{}{mention.target}
 
-	if err := db.Upsert(mention.source, properties); err != nil {
+	if err := upsertMention(db, mention.source, properties); err != nil {
 		return errors.New("  could not add webmention: " + err.Error())
 	}
 

@@ -1,6 +1,7 @@
 package webmention
 
 import (
+	"database/sql"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -9,7 +10,22 @@ import (
 	"time"
 
 	"hawx.me/code/assert"
+	"hawx.me/code/numbersix"
 )
+
+func triplesToMap(triples []numbersix.Triple) (map[string][]interface{}, error) {
+	properties := map[string][]interface{}{}
+	for _, triple := range triples {
+		var value interface{}
+		if err := triple.Value(&value); err != nil {
+			return properties, err
+		}
+
+		properties[triple.Predicate] = append(properties[triple.Predicate], value)
+	}
+
+	return properties, nil
+}
 
 type fakeMention struct {
 	source     string
@@ -25,19 +41,6 @@ func (b *fakeMentionBlog) PostByURL(url string) (map[string][]interface{}, error
 	}
 
 	return map[string][]interface{}{}, nil
-}
-
-func (b *fakeMentionBlog) MentionSourceAllowed(url string) bool {
-	return true
-}
-
-type fakeWebmentionDB struct {
-	ch chan fakeMention
-}
-
-func (db *fakeWebmentionDB) Upsert(source string, data map[string][]interface{}) error {
-	db.ch <- fakeMention{source, data}
-	return nil
 }
 
 func stringHandler(s string) http.HandlerFunc {
@@ -69,7 +72,7 @@ func sequenceHandlers(hs ...http.Handler) http.HandlerFunc {
 func TestMention(t *testing.T) {
 	assert := assert.New(t)
 
-	db := &fakeWebmentionDB{ch: make(chan fakeMention, 1)}
+	db, _ := sql.Open("sqlite3", "file::memory:")
 	blog := &fakeMentionBlog{}
 
 	source := httptest.NewServer(stringHandler(`
@@ -82,7 +85,8 @@ func TestMention(t *testing.T) {
 `))
 	defer source.Close()
 
-	s := httptest.NewServer(postHandler(db, blog))
+	endpoint, _ := Endpoint(db, blog)
+	s := httptest.NewServer(endpoint)
 	defer s.Close()
 
 	resp, err := http.PostForm(s.URL, url.Values{
@@ -92,22 +96,23 @@ func TestMention(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
-	select {
-	case v := <-db.ch:
-		assert.Equal(map[string][]interface{}{
-			"name":        {"A reply to some post"},
-			"in-reply-to": {"http://example.com/weblog/post-id"},
-			"hx-target":   {"http://example.com/weblog/post-id"},
-		}, v.properties)
-	case <-time.After(time.Second):
-		t.Fatal("failed to send mention")
-	}
+	ndb, _ := numbersix.For(db, "mentions")
+
+	time.Sleep(time.Millisecond)
+	triples, _ := ndb.List(numbersix.All())
+	data, _ := triplesToMap(triples)
+
+	assert.Equal(map[string][]interface{}{
+		"name":        {"A reply to some post"},
+		"in-reply-to": {"http://example.com/weblog/post-id"},
+		"hx-target":   {"http://example.com/weblog/post-id"},
+	}, data)
 }
 
 func TestMentionWhenPostUpdated(t *testing.T) {
 	assert := assert.New(t)
 
-	db := &fakeWebmentionDB{ch: make(chan fakeMention, 1)}
+	db, _ := sql.Open("sqlite3", "file::memory:")
 	blog := &fakeMentionBlog{}
 
 	source := httptest.NewServer(sequenceHandlers(stringHandler(`
@@ -127,7 +132,8 @@ func TestMentionWhenPostUpdated(t *testing.T) {
 `)))
 	defer source.Close()
 
-	s := httptest.NewServer(postHandler(db, blog))
+	endpoint, _ := Endpoint(db, blog)
+	s := httptest.NewServer(endpoint)
 	defer s.Close()
 
 	resp, err := http.PostForm(s.URL, url.Values{
@@ -137,16 +143,17 @@ func TestMentionWhenPostUpdated(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
-	select {
-	case v := <-db.ch:
-		assert.Equal(map[string][]interface{}{
-			"name":        {"A reply to some post"},
-			"in-reply-to": {"http://example.com/weblog/post-id"},
-			"hx-target":   {"http://example.com/weblog/post-id"},
-		}, v.properties)
-	case <-time.After(time.Second):
-		t.Fatal("failed to send mention")
-	}
+	ndb, _ := numbersix.For(db, "mentions")
+
+	time.Sleep(time.Millisecond)
+	triples, _ := ndb.List(numbersix.All())
+	data, _ := triplesToMap(triples)
+
+	assert.Equal(map[string][]interface{}{
+		"name":        {"A reply to some post"},
+		"in-reply-to": {"http://example.com/weblog/post-id"},
+		"hx-target":   {"http://example.com/weblog/post-id"},
+	}, data)
 
 	resp, err = http.PostForm(s.URL, url.Values{
 		"source": {source.URL},
@@ -155,22 +162,21 @@ func TestMentionWhenPostUpdated(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
-	select {
-	case v := <-db.ch:
-		assert.Equal(map[string][]interface{}{
-			"name":        {"A great reply to some post"},
-			"in-reply-to": {"http://example.com/weblog/post-id"},
-			"hx-target":   {"http://example.com/weblog/post-id"},
-		}, v.properties)
-	case <-time.After(time.Second):
-		t.Fatal("failed to send mention")
-	}
+	time.Sleep(time.Millisecond)
+	triples, _ = ndb.List(numbersix.All())
+	data, _ = triplesToMap(triples)
+
+	assert.Equal(map[string][]interface{}{
+		"name":        {"A great reply to some post"},
+		"in-reply-to": {"http://example.com/weblog/post-id"},
+		"hx-target":   {"http://example.com/weblog/post-id"},
+	}, data)
 }
 
 func TestMentionWithHCardAndHEntry(t *testing.T) {
 	assert := assert.New(t)
 
-	db := &fakeWebmentionDB{ch: make(chan fakeMention, 1)}
+	db, _ := sql.Open("sqlite3", "file::memory:")
 	blog := &fakeMentionBlog{}
 
 	source := httptest.NewServer(stringHandler(`
@@ -187,7 +193,8 @@ func TestMentionWithHCardAndHEntry(t *testing.T) {
 `))
 	defer source.Close()
 
-	s := httptest.NewServer(postHandler(db, blog))
+	endpoint, _ := Endpoint(db, blog)
+	s := httptest.NewServer(endpoint)
 	defer s.Close()
 
 	resp, err := http.PostForm(s.URL, url.Values{
@@ -197,22 +204,23 @@ func TestMentionWithHCardAndHEntry(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
-	select {
-	case v := <-db.ch:
-		assert.Equal(map[string][]interface{}{
-			"name":        {"A reply to some post"},
-			"in-reply-to": {"http://example.com/weblog/post-id"},
-			"hx-target":   {"http://example.com/weblog/post-id"},
-		}, v.properties)
-	case <-time.After(time.Second):
-		t.Fatal("failed to send mention")
-	}
+	ndb, _ := numbersix.For(db, "mentions")
+
+	time.Sleep(time.Millisecond)
+	triples, _ := ndb.List(numbersix.All())
+	data, _ := triplesToMap(triples)
+
+	assert.Equal(map[string][]interface{}{
+		"name":        {"A reply to some post"},
+		"in-reply-to": {"http://example.com/weblog/post-id"},
+		"hx-target":   {"http://example.com/weblog/post-id"},
+	}, data)
 }
 
 func TestMentionWithoutMicroformats(t *testing.T) {
 	assert := assert.New(t)
 
-	db := &fakeWebmentionDB{ch: make(chan fakeMention, 1)}
+	db, _ := sql.Open("sqlite3", "file::memory:")
 	blog := &fakeMentionBlog{}
 
 	source := httptest.NewServer(stringHandler(`
@@ -222,7 +230,8 @@ func TestMentionWithoutMicroformats(t *testing.T) {
 `))
 	defer source.Close()
 
-	s := httptest.NewServer(postHandler(db, blog))
+	endpoint, _ := Endpoint(db, blog)
+	s := httptest.NewServer(endpoint)
 	defer s.Close()
 
 	resp, err := http.PostForm(s.URL, url.Values{
@@ -232,26 +241,28 @@ func TestMentionWithoutMicroformats(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
-	select {
-	case v := <-db.ch:
-		assert.Equal(map[string][]interface{}{
-			"hx-target": {"http://example.com/weblog/post-id"},
-		}, v.properties)
-	case <-time.After(time.Second):
-		t.Fatal("failed to send mention")
-	}
+	ndb, _ := numbersix.For(db, "mentions")
+
+	time.Sleep(time.Millisecond)
+	triples, _ := ndb.List(numbersix.All())
+	data, _ := triplesToMap(triples)
+
+	assert.Equal(map[string][]interface{}{
+		"hx-target": {"http://example.com/weblog/post-id"},
+	}, data)
 }
 
 func TestMentionOfDeletedPost(t *testing.T) {
 	assert := assert.New(t)
 
-	db := &fakeWebmentionDB{ch: make(chan fakeMention, 1)}
+	db, _ := sql.Open("sqlite3", "file::memory:")
 	blog := &fakeMentionBlog{}
 
 	source := httptest.NewServer(goneHandler())
 	defer source.Close()
 
-	s := httptest.NewServer(postHandler(db, blog))
+	endpoint, _ := Endpoint(db, blog)
+	s := httptest.NewServer(endpoint)
 	defer s.Close()
 
 	resp, err := http.PostForm(s.URL, url.Values{
@@ -261,13 +272,14 @@ func TestMentionOfDeletedPost(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
-	select {
-	case v := <-db.ch:
-		assert.Equal(map[string][]interface{}{
-			"hx-target": {"http://example.com/weblog/post-id"},
-			"gone":      {true},
-		}, v.properties)
-	case <-time.After(time.Second):
-		t.Fatal("failed to send mention")
-	}
+	ndb, _ := numbersix.For(db, "mentions")
+
+	time.Sleep(time.Millisecond)
+	triples, _ := ndb.List(numbersix.All())
+	data, _ := triplesToMap(triples)
+
+	assert.Equal(map[string][]interface{}{
+		"hx-target": {"http://example.com/weblog/post-id"},
+		"gone":      {true},
+	}, data)
 }
