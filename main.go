@@ -65,7 +65,7 @@ func main() {
 		log.Println(err)
 		return
 	}
-	http.Handle("/admin", http.StripPrefix("/admin/", adminEndpoint))
+	http.Handle("/admin/", http.StripPrefix("/admin", adminEndpoint))
 
 	micropubEndpoint, err := micropub.Endpoint(*me, blog, *mediaUploadURL)
 	if err != nil {

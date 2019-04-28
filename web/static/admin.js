@@ -12,6 +12,24 @@ function notify(href) {
   notification.classList.remove('is-hidden');
 }
 
+async function postForm(data) {
+  const resp = await fetch(micropub, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${ token }`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: data,
+  });
+
+  if (resp.ok) {
+    const location = resp.headers.get('Location');
+    notify(location);
+  } else {
+    console.log('There was a problem', resp, await resp.text());
+  }
+}
+
 async function postJSON(data) {
   const resp = await fetch(micropub, {
     method: 'POST',
@@ -95,6 +113,23 @@ function askForFile() {
   });
 }
 
+function setupNoteForm(el) {
+  const form = el.querySelector('form');
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+
+    const data = new URLSearchParams();
+    for (const el of form.elements) {
+      if (el.value) {
+        data.append(el.name, el.value);
+      }
+    }
+
+    postForm(data);
+  });
+}
+
 function setupPostForm(el) {
   const form = el.querySelector('form');
   const content = form.elements['content'];
@@ -137,17 +172,15 @@ function setupPostForm(el) {
     ],
   });
 
-  const editorForm = document.getElementById('editorform');
-
-  editorform.addEventListener('submit', function(e) {
+  form.addEventListener('submit', function(e) {
     e.preventDefault();
 
     postJSON({
       type: ['h-entry'],
       properties: {
-        name: [editorForm.elements['name'].value],
+        name: [form.elements['name'].value],
         content: [
-          { html: editorForm.elements['content'].value },
+          { html: form.elements['content'].value },
         ],
       },
     });
@@ -191,6 +224,7 @@ function setupJSONForm(el) {
   };
 }
 
+setupNoteForm(document.getElementById('note'));
 setupPostForm(document.getElementById('post'));
 setupJSONForm(document.getElementById('json'));
 setupTabs(document.querySelectorAll('.tabs li'), document.querySelectorAll('.tabbed'));

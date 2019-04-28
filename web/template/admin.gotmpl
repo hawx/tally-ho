@@ -89,7 +89,7 @@
         </div>
 
         <div id="note" class="container tabbed">
-          <form method="post" action="{{ .Micropub }}">
+          <form>
             <div class="field">
               <label class="label" for="content">Content</label>
               <div class="control">
@@ -97,7 +97,6 @@
               </div>
             </div>
 
-            <input type="hidden" name="access_token" value="{{ .AccessToken }}" />
             <input type="hidden" name="h" value="entry" />
 
             <div class="field">
@@ -109,7 +108,7 @@
         </div>
 
         <div id="post" class="container tabbed">
-          <form method="post" action="{{ .Micropub }}" id="editorform">
+          <form>
             <div class="field">
               <label class="label" for="name">Name</label>
               <div class="control">
@@ -136,7 +135,7 @@
         </div>
 
         <div id="json" class="container tabbed">
-          <form id="jsonform">
+          <form>
             <div class="field is-grouped">
               <p class="control is-expanded">
                 <input class="input" type="text" name="url" placeholder="http://example.com/blog/my-post">
