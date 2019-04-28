@@ -15,7 +15,7 @@ type blogInterface interface {
 	SetNextPage(name string) error
 
 	// these should be removed, blog should know what/when to render
-	Rerender(url string) error
+	PostChanged(url string) error
 	RenderPost(data map[string][]interface{}) error
 }
 
@@ -78,7 +78,7 @@ func (h *micropubPostHandler) handleJSON(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
-		if err := h.blog.Rerender(v.URL); err != nil {
+		if err := h.blog.PostChanged(v.URL); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

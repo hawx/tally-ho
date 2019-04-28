@@ -41,7 +41,7 @@ func (b *fakePostBlog) RenderPost(data map[string][]interface{}) error {
 	return nil
 }
 
-func (b *fakePostBlog) Rerender(url string) error {
+func (b *fakePostBlog) PostChanged(url string) error {
 	return nil
 }
 

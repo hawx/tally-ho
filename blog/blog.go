@@ -71,7 +71,9 @@ func (b *Blog) Update(url string, replace, add, delete map[string][]interface{})
 	return b.store.Update(url, replace, add, delete)
 }
 
-func (b *Blog) Rerender(url string) error {
+// rerender will render the post at the given url, and also render the page
+// that the post belongs to.
+func (b *Blog) rerender(url string) error {
 	parts := strings.SplitAfter(url, "/")
 	pageURL := strings.Join(parts[:len(parts)-2], "")
 
@@ -107,8 +109,7 @@ func (b *Blog) CurrentPage() (string, error) {
 }
 
 func (b *Blog) PostChanged(url string) error {
-	// TODO: re-render post and page
-	return nil
+	return b.rerender(url)
 }
 
 func (b *Blog) Create(data map[string][]interface{}) (map[string][]interface{}, error) {
