@@ -28,7 +28,7 @@ func FindPageByURL(url string, store *micropub.Reader) (*Page, error) {
 		return nil, err
 	}
 
-	entries, err := store.Entries(p.Name)
+	entries, err := store.Entries(p.URL)
 	if err != nil {
 		return nil, err
 	}
@@ -141,8 +141,10 @@ func (p *Page) Render(store *micropub.Reader, tmpl *template.Template, w writer2
 	if err := w.writePage(p.URL, p); err != nil {
 		return err
 	}
-	if err := w.writeRoot(p); err != nil {
-		return err
+	if p.IsRoot {
+		if err := w.writeRoot(p); err != nil {
+			return err
+		}
 	}
 
 	if len(p.Posts) == 1 {

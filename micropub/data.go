@@ -36,8 +36,13 @@ func (r *Reader) Post(url string) (properties map[string][]interface{}, err erro
 	return r.db.entryByURL(url)
 }
 
-func (r *Reader) Entries(page string) (groups []numbersix.Group, err error) {
-	triples, err := r.db.entries.List(numbersix.Descending("published").Where("hx-page", page))
+func (r *Reader) Entries(url string) (groups []numbersix.Group, err error) {
+	page, err := r.Page(url)
+	if err != nil {
+		return
+	}
+
+	triples, err := r.db.entries.List(numbersix.Descending("published").Where("hx-page", page.Name))
 	if err != nil {
 		return
 	}
