@@ -1,4 +1,4 @@
-package blog
+package writer
 
 import (
 	"io/ioutil"

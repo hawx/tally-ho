@@ -4,14 +4,18 @@ import (
 	"database/sql"
 	"errors"
 	"html/template"
+	"strings"
 
-	"hawx.me/code/tally-ho/data"
+	"hawx.me/code/tally-ho/micropub"
 )
 
 var ErrNoPage = errors.New("there is no such page")
 
-func FindPageByURL(baseURL, pageURL string, store *data.Store) (*Page, error) {
-	p, err := store.PageByURL(pageURL)
+func FindPageByURL(url string, store *micropub.Reader) (*Page, error) {
+	parts := strings.SplitAfter(url, "/")
+	baseURL := strings.Join(parts[:len(parts)-2], "")
+
+	p, err := store.Page(url)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrNoPage
@@ -19,24 +23,6 @@ func FindPageByURL(baseURL, pageURL string, store *data.Store) (*Page, error) {
 		return nil, err
 	}
 
-	return doFindPage(baseURL, store, p)
-}
-
-// FindPage returns the page with the given name, or ErrNoPage if no such page
-// exists.
-func FindPage(baseURL, name string, store *data.Store) (*Page, error) {
-	p, err := store.Page(name)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrNoPage
-		}
-		return nil, err
-	}
-
-	return doFindPage(baseURL, store, p)
-}
-
-func doFindPage(baseURL string, store *data.Store, p data.Page) (*Page, error) {
 	current, err := store.CurrentPage()
 	if err != nil {
 		return nil, err
@@ -54,7 +40,7 @@ func doFindPage(baseURL string, store *data.Store, p data.Page) (*Page, error) {
 	}
 
 	var nextPage *PageRef
-	next, err := store.PageAfter(p.Name)
+	next, err := store.PageAfter(p.URL)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, err
 	}
@@ -66,7 +52,7 @@ func doFindPage(baseURL string, store *data.Store, p data.Page) (*Page, error) {
 	}
 
 	var prevPage *PageRef
-	prev, err := store.PageBefore(p.Name)
+	prev, err := store.PageBefore(p.URL)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, err
 	}
@@ -123,7 +109,7 @@ type PageRef struct {
 }
 
 // Next returns the next, newer page, if such a page exists.
-func (p *Page) Next(store *data.Store) (*Page, error) {
+func (p *Page) Next(store *micropub.Reader) (*Page, error) {
 	next, err := store.PageAfter(p.Name)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -132,11 +118,11 @@ func (p *Page) Next(store *data.Store) (*Page, error) {
 		return nil, err
 	}
 
-	return FindPage(p.BaseURL, next.Name, store)
+	return FindPageByURL(next.URL, store)
 }
 
 // Prev returns the previous, older page, if such a page exists.
-func (p *Page) Prev(store *data.Store) (*Page, error) {
+func (p *Page) Prev(store *micropub.Reader) (*Page, error) {
 	prev, err := store.PageBefore(p.Name)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -145,13 +131,13 @@ func (p *Page) Prev(store *data.Store) (*Page, error) {
 		return nil, err
 	}
 
-	return FindPage(p.BaseURL, prev.Name, store)
+	return FindPageByURL(prev.URL, store)
 }
 
 // Render writes the page, if it IsRoot then the root page will also be
 // written. To ensure the next page link works it will write the previous page
 // if there is only one post.
-func (p *Page) Render(store *data.Store, tmpl *template.Template, w writer, maybePrev bool) error {
+func (p *Page) Render(store *micropub.Reader, tmpl *template.Template, w writer2) error {
 	if err := w.writePage(p.URL, p); err != nil {
 		return err
 	}
@@ -159,7 +145,7 @@ func (p *Page) Render(store *data.Store, tmpl *template.Template, w writer, mayb
 		return err
 	}
 
-	if maybePrev && len(p.Posts) == 1 {
+	if len(p.Posts) == 1 {
 		prev, err := p.Prev(store)
 		if err != nil && err != ErrNoPage {
 			return err

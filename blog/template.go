@@ -1,8 +1,13 @@
 package blog
 
-import "html/template"
+import (
+	"html/template"
+	"path/filepath"
+)
 
-func parseTemplates(glob string) (*template.Template, error) {
+func ParseTemplates(webPath string) (*template.Template, error) {
+	glob := filepath.Join(webPath, "template/*.gotmpl")
+
 	return template.New("t").Funcs(template.FuncMap{
 		"has": func(m map[string][]interface{}, key string) bool {
 			value, ok := m[key]

@@ -7,21 +7,14 @@ import (
 	"strings"
 
 	"hawx.me/code/mux"
+	"hawx.me/code/tally-ho/writer"
 )
 
-type blogInterface interface {
-	Create(data map[string][]interface{}) (map[string][]interface{}, error)
-	Update(url string, replace, add, delete map[string][]interface{}) error
-	SetNextPage(name string) error
-
-	// these should be removed, blog should know what/when to render
-	PostChanged(url string) error
-	RenderPost(data map[string][]interface{}) error
-}
-
-func postHandler(blog blogInterface) http.Handler {
+func postHandler(blog Notifier, uf writer.URLFactory, db *micropubDB) http.Handler {
 	h := micropubPostHandler{
 		blog: blog,
+		db:   db,
+		uf:   uf,
 	}
 
 	return mux.ContentType{
@@ -32,7 +25,9 @@ func postHandler(blog blogInterface) http.Handler {
 }
 
 type micropubPostHandler struct {
-	blog blogInterface
+	blog Notifier
+	db   *micropubDB
+	uf   writer.URLFactory
 }
 
 func (h *micropubPostHandler) handleJSON(w http.ResponseWriter, r *http.Request) {
@@ -73,7 +68,7 @@ func (h *micropubPostHandler) handleJSON(w http.ResponseWriter, r *http.Request)
 			delete[key] = value
 		}
 
-		if err := h.blog.Update(v.URL, replace, add, delete); err != nil {
+		if err := updateEntry(h.db, v.URL, replace, add, delete); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -131,13 +126,13 @@ func (h *micropubPostHandler) handleMultiPart(w http.ResponseWriter, r *http.Req
 }
 
 func (h *micropubPostHandler) createAndRender(w http.ResponseWriter, data map[string][]interface{}) {
-	data, err := h.blog.Create(data)
+	data, err := createEntry(h.db, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if err := h.blog.RenderPost(data); err != nil {
+	if err := h.blog.PostChanged(data["url"][0].(string)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -159,7 +154,7 @@ func (h *micropubPostHandler) setPage(w http.ResponseWriter, data map[string][]i
 		return
 	}
 
-	if err := h.blog.SetNextPage(name); err != nil {
+	if err := setNextPage(h.db, h.uf, name); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

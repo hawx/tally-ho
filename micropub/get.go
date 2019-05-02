@@ -5,13 +5,9 @@ import (
 	"net/http"
 )
 
-type configurationBlog interface {
-	PostByURL(url string) (map[string][]interface{}, error)
-}
-
-func getHandler(blog configurationBlog, mediaURL string) http.HandlerFunc {
+func getHandler(db *micropubDB, mediaURL string) http.HandlerFunc {
 	configHandler := configHandler(mediaURL)
-	sourceHandler := sourceHandler(blog)
+	sourceHandler := sourceHandler(db)
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.FormValue("q") {
@@ -33,7 +29,7 @@ func configHandler(mediaURL string) http.HandlerFunc {
 	}
 }
 
-func sourceHandler(blog configurationBlog) http.HandlerFunc {
+func sourceHandler(db *micropubDB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		url := r.FormValue("url")
 		properties := r.Form["properties[]"]
@@ -44,7 +40,7 @@ func sourceHandler(blog configurationBlog) http.HandlerFunc {
 			}
 		}
 
-		obj, err := blog.PostByURL(url)
+		obj, err := entryByURL(db, url)
 		if err != nil {
 			http.Error(w, "not found", http.StatusNotFound)
 			return

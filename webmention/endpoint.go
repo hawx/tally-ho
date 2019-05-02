@@ -12,14 +12,11 @@ import (
 
 	"hawx.me/code/mux"
 	"hawx.me/code/numbersix"
+	"hawx.me/code/tally-ho/micropub"
 	"willnorris.com/go/microformats"
 )
 
-// Blog is a view of the methods required for processing webmentions. That is
-// the ability to check if a post by the URL specified in 'target' exists, and
-// some way of notifying that changes have occured to data for a post.
-type Blog interface {
-	PostByURL(url string) (map[string][]interface{}, error)
+type Notifier interface {
 	PostChanged(url string) error
 }
 
@@ -29,23 +26,23 @@ type webmention struct {
 
 // Endpoint receives webmentions, immediately returning a response of Accepted,
 // and processing them asynchronously.
-func Endpoint(db *sql.DB, blog Blog) (h http.Handler, r *Reader, err error) {
+func Endpoint(db *sql.DB, mr *micropub.Reader, blog Notifier) (h http.Handler, r *Reader, err error) {
 	mentions, err := numbersix.For(db, "mentions")
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return mux.Method{"POST": postHandler(mentions, blog)}, &Reader{mentions}, nil
+	return mux.Method{"POST": postHandler(mentions, mr, blog)}, &Reader{mentions}, nil
 }
 
-func postHandler(db *numbersix.DB, blog Blog) http.HandlerFunc {
+func postHandler(db *numbersix.DB, mr *micropub.Reader, blog Notifier) http.HandlerFunc {
 	mentions := make(chan webmention, 100)
 
 	go func() {
 		for mention := range mentions {
 			log.Println("got mention", mention.target, mention.source)
 
-			if err := processMention(mention, blog, db); err != nil {
+			if err := processMention(mention, blog, db, mr); err != nil {
 				log.Println(err)
 			}
 		}
@@ -68,8 +65,8 @@ func postHandler(db *numbersix.DB, blog Blog) http.HandlerFunc {
 	}
 }
 
-func processMention(mention webmention, blog Blog, db *numbersix.DB) error {
-	_, err := blog.PostByURL(mention.target)
+func processMention(mention webmention, blog Notifier, db *numbersix.DB, mr *micropub.Reader) error {
+	_, err := mr.Post(mention.target)
 	if err != nil {
 		return errors.New("  no such post at 'target'")
 	}

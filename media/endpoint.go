@@ -12,7 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"hawx.me/code/mux"
-	"hawx.me/code/tally-ho/blog"
+	"hawx.me/code/tally-ho/writer"
 )
 
 // Endpoint returns a simple implementation of a media endpoint. Files will be
@@ -27,7 +27,7 @@ import (
 // No limits are imposed on requests made so care should be taken to configure
 // this using a reverse-proxy or similar.
 func Endpoint(path, url string) (h http.Handler, err error) {
-	fw, err := blog.NewFileWriter(path, url)
+	fw, err := writer.NewFileWriter(path, url)
 	if err != nil {
 		return
 	}
@@ -35,7 +35,7 @@ func Endpoint(path, url string) (h http.Handler, err error) {
 	return mux.Method{"POST": postHandler(fw)}, nil
 }
 
-func postHandler(fw blog.FileWriter) http.HandlerFunc {
+func postHandler(fw writer.FileWriter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		mediaType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 		if err != nil {

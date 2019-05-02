@@ -15,6 +15,7 @@ import (
 	"hawx.me/code/tally-ho/media"
 	"hawx.me/code/tally-ho/micropub"
 	"hawx.me/code/tally-ho/webmention"
+	"hawx.me/code/tally-ho/writer"
 )
 
 func main() {
@@ -41,40 +42,45 @@ func main() {
 	}
 	defer db.Close()
 
+	fw, err := writer.NewFileWriter(*basePath, *baseURL)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	templates, err := blog.ParseTemplates(*webPath)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
 	blog, err := blog.New(blog.Options{
-		WebPath:  *webPath,
-		BaseURL:  *baseURL,
-		BasePath: *basePath,
-		Db:       db,
+		BaseURL:   *baseURL,
+		Fw:        fw,
+		Templates: templates,
 	})
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	if flag.NArg() == 1 && flag.Arg(0) == "render" {
-		if err := blog.RenderAll(); err != nil {
-			log.Println(err)
-		}
-
-		return
-	}
-
-	adminEndpoint, err := admin.Endpoint(*adminURL, *me, *secret, *webPath, blog)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	http.Handle("/admin/", http.StripPrefix("/admin", adminEndpoint))
-
-	micropubEndpoint, err := micropub.Endpoint(*me, blog, *mediaUploadURL)
+	micropubEndpoint, mr, err := micropub.Endpoint(db, *me, blog, *mediaUploadURL, fw)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 	http.Handle("/micropub", micropubEndpoint)
 
-	webmentionEndpoint, _, err := webmention.Endpoint(db, blog)
+	blog.Store = mr
+
+	adminEndpoint, err := admin.Endpoint(*adminURL, *me, *secret, *webPath, mr, templates)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	http.Handle("/admin/", http.StripPrefix("/admin", adminEndpoint))
+
+	webmentionEndpoint, _, err := webmention.Endpoint(db, mr, blog)
 	if err != nil {
 		log.Println(err)
 		return
