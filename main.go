@@ -54,14 +54,10 @@ func main() {
 		return
 	}
 
-	blog, err := blog.New(blog.Options{
-		BaseURL:   *baseURL,
-		Fw:        fw,
-		Templates: templates,
-	})
-	if err != nil {
-		log.Println(err)
-		return
+	blog := &blog.Blog{
+		BaseURL:    *baseURL,
+		FileWriter: fw,
+		Templates:  templates,
 	}
 
 	micropubEndpoint, mr, err := micropub.Endpoint(db, *me, blog, *mediaUploadURL, fw)

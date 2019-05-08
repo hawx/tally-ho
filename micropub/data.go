@@ -33,7 +33,7 @@ type Reader struct {
 }
 
 func (r *Reader) Post(url string) (properties map[string][]interface{}, err error) {
-	return entryByURL(r.db, url)
+	return r.db.entryByURL(url)
 }
 
 func (r *Reader) Entries(page string) (groups []numbersix.Group, err error) {
@@ -46,7 +46,7 @@ func (r *Reader) Entries(page string) (groups []numbersix.Group, err error) {
 }
 
 func (r *Reader) CurrentPage() (Page, error) {
-	name, url, err := currentPage(r.db)
+	name, url, err := r.db.currentPage()
 
 	return Page{Name: name, URL: url}, err
 }
@@ -87,14 +87,14 @@ type micropubDB struct {
 	entries *numbersix.DB
 }
 
-func currentPage(db *micropubDB) (name, url string, err error) {
+func (db *micropubDB) currentPage() (name, url string, err error) {
 	row := db.sql.QueryRow(`SELECT name, url FROM pages ORDER BY id DESC LIMIT 1`)
 
 	err = row.Scan(&name, &url)
 	return
 }
 
-func setNextPage(db *micropubDB, uf writer.URLFactory, name string) error {
+func (db *micropubDB) setNextPage(uf writer.URLFactory, name string) error {
 	url := uf.URL(slugify(name) + "/")
 
 	_, err := db.sql.Exec(`INSERT INTO pages (name, url) VALUES (?, ?)`,
@@ -104,10 +104,10 @@ func setNextPage(db *micropubDB, uf writer.URLFactory, name string) error {
 	return err
 }
 
-func createEntry(db *micropubDB, data map[string][]interface{}) (map[string][]interface{}, error) {
+func (db *micropubDB) createEntry(data map[string][]interface{}) (map[string][]interface{}, error) {
 	id := uuid.New().String()
 
-	pageName, pageURL, err := currentPage(db)
+	pageName, pageURL, err := db.currentPage()
 	if err != nil {
 		return data, err
 	}
@@ -134,7 +134,7 @@ func createEntry(db *micropubDB, data map[string][]interface{}) (map[string][]in
 	return data, db.entries.SetProperties(id, data)
 }
 
-func updateEntry(db *micropubDB, url string, replace, add, delete map[string][]interface{}) error {
+func (db *micropubDB) updateEntry(url string, replace, add, delete map[string][]interface{}) error {
 	replace["updated"] = []interface{}{time.Now().UTC().Format(time.RFC3339)}
 
 	triples, err := db.entries.List(numbersix.Where("url", url))
@@ -161,7 +161,7 @@ func updateEntry(db *micropubDB, url string, replace, add, delete map[string][]i
 	return nil
 }
 
-func entryByURL(db *micropubDB, url string) (data map[string][]interface{}, err error) {
+func (db *micropubDB) entryByURL(url string) (data map[string][]interface{}, err error) {
 	triples, err := db.entries.List(numbersix.Where("url", url))
 	if err != nil {
 		return

@@ -12,9 +12,12 @@ import (
 
 	"hawx.me/code/mux"
 	"hawx.me/code/numbersix"
-	"hawx.me/code/tally-ho/micropub"
 	"willnorris.com/go/microformats"
 )
+
+type MicropubReader interface {
+	Post(url string) (data map[string][]interface{}, err error)
+}
 
 type Notifier interface {
 	PostChanged(url string) error
@@ -26,7 +29,7 @@ type webmention struct {
 
 // Endpoint receives webmentions, immediately returning a response of Accepted,
 // and processing them asynchronously.
-func Endpoint(db *sql.DB, mr *micropub.Reader, blog Notifier) (h http.Handler, r *Reader, err error) {
+func Endpoint(db *sql.DB, mr MicropubReader, blog Notifier) (h http.Handler, r *Reader, err error) {
 	mentions, err := numbersix.For(db, "mentions")
 	if err != nil {
 		return nil, nil, err
@@ -35,7 +38,7 @@ func Endpoint(db *sql.DB, mr *micropub.Reader, blog Notifier) (h http.Handler, r
 	return mux.Method{"POST": postHandler(mentions, mr, blog)}, &Reader{mentions}, nil
 }
 
-func postHandler(db *numbersix.DB, mr *micropub.Reader, blog Notifier) http.HandlerFunc {
+func postHandler(db *numbersix.DB, mr MicropubReader, blog Notifier) http.HandlerFunc {
 	mentions := make(chan webmention, 100)
 
 	go func() {
@@ -65,7 +68,7 @@ func postHandler(db *numbersix.DB, mr *micropub.Reader, blog Notifier) http.Hand
 	}
 }
 
-func processMention(mention webmention, blog Notifier, db *numbersix.DB, mr *micropub.Reader) error {
+func processMention(mention webmention, blog Notifier, db *numbersix.DB, mr MicropubReader) error {
 	_, err := mr.Post(mention.target)
 	if err != nil {
 		return errors.New("  no such post at 'target'")

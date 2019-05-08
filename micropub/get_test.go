@@ -10,11 +10,11 @@ import (
 	"hawx.me/code/assert"
 )
 
-type fakeConfigurationBlog struct {
+type fakeGetDB struct {
 	entries map[string]map[string][]interface{}
 }
 
-func (b *fakeConfigurationBlog) PostByURL(url string) (map[string][]interface{}, error) {
+func (b *fakeGetDB) entryByURL(url string) (map[string][]interface{}, error) {
 	if entry, ok := b.entries[url]; ok {
 		return entry, nil
 	}
@@ -25,7 +25,7 @@ func (b *fakeConfigurationBlog) PostByURL(url string) (map[string][]interface{},
 func TestConfigurationConfig(t *testing.T) {
 	assert := assert.New(t)
 
-	s := httptest.NewServer(getHandler(&fakeConfigurationBlog{}, "http://media.example.com/"))
+	s := httptest.NewServer(getHandler(nil, "http://media.example.com/"))
 	defer s.Close()
 
 	resp, err := http.Get(s.URL + "?q=config")
@@ -42,7 +42,7 @@ func TestConfigurationConfig(t *testing.T) {
 func TestConfigurationSource(t *testing.T) {
 	assert := assert.New(t)
 
-	blog := &fakeConfigurationBlog{
+	blog := &fakeGetDB{
 		entries: map[string]map[string][]interface{}{
 			"https://example.com/weblog/p/1": {
 				"h":     {"entry"},
@@ -71,7 +71,7 @@ func TestConfigurationSource(t *testing.T) {
 func TestConfigurationSourceWithProperties(t *testing.T) {
 	assert := assert.New(t)
 
-	blog := &fakeConfigurationBlog{
+	blog := &fakeGetDB{
 		entries: map[string]map[string][]interface{}{
 			"https://example.com/weblog/p/1": {
 				"h":     {"entry"},
@@ -100,7 +100,7 @@ func TestConfigurationSourceWithProperties(t *testing.T) {
 func TestConfigurationSourceWithManyProperties(t *testing.T) {
 	assert := assert.New(t)
 
-	blog := &fakeConfigurationBlog{
+	blog := &fakeGetDB{
 		entries: map[string]map[string][]interface{}{
 			"https://example.com/weblog/p/1": {
 				"h":          {"entry"},

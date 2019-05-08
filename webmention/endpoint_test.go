@@ -14,16 +14,9 @@ import (
 
 const waitTime = 5 * time.Millisecond
 
-type fakeMention struct {
-	source     string
-	properties map[string][]interface{}
-}
+type fakeMicropubReader struct{}
 
-type fakeMentionBlog struct {
-	ch chan string
-}
-
-func (b *fakeMentionBlog) PostByURL(url string) (map[string][]interface{}, error) {
+func (b *fakeMicropubReader) Post(url string) (map[string][]interface{}, error) {
 	if url != "http://example.com/weblog/post-id" {
 		return map[string][]interface{}{}, errors.New("what is that")
 	}
@@ -31,7 +24,11 @@ func (b *fakeMentionBlog) PostByURL(url string) (map[string][]interface{}, error
 	return map[string][]interface{}{}, nil
 }
 
-func (b *fakeMentionBlog) PostChanged(url string) error {
+type fakeNotifier struct {
+	ch chan string
+}
+
+func (b *fakeNotifier) PostChanged(url string) error {
 	b.ch <- url
 	return nil
 }
@@ -66,7 +63,8 @@ func TestMention(t *testing.T) {
 	assert := assert.New(t)
 
 	db, _ := sql.Open("sqlite3", "file::memory:")
-	blog := &fakeMentionBlog{ch: make(chan string, 1)}
+	blog := &fakeNotifier{ch: make(chan string, 1)}
+	mr := &fakeMicropubReader{}
 
 	source := httptest.NewServer(stringHandler(`
 <div class="h-entry">
@@ -78,7 +76,7 @@ func TestMention(t *testing.T) {
 `))
 	defer source.Close()
 
-	endpoint, reader, _ := Endpoint(db, blog)
+	endpoint, reader, _ := Endpoint(db, mr, blog)
 	s := httptest.NewServer(endpoint)
 	defer s.Close()
 
@@ -109,7 +107,8 @@ func TestMentionWhenPostUpdated(t *testing.T) {
 	assert := assert.New(t)
 
 	db, _ := sql.Open("sqlite3", "file::memory:")
-	blog := &fakeMentionBlog{ch: make(chan string, 1)}
+	blog := &fakeNotifier{ch: make(chan string, 1)}
+	mr := &fakeMicropubReader{}
 
 	source := httptest.NewServer(sequenceHandlers(stringHandler(`
 <div class="h-entry">
@@ -128,7 +127,7 @@ func TestMentionWhenPostUpdated(t *testing.T) {
 `)))
 	defer source.Close()
 
-	endpoint, reader, _ := Endpoint(db, blog)
+	endpoint, reader, _ := Endpoint(db, mr, blog)
 	s := httptest.NewServer(endpoint)
 	defer s.Close()
 
@@ -177,7 +176,8 @@ func TestMentionWithHCardAndHEntry(t *testing.T) {
 	assert := assert.New(t)
 
 	db, _ := sql.Open("sqlite3", "file::memory:")
-	blog := &fakeMentionBlog{ch: make(chan string, 1)}
+	blog := &fakeNotifier{ch: make(chan string, 1)}
+	mr := &fakeMicropubReader{}
 
 	source := httptest.NewServer(stringHandler(`
 <div class="h-card">
@@ -193,7 +193,7 @@ func TestMentionWithHCardAndHEntry(t *testing.T) {
 `))
 	defer source.Close()
 
-	endpoint, reader, _ := Endpoint(db, blog)
+	endpoint, reader, _ := Endpoint(db, mr, blog)
 	s := httptest.NewServer(endpoint)
 	defer s.Close()
 
@@ -222,7 +222,8 @@ func TestMentionWithoutMicroformats(t *testing.T) {
 	assert := assert.New(t)
 
 	db, _ := sql.Open("sqlite3", "file::memory:")
-	blog := &fakeMentionBlog{ch: make(chan string, 1)}
+	blog := &fakeNotifier{ch: make(chan string, 1)}
+	mr := &fakeMicropubReader{}
 
 	source := httptest.NewServer(stringHandler(`
 <p>
@@ -231,7 +232,7 @@ func TestMentionWithoutMicroformats(t *testing.T) {
 `))
 	defer source.Close()
 
-	endpoint, reader, _ := Endpoint(db, blog)
+	endpoint, reader, _ := Endpoint(db, mr, blog)
 	s := httptest.NewServer(endpoint)
 	defer s.Close()
 
@@ -258,12 +259,13 @@ func TestMentionOfDeletedPost(t *testing.T) {
 	assert := assert.New(t)
 
 	db, _ := sql.Open("sqlite3", "file::memory:")
-	blog := &fakeMentionBlog{ch: make(chan string, 1)}
+	blog := &fakeNotifier{ch: make(chan string, 1)}
+	mr := &fakeMicropubReader{}
 
 	source := httptest.NewServer(goneHandler())
 	defer source.Close()
 
-	endpoint, reader, _ := Endpoint(db, blog)
+	endpoint, reader, _ := Endpoint(db, mr, blog)
 	s := httptest.NewServer(endpoint)
 	defer s.Close()
 

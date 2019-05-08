@@ -5,7 +5,11 @@ import (
 	"net/http"
 )
 
-func getHandler(db *micropubDB, mediaURL string) http.HandlerFunc {
+type getDB interface {
+	entryByURL(url string) (data map[string][]interface{}, err error)
+}
+
+func getHandler(db getDB, mediaURL string) http.HandlerFunc {
 	configHandler := configHandler(mediaURL)
 	sourceHandler := sourceHandler(db)
 
@@ -29,7 +33,7 @@ func configHandler(mediaURL string) http.HandlerFunc {
 	}
 }
 
-func sourceHandler(db *micropubDB) http.HandlerFunc {
+func sourceHandler(db getDB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		url := r.FormValue("url")
 		properties := r.Form["properties[]"]
@@ -40,7 +44,7 @@ func sourceHandler(db *micropubDB) http.HandlerFunc {
 			}
 		}
 
-		obj, err := entryByURL(db, url)
+		obj, err := db.entryByURL(url)
 		if err != nil {
 			http.Error(w, "not found", http.StatusNotFound)
 			return

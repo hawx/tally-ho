@@ -21,11 +21,11 @@ func (b *Blog) writePage(url string, data interface{}) error {
 }
 
 func (b *Blog) writeRoot(data interface{}) error {
-	return b.write(b.fw.URL("/"), "page.gotmpl", data)
+	return b.write(b.FileWriter.URL("/"), "page.gotmpl", data)
 }
 
 func (b *Blog) write(url, tmpl string, data interface{}) error {
-	path := b.fw.Path(url)
+	path := b.FileWriter.Path(url)
 	dir := filepath.Dir(path)
 
 	log.Println("mkdir", dir)
@@ -39,5 +39,5 @@ func (b *Blog) write(url, tmpl string, data interface{}) error {
 		return err
 	}
 
-	return b.templates.ExecuteTemplate(file, tmpl, data)
+	return b.Templates.ExecuteTemplate(file, tmpl, data)
 }

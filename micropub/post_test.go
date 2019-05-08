@@ -8,18 +8,33 @@ import (
 	"testing"
 
 	"hawx.me/code/assert"
+	"hawx.me/code/tally-ho/writer"
 )
 
-type fakePostBlog struct {
+type fakeNotifier struct{}
+
+func (*fakeNotifier) PostChanged(url string) error {
+	return nil
+}
+
+type fakeURLFactory struct{}
+
+func (*fakeURLFactory) URL(path string) string {
+	return "http://example.com/blog/p/1"
+}
+
+type fakePostDB struct {
 	datas                   []map[string][]interface{}
 	replaces, adds, deletes map[string][]map[string][]interface{}
 }
 
-func (b *fakePostBlog) PostID(url string) string {
-	return "1"
+func (b *fakePostDB) createEntry(data map[string][]interface{}) (map[string][]interface{}, error) {
+	b.datas = append(b.datas, data)
+
+	return map[string][]interface{}{"url": {"http://example.com/blog/p/1"}}, nil
 }
 
-func (b *fakePostBlog) Update(id string, replace, add, delete map[string][]interface{}) error {
+func (b *fakePostDB) updateEntry(id string, replace, add, delete map[string][]interface{}) error {
 	b.replaces[id] = append(b.replaces[id], replace)
 	b.adds[id] = append(b.adds[id], add)
 	b.deletes[id] = append(b.deletes[id], delete)
@@ -27,29 +42,17 @@ func (b *fakePostBlog) Update(id string, replace, add, delete map[string][]inter
 	return nil
 }
 
-func (b *fakePostBlog) SetNextPage(name string) error {
-	return nil
-}
-
-func (b *fakePostBlog) Create(data map[string][]interface{}) (map[string][]interface{}, error) {
-	b.datas = append(b.datas, data)
-
-	return map[string][]interface{}{"url": {"http://example.com/blog/p/1"}}, nil
-}
-
-func (b *fakePostBlog) RenderPost(data map[string][]interface{}) error {
-	return nil
-}
-
-func (b *fakePostBlog) PostChanged(url string) error {
+func (b *fakePostDB) setNextPage(uf writer.URLFactory, name string) error {
 	return nil
 }
 
 func TestPostEntry(t *testing.T) {
 	assert := assert.New(t)
-	blog := &fakePostBlog{}
+	blog := &fakeNotifier{}
+	uf := &fakeURLFactory{}
+	db := &fakePostDB{}
 
-	s := httptest.NewServer(postHandler(blog))
+	s := httptest.NewServer(postHandler(blog, uf, db))
 	defer s.Close()
 
 	resp, err := http.PostForm(s.URL, url.Values{
@@ -63,8 +66,8 @@ func TestPostEntry(t *testing.T) {
 	assert.Equal(http.StatusCreated, resp.StatusCode)
 	assert.Equal("http://example.com/blog/p/1", resp.Header.Get("Location"))
 
-	if assert.Len(blog.datas, 1) {
-		data := blog.datas[0]
+	if assert.Len(db.datas, 1) {
+		data := db.datas[0]
 
 		assert.Equal("entry", data["h"][0])
 		assert.Equal("This is a test", data["content"][0])
@@ -78,9 +81,11 @@ func TestPostEntry(t *testing.T) {
 
 func TestPostEntryJSON(t *testing.T) {
 	assert := assert.New(t)
-	blog := &fakePostBlog{}
+	blog := &fakeNotifier{}
+	uf := &fakeURLFactory{}
+	db := &fakePostDB{}
 
-	s := httptest.NewServer(postHandler(blog))
+	s := httptest.NewServer(postHandler(blog, uf, db))
 	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
@@ -96,8 +101,8 @@ func TestPostEntryJSON(t *testing.T) {
 	assert.Equal(http.StatusCreated, resp.StatusCode)
 	assert.Equal("http://example.com/blog/p/1", resp.Header.Get("Location"))
 
-	if assert.Len(blog.datas, 1) {
-		data := blog.datas[0]
+	if assert.Len(db.datas, 1) {
+		data := db.datas[0]
 
 		assert.Equal("entry", data["h"][0])
 		assert.Equal("This is a test", data["content"][0])
@@ -111,13 +116,15 @@ func TestPostEntryJSON(t *testing.T) {
 
 func TestUpdateEntry(t *testing.T) {
 	assert := assert.New(t)
-	blog := &fakePostBlog{
+	blog := &fakeNotifier{}
+	uf := &fakeURLFactory{}
+	db := &fakePostDB{
 		adds:     map[string][]map[string][]interface{}{},
 		deletes:  map[string][]map[string][]interface{}{},
 		replaces: map[string][]map[string][]interface{}{},
 	}
 
-	s := httptest.NewServer(postHandler(blog))
+	s := httptest.NewServer(postHandler(blog, uf, db))
 	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
@@ -137,17 +144,17 @@ func TestUpdateEntry(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(http.StatusNoContent, resp.StatusCode)
 
-	replace, ok := blog.replaces["https://example.com/blog/p/100"]
+	replace, ok := db.replaces["https://example.com/blog/p/100"]
 	if assert.True(ok) && assert.Len(replace, 1) {
 		assert.Equal("hello moon", replace[0]["content"][0])
 	}
 
-	add, ok := blog.adds["https://example.com/blog/p/100"]
+	add, ok := db.adds["https://example.com/blog/p/100"]
 	if assert.True(ok) && assert.Len(add, 1) {
 		assert.Equal("http://somewhere.com", add[0]["syndication"][0])
 	}
 
-	delete, ok := blog.deletes["https://example.com/blog/p/100"]
+	delete, ok := db.deletes["https://example.com/blog/p/100"]
 	if assert.True(ok) && assert.Len(delete, 1) {
 		assert.Equal("this", delete[0]["not-important"][0])
 	}

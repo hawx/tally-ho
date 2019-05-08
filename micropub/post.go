@@ -10,7 +10,13 @@ import (
 	"hawx.me/code/tally-ho/writer"
 )
 
-func postHandler(blog Notifier, uf writer.URLFactory, db *micropubDB) http.Handler {
+type postDB interface {
+	updateEntry(url string, replace, add, delete map[string][]interface{}) error
+	createEntry(data map[string][]interface{}) (map[string][]interface{}, error)
+	setNextPage(uf writer.URLFactory, name string) error
+}
+
+func postHandler(blog Notifier, uf writer.URLFactory, db postDB) http.Handler {
 	h := micropubPostHandler{
 		blog: blog,
 		db:   db,
@@ -26,7 +32,7 @@ func postHandler(blog Notifier, uf writer.URLFactory, db *micropubDB) http.Handl
 
 type micropubPostHandler struct {
 	blog Notifier
-	db   *micropubDB
+	db   postDB
 	uf   writer.URLFactory
 }
 
@@ -68,7 +74,7 @@ func (h *micropubPostHandler) handleJSON(w http.ResponseWriter, r *http.Request)
 			delete[key] = value
 		}
 
-		if err := updateEntry(h.db, v.URL, replace, add, delete); err != nil {
+		if err := h.db.updateEntry(v.URL, replace, add, delete); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -126,7 +132,7 @@ func (h *micropubPostHandler) handleMultiPart(w http.ResponseWriter, r *http.Req
 }
 
 func (h *micropubPostHandler) createAndRender(w http.ResponseWriter, data map[string][]interface{}) {
-	data, err := createEntry(h.db, data)
+	data, err := h.db.createEntry(data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -154,7 +160,7 @@ func (h *micropubPostHandler) setPage(w http.ResponseWriter, data map[string][]i
 		return
 	}
 
-	if err := setNextPage(h.db, h.uf, name); err != nil {
+	if err := h.db.setNextPage(h.uf, name); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

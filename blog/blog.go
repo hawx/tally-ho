@@ -10,26 +10,10 @@ import (
 )
 
 type Blog struct {
-	fw        writer.FileWriter
-	baseURL   string
-	templates *template.Template
-	Store     *micropub.Reader
-}
-
-type Options struct {
-	Fw        writer.FileWriter
-	BaseURL   string
-	Templates *template.Template
-	Reader    *micropub.Reader
-}
-
-func New(options Options) (*Blog, error) {
-	return &Blog{
-		fw:        options.Fw,
-		baseURL:   options.BaseURL,
-		templates: options.Templates,
-		Store:     options.Reader,
-	}, nil
+	BaseURL    string
+	FileWriter writer.FileWriter
+	Store      *micropub.Reader
+	Templates  *template.Template
 }
 
 // PostChanged will render the post at the given url, and also render the page
@@ -39,7 +23,7 @@ func (b *Blog) PostChanged(url string) error {
 	if err != nil {
 		return err
 	}
-	if err := post.Render(b.templates, b); err != nil {
+	if err := post.Render(b.Templates, b); err != nil {
 		return err
 	}
 
@@ -47,7 +31,7 @@ func (b *Blog) PostChanged(url string) error {
 	if err != nil {
 		return err
 	}
-	if err := page.Render(b.Store, b.templates, b); err != nil {
+	if err := page.Render(b.Store, b.Templates, b); err != nil {
 		return err
 	}
 
