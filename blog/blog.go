@@ -6,20 +6,22 @@ import (
 	"strings"
 
 	"hawx.me/code/tally-ho/micropub"
+	"hawx.me/code/tally-ho/webmention"
 	"hawx.me/code/tally-ho/writer"
 )
 
 type Blog struct {
 	BaseURL    string
 	FileWriter writer.FileWriter
-	Store      *micropub.Reader
+	Entries    *micropub.Reader
+	Mentions   *webmention.Reader
 	Templates  *template.Template
 }
 
 // PostChanged will render the post at the given url, and also render the page
 // that the post belongs to.
 func (b *Blog) PostChanged(url string) error {
-	post, err := FindPostByURL(url, b.Store)
+	post, err := FindPostByURL(url, b.Entries, b.Mentions)
 	if err != nil {
 		return err
 	}
@@ -27,11 +29,11 @@ func (b *Blog) PostChanged(url string) error {
 		return err
 	}
 
-	page, err := FindPageByURL(post.PageURL, b.Store)
+	page, err := FindPageByURL(post.PageURL, b.Entries)
 	if err != nil {
 		return err
 	}
-	if err := page.Render(b.Store, b.Templates, b); err != nil {
+	if err := page.Render(b.Entries, b.Templates, b); err != nil {
 		return err
 	}
 

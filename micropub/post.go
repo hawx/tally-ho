@@ -80,6 +80,7 @@ func (h *micropubPostHandler) handleJSON(w http.ResponseWriter, r *http.Request)
 		}
 
 		if err := h.blog.PostChanged(v.URL); err != nil {
+			log.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -139,6 +140,7 @@ func (h *micropubPostHandler) createAndRender(w http.ResponseWriter, data map[st
 	}
 
 	if err := h.blog.PostChanged(data["url"][0].(string)); err != nil {
+		log.Println(err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

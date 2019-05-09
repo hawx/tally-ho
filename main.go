@@ -67,7 +67,7 @@ func main() {
 	}
 	http.Handle("/micropub", micropubEndpoint)
 
-	blog.Store = mr
+	blog.Entries = mr
 
 	adminEndpoint, err := admin.Endpoint(*adminURL, *me, *secret, *webPath, mr, templates)
 	if err != nil {
@@ -76,12 +76,14 @@ func main() {
 	}
 	http.Handle("/admin/", http.StripPrefix("/admin", adminEndpoint))
 
-	webmentionEndpoint, _, err := webmention.Endpoint(db, mr, blog)
+	webmentionEndpoint, wr, err := webmention.Endpoint(db, mr, blog)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 	http.Handle("/webmention", webmentionEndpoint)
+
+	blog.Mentions = wr
 
 	mediaEndpoint, err := media.Endpoint(*mediaPath, *mediaURL)
 	if err != nil {

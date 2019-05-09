@@ -224,7 +224,22 @@ function setupJSONForm(el) {
   };
 }
 
+function setupUpdateForm(el) {
+  const form = el.querySelector('form');
+
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    postJSON({
+      action: "update",
+      url: form.elements['url'].value,
+    });
+  });
+}
+
 setupNoteForm(document.getElementById('note'));
 setupPostForm(document.getElementById('post'));
 setupJSONForm(document.getElementById('json'));
+setupUpdateForm(document.getElementById('update'));
+
 setupTabs(document.querySelectorAll('.tabs li'), document.querySelectorAll('.tabbed'));

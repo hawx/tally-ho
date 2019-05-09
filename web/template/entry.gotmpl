@@ -7,6 +7,10 @@
   </header>
 
   <div class="e-content">
+    {{ if has . "like-of" }}
+      Liked <a href="{{ mustGet . "like-of" }}" class="u-like-of">{{ mustGet . "like-of" }}</a>
+    {{ end }}
+
     {{ content . }}
   </div>
 </article>

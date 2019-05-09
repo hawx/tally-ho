@@ -24,6 +24,20 @@
 
     {{ template "entry.gotmpl" .Properties }}
 
+    <ul>
+    {{ range .Reactions }}
+      {{ if has .Properties "like-of" }}
+        <li>Liked by <a href="{{ .Subject }}">
+          {{ if has .Properties "author" }}
+            {{ mustGet .Properties "author" }}
+          {{ else }}
+            {{ .Subject }}
+          {{ end }}
+        </a></li>
+      {{ end }}
+    {{ end }}
+    </ul>
+
     {{ . }}
   </body>
 </html>

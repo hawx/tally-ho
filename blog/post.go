@@ -4,10 +4,12 @@ import (
 	"html/template"
 	"strings"
 
+	"hawx.me/code/numbersix"
 	"hawx.me/code/tally-ho/micropub"
+	"hawx.me/code/tally-ho/webmention"
 )
 
-func FindPostByURL(url string, store *micropub.Reader) (*Post, error) {
+func FindPostByURL(url string, store *micropub.Reader, mentions *webmention.Reader) (*Post, error) {
 	parts := strings.SplitAfter(url, "/")
 	baseURL := strings.Join(parts[:len(parts)-3], "")
 	pageURL := strings.Join(parts[:len(parts)-2], "")
@@ -17,16 +19,24 @@ func FindPostByURL(url string, store *micropub.Reader) (*Post, error) {
 		return nil, err
 	}
 
+	reactions, err := mentions.ForPost(url)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Post{
 		Properties: post,
 		BaseURL:    baseURL,
 		PageURL:    pageURL,
+		Reactions:  reactions,
 	}, nil
 }
 
 type Post struct {
 	// Properties of the post.
 	Properties map[string][]interface{}
+
+	Reactions []numbersix.Group
 
 	// BaseURL for the blog.
 	BaseURL string
