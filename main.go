@@ -54,20 +54,14 @@ func main() {
 		return
 	}
 
-	blog := &blog.Blog{
-		BaseURL:    *baseURL,
-		FileWriter: fw,
-		Templates:  templates,
-	}
+	looper := &blog.Looper{}
 
-	micropubEndpoint, mr, err := micropub.Endpoint(db, *me, blog, *mediaUploadURL, fw)
+	micropubEndpoint, mr, err := micropub.Endpoint(db, *me, looper, *mediaUploadURL, fw)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 	http.Handle("/micropub", micropubEndpoint)
-
-	blog.Entries = mr
 
 	adminEndpoint, err := admin.Endpoint(*adminURL, *me, *secret, *webPath, mr, templates)
 	if err != nil {
@@ -76,14 +70,12 @@ func main() {
 	}
 	http.Handle("/admin/", http.StripPrefix("/admin", adminEndpoint))
 
-	webmentionEndpoint, wr, err := webmention.Endpoint(db, mr, blog)
+	webmentionEndpoint, wr, err := webmention.Endpoint(db, mr, looper)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 	http.Handle("/webmention", webmentionEndpoint)
-
-	blog.Mentions = wr
 
 	mediaEndpoint, err := media.Endpoint(*mediaPath, *mediaURL)
 	if err != nil {
@@ -91,6 +83,13 @@ func main() {
 		return
 	}
 	http.Handle("/media", mediaEndpoint)
+
+	looper.Blog = &blog.Blog{
+		FileWriter: fw,
+		Templates:  templates,
+		Entries:    mr,
+		Mentions:   wr,
+	}
 
 	serve.Serve(*port, *socket, http.DefaultServeMux)
 }
