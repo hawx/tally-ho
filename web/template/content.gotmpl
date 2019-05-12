@@ -1,0 +1,5 @@
+{{ if has . "like-of" }}
+  Liked <a href="{{ mustGet . "like-of" }}" class="u-like-of">{{ mustGet . "like-of" }}</a>
+{{ else if has . "content" }}
+  {{ content . }}
+{{ end }}

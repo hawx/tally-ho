@@ -2,6 +2,7 @@
 package blog
 
 import (
+	"encoding/xml"
 	"html/template"
 	"log"
 	"os"
@@ -20,7 +21,15 @@ func (l *Looper) PostChanged(url string) error {
 	return l.Blog.PostChanged(url)
 }
 
+type Meta struct {
+	Title       string
+	Description string
+	AuthorName  string
+	AuthorURL   string
+}
+
 type Blog struct {
+	Meta       Meta
 	FileWriter writer.FileWriter
 	Entries    *micropub.Reader
 	Mentions   *webmention.Reader
@@ -67,6 +76,10 @@ func (b *Blog) RenderPage(page *Page) error {
 		if err := b.write(b.FileWriter.URL("/"), "page.gotmpl", page); err != nil {
 			return err
 		}
+
+		if err := b.writeFeed(b.FileWriter.URL("/feed.xml"), b.mapToFeed(page)); err != nil {
+			return err
+		}
 	}
 
 	if len(page.Posts) == 1 {
@@ -103,4 +116,22 @@ func (b *Blog) write(url, tmpl string, data interface{}) error {
 	}
 
 	return b.Templates.ExecuteTemplate(file, tmpl, data)
+}
+
+func (b *Blog) writeFeed(url string, feed Feed) error {
+	path := b.FileWriter.Path(url)
+	dir := filepath.Dir(path)
+
+	log.Println("mkdir", dir)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
+	log.Println("writing", path)
+	file, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+
+	return xml.NewEncoder(file).Encode(feed)
 }

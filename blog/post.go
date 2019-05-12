@@ -22,6 +22,7 @@ func (b *Blog) Post(url string) (*Post, error) {
 	}
 
 	return &Post{
+		Meta:       b.Meta,
 		BaseURL:    baseURL,
 		PageURL:    pageURL,
 		URL:        url,
@@ -31,6 +32,9 @@ func (b *Blog) Post(url string) (*Post, error) {
 }
 
 type Post struct {
+	// Meta data for the blog.
+	Meta Meta
+
 	// BaseURL for the blog.
 	BaseURL string
 

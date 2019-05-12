@@ -10,7 +10,18 @@
   </head>
   <body>
     {{ range .Posts }}
-      {{ template "entry.gotmpl" . }}
+      <article class="h-entry">
+        <header>
+          <a class="permalink u-url" title="{{ mustGet . "published" }}" href="{{ mustGet . "url" }}">&#x2020;</a>
+          <h1 class="p-name">{{ getOr . "name" "" }}</h1>
+          <time class="dt-published" datetime="{{ mustGet . "published" }}" pubdate="pubdate">{{ mustGet . "published" }}</time>
+          <a rel="author" class="p-author h-card" href="{{ $.Meta.AuthorURL }}">{{ $.Meta.AuthorName }}</a>
+        </header>
+
+        <div class="e-content">
+          {{ template "content.gotmpl" . }}
+        </div>
+      </article>
     {{ end }}
 
     <nav>

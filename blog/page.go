@@ -63,6 +63,7 @@ func (b *Blog) Page(url string) (*Page, error) {
 	}
 
 	return &Page{
+		Meta:     b.Meta,
 		Name:     p.Name,
 		BaseURL:  baseURL,
 		URL:      p.URL,
@@ -78,6 +79,9 @@ func (b *Blog) Page(url string) (*Page, error) {
 // number of posts. This is quite nice when statically rendering as adding a new
 // post will in the worst case affect only 2 pages (3 if you count the root).
 type Page struct {
+	// Meta data for the blog.
+	Meta Meta
+
 	// Name of the page.
 	Name string
 
