@@ -3,6 +3,7 @@ package blog
 import (
 	"html/template"
 	"path/filepath"
+	"strings"
 )
 
 func ParseTemplates(webPath string) (*template.Template, error) {
@@ -11,29 +12,29 @@ func ParseTemplates(webPath string) (*template.Template, error) {
 	return template.New("t").Funcs(template.FuncMap{
 		"has":     templateHas,
 		"getOr":   templateGetOr,
-		"mustGet": templateMustGet,
+		"get":     templateGet,
 		"content": templateContent,
 	}).ParseGlob(glob)
 }
 
 func templateHas(m map[string][]interface{}, key string) bool {
-	value, ok := m[key]
+	_, ok := get(m, key)
 
-	return ok && len(value) > 0
+	return ok
 }
 
 func templateGetOr(m map[string][]interface{}, key string, or interface{}) interface{} {
-	value, ok := m[key]
-
-	if ok && len(value) > 0 {
-		return value[0]
+	if value, ok := get(m, key); ok {
+		return value
 	}
 
 	return or
 }
 
-func templateMustGet(m map[string][]interface{}, key string) interface{} {
-	return m[key][0]
+func templateGet(m map[string][]interface{}, key string) interface{} {
+	value, _ := get(m, key)
+
+	return value
 }
 
 func templateContent(m map[string][]interface{}) interface{} {
@@ -56,4 +57,47 @@ func templateContent(m map[string][]interface{}) interface{} {
 	}
 
 	return ""
+}
+
+func get(value interface{}, key string) (interface{}, bool) {
+	if key == "" {
+		return value, true
+	}
+
+	parts := strings.SplitN(key, ".", 2)
+
+	if typed, ok := value.(map[string][]interface{}); ok {
+		next, ok := typed[parts[0]]
+
+		if len(next) == 0 {
+			return nil, false
+		}
+
+		if ok && len(parts) == 2 {
+			return get(next[0], parts[1])
+		}
+
+		return next[0], ok
+	}
+
+	if typed, ok := value.(map[string]interface{}); ok {
+		next, ok := typed[parts[0]]
+
+		if ok && len(parts) == 2 {
+			return get(next, parts[1])
+		}
+
+		return next, ok
+	}
+
+	// if an array get the first value
+	if typed, ok := value.([]interface{}); ok {
+		if len(typed) > 0 {
+			return get(typed[0], key)
+		}
+
+		return nil, false
+	}
+
+	return nil, false
 }

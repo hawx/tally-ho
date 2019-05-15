@@ -12,9 +12,9 @@
     {{ range .Posts }}
       <article class="h-entry">
         <header>
-          <a class="permalink u-url" title="{{ mustGet . "published" }}" href="{{ mustGet . "url" }}">&#x2020;</a>
+          <a class="permalink u-url" title="{{ get . "published" }}" href="{{ get . "url" }}">&#x2020;</a>
           <h1 class="p-name">{{ getOr . "name" "" }}</h1>
-          <time class="dt-published" datetime="{{ mustGet . "published" }}" pubdate="pubdate">{{ mustGet . "published" }}</time>
+          <time class="dt-published" datetime="{{ get . "published" }}" pubdate="pubdate">{{ get . "published" }}</time>
           <a rel="author" class="p-author h-card" href="{{ $.Meta.AuthorURL }}">{{ $.Meta.AuthorName }}</a>
         </header>
 

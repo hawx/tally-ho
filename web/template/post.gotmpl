@@ -11,7 +11,7 @@
 
     <meta property="og:type" content="website" />
     <meta property="og:title" content="{{ getOr .Properties "name" "some post" }}" />
-    <meta property="og:url" content="{{ mustGet .Properties "url" }}" />
+    <meta property="og:url" content="{{ get .Properties "url" }}" />
     <!-- <meta property="og:description" content="{{ content .Properties }}" /> -->
 
   </head>
@@ -25,9 +25,9 @@
     {{ with .Properties }}
       <article class="h-entry">
         <header>
-          <a class="permalink u-url" title="{{ mustGet . "published" }}" href="{{ mustGet . "url" }}">&#x2020;</a>
+          <a class="permalink u-url" title="{{ get . "published" }}" href="{{ get . "url" }}">&#x2020;</a>
           <h1 class="p-name">{{ getOr . "name" "" }}</h1>
-          <time class="dt-published" datetime="{{ mustGet . "published" }}" pubdate="pubdate">{{ mustGet . "published" }}</time>
+          <time class="dt-published" datetime="{{ get . "published" }}" pubdate="pubdate">{{ get . "published" }}</time>
           <a rel="author" class="p-author h-card" href="{{ $.Meta.AuthorURL }}">{{ $.Meta.AuthorName }}</a>
         </header>
 
@@ -42,7 +42,7 @@
       {{ if has .Properties "like-of" }}
         <li>Liked by <a href="{{ .Subject }}">
           {{ if has .Properties "author" }}
-            {{ mustGet .Properties "author" }}
+            {{ get .Properties "author" }}
           {{ else }}
             {{ .Subject }}
           {{ end }}
