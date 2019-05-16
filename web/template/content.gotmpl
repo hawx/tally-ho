@@ -1,5 +1,9 @@
 {{ if has . "like-of" }}
-  Liked <a href="{{ get . "like-of" }}" class="u-like-of">{{ get . "like-of" }}</a>
+  <p>Liked <a href="{{ get . "like-of" }}" class="u-like-of">{{ get . "like-of" }}</a></p>
 {{ else if has . "content" }}
+  {{ if has . "repost-of" }}
+    <p>Reposted <a href="{{ get . "repost-of" }}" class="u-repost-of">{{ get . "repost-of" }}</a></p>
+  {{ end }}
+
   {{ content . }}
 {{ end }}

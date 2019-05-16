@@ -113,7 +113,7 @@ type PageRef struct {
 
 // Prev returns the previous, older page, if such a page exists.
 func (p *Page) Prev(b *Blog) (*Page, error) {
-	prev, err := b.Entries.PageBefore(p.Name)
+	prev, err := b.Entries.PageBefore(p.URL)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrNoPage

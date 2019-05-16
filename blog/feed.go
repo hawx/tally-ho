@@ -48,7 +48,7 @@ func mapToFeedItem(templates *template.Template, post map[string][]interface{}) 
 	return FeedItem{
 		Title:       templateGetOr(post, "name", "").(string),
 		Description: FeedItemDescription{Text: description.String()},
-		Link:        templateMustGet(post, "url").(string),
-		PubDate:     templateMustGet(post, "published").(string),
+		Link:        templateGet(post, "url").(string),
+		PubDate:     templateGet(post, "published").(string),
 	}
 }

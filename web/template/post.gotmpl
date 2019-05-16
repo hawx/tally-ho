@@ -18,7 +18,7 @@
   <body>
     <nav>
       <span>
-        <a href="{{ .PageURL }}">↟ {{ mustGet .Properties "hx-page" }}</a>
+        <a href="{{ .PageURL }}">↟ {{ get .Properties "hx-page" }}</a>
       </span>
     </nav>
 
@@ -27,8 +27,8 @@
         <header>
           <a class="permalink u-url" title="{{ get . "published" }}" href="{{ get . "url" }}">&#x2020;</a>
           <h1 class="p-name">{{ getOr . "name" "" }}</h1>
-          <time class="dt-published" datetime="{{ get . "published" }}" pubdate="pubdate">{{ get . "published" }}</time>
-          <a rel="author" class="p-author h-card" href="{{ $.Meta.AuthorURL }}">{{ $.Meta.AuthorName }}</a>
+          <time class="dt-published hidden" datetime="{{ get . "published" }}" pubdate="pubdate">{{ get . "published" }}</time>
+          <a rel="author" class="p-author h-card hidden" href="{{ $.Meta.AuthorURL }}">{{ $.Meta.AuthorName }}</a>
         </header>
 
         <div class="e-content">
@@ -37,20 +37,57 @@
       </article>
     {{ end }}
 
-    <ul>
-    {{ range .Reactions }}
-      {{ if has .Properties "like-of" }}
-        <li>Liked by <a href="{{ .Subject }}">
-          {{ if has .Properties "author" }}
-            {{ get .Properties "author" }}
-          {{ else }}
-            {{ .Subject }}
-          {{ end }}
-        </a></li>
-      {{ end }}
-    {{ end }}
-    </ul>
+    <ul class="reactions">
+      {{ range .Reactions }}
+        {{ if has .Properties "in-reply-to" }}
+          <li>
+            <a href="{{ .Subject }}">Reply</a> by
+            {{ if has .Properties "author" }}
+              <a href="{{ get .Properties "author.properties.url" }}">
+                {{ if has .Properties "author.properties.name" }}
+                  {{ get .Properties "author.properties.name" }}
+                {{ else }}
+                  {{ get .Properties "author.properties.url" }}
+                {{ end }}
+            {{ else }}
+                {{ .Subject }}
+            {{ end }}
+              </a>
+          </li>
 
-    {{ . }}
+        {{ else if has .Properties "repost-of" }}
+          <li>
+            <a href="{{ .Subject }}">Reposted</a> by
+            {{ if has .Properties "author" }}
+              <a href="{{ get .Properties "author.properties.url" }}">
+                {{ if has .Properties "author.properties.name" }}
+                  {{ get .Properties "author.properties.name" }}
+                {{ else }}
+                  {{ get .Properties "author.properties.url" }}
+                {{ end }}
+            {{ else }}
+                {{ .Subject }}
+            {{ end }}
+              </a>
+          </li>
+
+        {{ else if has .Properties "like-of" }}
+          <li>
+            <a href="{{ .Subject }}">Liked</a> by
+            {{ if has .Properties "author" }}
+              <a href="{{ get .Properties "author.properties.url" }}">
+                {{ if has .Properties "author.properties.name" }}
+                  {{ get .Properties "author.properties.name" }}
+                {{ else }}
+                  {{ get .Properties "author.properties.url" }}
+                {{ end }}
+            {{ else }}
+                {{ .Subject }}
+            {{ end }}
+              </a>
+          </li>
+        {{ end }}
+      {{ end }}
+    </ul>
   </body>
 </html>

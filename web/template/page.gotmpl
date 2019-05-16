@@ -14,8 +14,8 @@
         <header>
           <a class="permalink u-url" title="{{ get . "published" }}" href="{{ get . "url" }}">&#x2020;</a>
           <h1 class="p-name">{{ getOr . "name" "" }}</h1>
-          <time class="dt-published" datetime="{{ get . "published" }}" pubdate="pubdate">{{ get . "published" }}</time>
-          <a rel="author" class="p-author h-card" href="{{ $.Meta.AuthorURL }}">{{ $.Meta.AuthorName }}</a>
+          <time class="dt-published hidden" datetime="{{ get . "published" }}" pubdate="pubdate">{{ get . "published" }}</time>
+          <a rel="author" class="p-author h-card hidden" href="{{ $.Meta.AuthorURL }}">{{ $.Meta.AuthorName }}</a>
         </header>
 
         <div class="e-content">
@@ -38,6 +38,5 @@
       {{ end }}
     </nav>
 
-    {{ . }}
   </body>
 </html>
