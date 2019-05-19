@@ -5,12 +5,16 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/gob"
+	"encoding/json"
 	"errors"
 	"io"
+	"log"
 	"net/http"
+	"net/url"
 
 	"github.com/gorilla/sessions"
 	"hawx.me/code/indieauth"
+	"willnorris.com/go/microformats"
 )
 
 type userSession struct {
@@ -62,29 +66,85 @@ func (s *scopedSessions) get(r *http.Request) (userSession, bool) {
 	session, _ := s.store.Get(r, "session")
 
 	user, ok := session.Values["user"].(userSession)
+
 	return user, ok
+}
+
+func micropubEndpoint(me string) (string, error) {
+	meURL, err := url.Parse(me)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := http.Get(me)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	data := microformats.Parse(resp.Body, meURL)
+	if len(data.Rels["micropub"]) == 0 {
+		return "", errors.New("no micropub endpoint")
+	}
+
+	return data.Rels["micropub"][0], nil
+}
+
+func mediaEndpoint(micropub, token string) (string, error) {
+	micropubURL, err := url.Parse(micropub)
+	if err != nil {
+		return "", err
+	}
+
+	query := micropubURL.Query()
+	query.Add("q", "config")
+	micropubURL.RawQuery = query.Encode()
+
+	req, err := http.NewRequest("GET", micropubURL.String(), nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	var data struct {
+		Media string `json:"media-endpoint"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return "", err
+	}
+	if data.Media == "" {
+		return "", errors.New("no media endpoint")
+	}
+
+	return data.Media, nil
 }
 
 func (s *scopedSessions) set(w http.ResponseWriter, r *http.Request, token indieauth.Token) {
 	session, _ := s.store.Get(r, "session")
 
-	// meURL, _ := url.Parse(token.Me)
+	micropub, err := micropubEndpoint(token.Me)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
-	// resp, _ := http.Get(token.Me)
-	// defer resp.Body.Close()
-	// data := microformats.Parse(resp.Body, meURL)
-	// micropubEndpoint := data.Rels["micropub"][0]
+	media, err := mediaEndpoint(micropub, token.AccessToken)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
-	// resp, _ = http.Get(micropubEndpoint + "?q=config") // TODO: parse the URL as could have query
-	// defer resp.Body.Close()
-	// var data2 map[string]string
-	// json.NewDecoder(resp.Body).Decode(&data2)
-	// mediaEndpoint := data2["media-endpoint"]
 	session.Values["user"] = userSession{
 		Me:          token.Me,
 		AccessToken: token.AccessToken,
-		Micropub:    "/micropub",
-		Media:       "/media",
+		Micropub:    micropub,
+		Media:       media,
 	}
 	session.Save(r, w)
 }
