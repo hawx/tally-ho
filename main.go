@@ -51,7 +51,7 @@ func usage() {
    --admin-url URL
       Set the URL that the admin interface will be served at.
 
-   --this-url URL
+   --media-upload-url URL
       Set the URL that this application will be served at.
 
  DATA
@@ -60,6 +60,9 @@ func usage() {
 
    --db PATH
       The path to the database, otherwise an in-memory store is used.
+
+   --secret STRING
+      Secret to secure cookies with, base64 encoded.
 
  SERVE
    --port PORT='8080'
@@ -76,12 +79,12 @@ func main() {
 		title       = flag.String("title", "", "")
 		description = flag.String("description", "", "")
 
-		blogURL   = flag.String("blog-url", "http://localhost:8080/", "")
-		blogPath  = flag.String("blog-path", "/tmp/", "")
-		mediaURL  = flag.String("media-url", "http://localhost:8080/_media/", "")
-		mediaPath = flag.String("media-path", "/tmp/", "")
-		adminURL  = flag.String("admin-url", "http://localhost:8080/admin/", "")
-		thisURL   = flag.String("this-url", "http://localhost:8080/", "")
+		blogURL        = flag.String("blog-url", "http://localhost:8080/", "")
+		blogPath       = flag.String("blog-path", "/tmp/", "")
+		mediaURL       = flag.String("media-url", "http://localhost:8080/_media/", "")
+		mediaPath      = flag.String("media-path", "/tmp/", "")
+		adminURL       = flag.String("admin-url", "http://localhost:8080/admin/", "")
+		mediaUploadURL = flag.String("media-upload-url", "http://localhost:8080/media", "")
 
 		webPath = flag.String("web", "web", "")
 		dbPath  = flag.String("db", "file::memory:", "")
@@ -113,7 +116,7 @@ func main() {
 
 	looper := &blog.Looper{}
 
-	micropubEndpoint, mr, err := micropub.Endpoint(db, *me, looper, *thisURL+"media", fw)
+	micropubEndpoint, mr, err := micropub.Endpoint(db, *me, looper, *mediaUploadURL, fw)
 	if err != nil {
 		log.Println(err)
 		return
