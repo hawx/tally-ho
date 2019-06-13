@@ -8,12 +8,11 @@
     <link rel="stylesheet" href="{{ .BaseURL }}public/styles.css" />
     <link rel="stylesheet" href="{{ .BaseURL }}public/print.css" media="print" />
     <link rel="alternate" type="application/rss+xml" title="feed" href="/weblog/feed.xml" />
-
+    <link rel="webmention" href="{{ $.Meta.WebmentionURL }}" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="{{ getOr .Properties "name" "some post" }}" />
     <meta property="og:url" content="{{ get .Properties "url" }}" />
     <!-- <meta property="og:description" content="{{ content .Properties }}" /> -->
-
   </head>
   <body>
     <nav>

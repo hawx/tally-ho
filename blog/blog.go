@@ -22,10 +22,11 @@ func (l *Looper) PostChanged(url string) error {
 }
 
 type Meta struct {
-	Title       string
-	Description string
-	AuthorName  string
-	AuthorURL   string
+	Title         string
+	Description   string
+	AuthorName    string
+	AuthorURL     string
+	WebmentionURL string
 }
 
 type Blog struct {

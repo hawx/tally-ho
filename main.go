@@ -49,10 +49,16 @@ func usage() {
       to write them to.
 
    --admin-url URL
-      Set the URL that the admin interface will be served at.
+      Set the URL that the /admin endpoint of this application will be
+      served at.
 
    --media-upload-url URL
-      Set the URL that this application will be served at.
+      Set the URL that the /media endpoint of this application will
+      be served at.
+
+   --webmention-url URL
+      Set the URL that the /webmention endpoint of this application
+      will be served at.
 
  DATA
    --web PATH
@@ -85,6 +91,7 @@ func main() {
 		mediaPath      = flag.String("media-path", "/tmp/", "")
 		adminURL       = flag.String("admin-url", "http://localhost:8080/admin/", "")
 		mediaUploadURL = flag.String("media-upload-url", "http://localhost:8080/media", "")
+		webmentionURL  = flag.String("webmention-url", "http://localhost:8080/webmention", "")
 
 		webPath = flag.String("web", "web", "")
 		dbPath  = flag.String("db", "file::memory:", "")
@@ -146,10 +153,11 @@ func main() {
 
 	looper.Blog = &blog.Blog{
 		Meta: blog.Meta{
-			Title:       *title,
-			Description: *description,
-			AuthorName:  *name,
-			AuthorURL:   *me,
+			Title:         *title,
+			Description:   *description,
+			AuthorName:    *name,
+			AuthorURL:     *me,
+			WebmentionURL: *webmentionURL,
 		},
 		FileWriter: fw,
 		Templates:  templates,
