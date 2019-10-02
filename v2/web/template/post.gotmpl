@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>{{ getOr . "name" "a post" }}</title>
+    <link href="https://fonts.googleapis.com/css?family=Signika+Negative&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/public/normalize.css" type="text/css" />
+    <link rel="stylesheet" href="/public/styles.css" type="text/css" />
+  </head>
+  <body>
+    <nav>
+      <a href="/">&uarr; Back to the feed</a>
+    </nav>
+
+    {{ template "entry.gotmpl" . }}
+
+    <section class="reactions">
+      <ol>
+        <li>
+          <a href="#">Liked</a> by <a href="#">John Doe</a> 
+        </li>
+        <li>
+          <a href="#">Reply</a> by <a href="#">John Doe</a> 
+        </li>
+        <li>
+          <a href="#">Reposted</a> by <a href="#">John Doe</a> 
+        </li>
+      </ol>
+    </section>
+
+    <section class="reactions">
+      <ol>
+        <li>Syndicated to <a href="#">Twitter</a></li>
+      </ol>
+    </section>
+    
+    {{ template "footer.gotmpl" . }}
+
+  </body>
+</html>

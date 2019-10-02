@@ -1,0 +1,330 @@
+@import url(//fonts.googleapis.com/css?family=Crimson+Text:400,400italic,700);
+@import url(//fonts.googleapis.com/css?family=Droid+Sans+Mono);
+
+html {
+    /* https://www.colourlovers.com/palette/4654317/V_O_G_U_E_%E2%80%A2_1928 */
+    --a: hsl(13, 74%, 59%);
+    --b: hsl(5, 79%, 38%);
+    --c: hsl(345, 50%, 2%);
+    --d: hsl(46, 26%, 71%);
+    --e: hsl(37, 78%, 89%);
+
+    --background: var(--c);
+    --foreground: var(--e);
+    --primary: var(--a);
+    --secondary: var(--b);
+    --faint: var(--d);
+    --faintish: hsl(46, 26%, 51%);
+    --fainter: hsl(46, 26%, 11%);
+    --monospace: 'Droid Sans Mono';
+    --sans: 'Signika Negative';
+    --vertical-gap: 3rem;
+    --top-gutter: 1rem;
+    --left-gutter: 2rem;
+
+    font-size: 22px;
+}
+
+body {
+    font: 1rem/1.35 var(--sans);
+    margin: 3rem auto;
+    max-width: 35rem;
+    text-align: justify;
+    background: var(--background);
+    color: var(--foreground);
+    text-shadow: 1px 1px 2px black;
+
+    -webkit-hyphens: auto;
+    -moz-hyphens: auto;
+    -ms-hyphens: auto;
+    hyphens: auto;
+}
+
+em, strong {
+    line-height: 1;
+}
+
+p > code {
+    margin: 0 0.15rem;
+}
+
+code {
+    font-size: 0.8rem;
+    font-family: var(--monospace);
+}
+
+pre {
+    margin: 1.35rem 1rem;
+    line-height: 1.1;
+}
+
+hr {
+    width: 25%;
+    border: none;
+    border-top: 1px solid var(--fainter);
+}
+
+img {
+    margin: 1.35rem 0;
+    max-width: 100%;
+}
+
+a {
+    color: var(--primary);
+    transition: .1s;
+}
+
+a:hover {
+    color: var(--secondary);
+}
+
+ul {
+    margin: 1rem 0;
+}
+
+ol {
+    margin: 1rem 0;
+}
+
+blockquote {
+    text-align: left;
+    hyphens: none;
+    margin: 1rem 5rem 1rem var(--left-gutter);
+    padding: 0;
+}
+
+blockquote:before {
+    content: "“";
+    position: absolute;
+    margin-left: -1.75rem;
+    margin-top: -0.2rem;
+    font-size: 2.5rem;
+}
+
+article {
+    margin-bottom: var(--vertical-gap);
+    padding: var(--top-gutter) 0 0;
+}
+
+article + article {
+    border-top: 1px solid var(--fainter);
+}
+
+article h1 {
+    text-align: left;
+
+    -webkit-hyphens: manual;
+    -moz-hyphens: manual;
+    -ms-hyphens: manual;
+    hyphens: manual;
+}
+
+article h1 {
+    font-size: 1.55rem;
+    margin: 0rem;
+}
+
+article h2 {
+    font-size: 1.25rem;
+    margin: 1.5rem 0 1rem;
+}
+
+h1 + .e-content {
+    margin-top: 1rem;
+}
+
+p {
+    margin: 0;
+}
+
+p + p {
+    margin: 1rem 0;
+}
+
+nav {
+    font-size: 20px;
+    margin: 2em 0;
+}
+
+nav .previous, nav .next {
+    margin: 0 1em;
+}
+
+.meta {
+    margin-top: .5rem;
+    color: var(--faint);
+    font-family: var(--monospace);
+    font-size: 0.7rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+.meta a {
+    color: var(--faint);
+    text-decoration: none;
+}
+
+.meta a:hover {
+    color: var(--foreground);
+    text-decoration: underline;
+}
+
+/* small posts */
+
+.reply, .likes, .rsvp {
+    padding: var(--top-gutter) var(--left-gutter) 0;
+}
+
+.reply h1, .likes h1, .rsvp h1 {
+    font-size: 1rem;
+    position: relative;
+}
+
+.reply h1:before, .likes h1:before, .rsvp h1:before {
+    position: absolute;
+    margin-left: -1.5rem;
+}
+
+/* reply */
+
+.reply h1:before {
+    content: '↳ ';
+}
+
+div.h-cite {
+    border: 1px solid var(--fainter);
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: .3rem;
+    box-shadow: .3rem .3rem 0 var(--fainter);
+}
+
+div.h-cite .u-url {
+    display: none; /* already show link at the top, this just exists so it can be parsed */
+}
+
+/* likes */
+
+.likes h1 {
+    font-weight: normal;
+}
+
+.likes h1 .u-like-of {
+    font-weight: bold;
+}
+
+.likes a.u-url {
+    color: var(--faint);
+    text-decoration: none;
+}
+
+.likes a.u-url:hover {
+    color: var(--foreground);
+    text-decoration: underline;
+}
+
+.likes h1:before {
+    content: '❤️  ';
+}
+
+/* rsvp */
+
+.rsvp h1 {
+    font-weight: normal;
+}
+
+.rsvp data, .u-rsvp-of {
+    font-weight: bold;
+}
+
+.rsvp h1:before {
+    content: '📅  ';
+}
+
+/* reactions */
+
+.reactions {
+    font-size: .8rem;
+    color: var(--faintish);
+    font-style: italic;
+    border-top: 1px solid var(--fainter);
+}
+
+.reactions:hover ol {
+    opacity: 1;
+}
+
+.reactions h2 {
+    font-weight: normal;
+    font-style: normal;
+    font-size: 1rem;
+    font-family: var(--monospace);
+}
+
+.reactions ol {
+    opacity: .5;
+    transition: .3s;
+    list-style: none;
+    padding: 0;
+    margin: 1rem;
+}
+
+.reactions li {
+    margin: .3rem 0;
+}
+
+.reactions a {
+    color: var(--faint);
+    font-style: normal;
+    text-decoration: none;
+}
+
+.reactions a:hover {
+    color: var(--foreground);
+    text-decoration: underline;
+}
+
+/* nav */
+
+nav {
+    margin: 1rem;
+}
+
+nav a {
+    color: var(--faint);
+    text-decoration: none;
+}
+
+nav a:hover {
+    color: var(--foreground);
+    text-decoration: underline;
+}
+
+nav.arrows {
+    text-align: center;
+}
+
+nav a + a {
+    margin-left: 2rem;
+}
+
+/* footer */
+
+footer {
+    color: var(--faintish);
+    opacity: .5;
+    font-size: 0.8rem;
+    margin: 5rem 0;
+    transition: .3s;
+}
+
+footer:hover {
+    opacity: 1;
+}
+
+footer a {
+    color: var(--faint);
+}
+footer a:hover {
+    color: var(--foreground);
+}

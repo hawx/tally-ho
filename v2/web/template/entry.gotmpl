@@ -1,0 +1,17 @@
+<article class="h-entry">
+  {{ if has . "name" }}
+    <h1 class="p-name"><a href="{{ get . "url" }}">{{ get . "name" }}</a></h1>
+  {{ end }}
+
+  <div claass="e-content">
+    {{ content . }}
+  </div>
+
+  <div class="meta">
+    <a class="u-url" href="{{ get . "url" }}">
+      <time class="dt-published" pubdate="{{ get . "published" }}">
+        {{ get . "published" }}
+      </time>
+    </a>
+  </div>
+</article>
