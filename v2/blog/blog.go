@@ -1,14 +1,12 @@
 package blog
 
 import (
-	"database/sql"
 	"fmt"
 	"html/template"
 	"net/http"
 	"time"
 
 	"hawx.me/code/route"
-	"hawx.me/code/tally-ho/v2/micropub"
 )
 
 type Blog struct {
@@ -16,14 +14,13 @@ type Blog struct {
 	Name        string
 	Title       string
 	Description string
-	Db          *sql.DB
+	DB          *DB
 	Templates   *template.Template
-	Posts       *micropub.Reader
 }
 
 func (b *Blog) Handler() http.Handler {
 	route.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		posts, err := b.Posts.Before(time.Now().UTC())
+		posts, err := b.DB.Before(time.Now().UTC())
 		if err != nil {
 			fmt.Fprint(w, err)
 			return
@@ -35,9 +32,7 @@ func (b *Blog) Handler() http.Handler {
 	})
 
 	route.HandleFunc("/p/:id", func(w http.ResponseWriter, r *http.Request) {
-		id := route.Vars(r)["id"]
-
-		post, err := b.Posts.Post(id)
+		post, err := b.DB.Entry(r.URL.Path)
 		if err != nil {
 			fmt.Fprint(w, err)
 			return

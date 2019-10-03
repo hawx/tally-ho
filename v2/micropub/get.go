@@ -6,7 +6,7 @@ import (
 )
 
 type getDB interface {
-	entryByURL(url string) (data map[string][]interface{}, err error)
+	Entry(url string) (data map[string][]interface{}, err error)
 }
 
 func getHandler(db getDB, mediaURL string) http.HandlerFunc {
@@ -44,7 +44,7 @@ func sourceHandler(db getDB) http.HandlerFunc {
 			}
 		}
 
-		obj, err := db.entryByURL(url)
+		obj, err := db.Entry(url)
 		if err != nil {
 			http.Error(w, "not found", http.StatusNotFound)
 			return

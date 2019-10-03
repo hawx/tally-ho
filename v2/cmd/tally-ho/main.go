@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"flag"
 	"fmt"
 	"log"
@@ -35,7 +34,7 @@ func main() {
 	flag.Usage = usage
 	flag.Parse()
 
-	db, err := sql.Open("sqlite3", *dbPath)
+	db, err := blog.Open(*dbPath)
 	if err != nil {
 		log.Println(err)
 		return
@@ -48,26 +47,19 @@ func main() {
 		return
 	}
 
-	micropubEndpoint, micropubReader, err := micropub.Endpoint(db, *me, "some-url")
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
 	b := &blog.Blog{
 		Me:          *me,
 		Name:        *name,
 		Title:       *title,
 		Description: *description,
-		Db:          db,
+		DB:          db,
 		Templates:   templates,
-		Posts:       micropubReader,
 	}
 
 	http.Handle("/", b.Handler())
 
 	http.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir(filepath.Join(*webPath, "static")))))
-	http.Handle("/-/micropub", micropubEndpoint)
+	http.Handle("/-/micropub", micropub.Endpoint(db, *me, "some-url"))
 	http.Handle("/-/webmention", http.NotFoundHandler())
 	http.Handle("/-/media", http.NotFoundHandler())
 

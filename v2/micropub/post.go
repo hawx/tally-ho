@@ -10,8 +10,8 @@ import (
 )
 
 type postDB interface {
-	updateEntry(url string, replace, add, delete map[string][]interface{}) error
-	createEntry(data map[string][]interface{}) (map[string][]interface{}, error)
+	Create(data map[string][]interface{}) (string, error)
+	Update(url string, replace, add, delete map[string][]interface{}) error
 }
 
 func postHandler(db postDB) http.Handler {
@@ -68,7 +68,7 @@ func (h *micropubPostHandler) handleJSON(w http.ResponseWriter, r *http.Request)
 			delete[key] = value
 		}
 
-		if err := h.db.updateEntry(v.URL, replace, add, delete); err != nil {
+		if err := h.db.Update(v.URL, replace, add, delete); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -111,13 +111,12 @@ func (h *micropubPostHandler) handleMultiPart(w http.ResponseWriter, r *http.Req
 }
 
 func (h *micropubPostHandler) create(w http.ResponseWriter, data map[string][]interface{}) {
-	data, err := h.db.createEntry(data)
+	location, err := h.db.Create(data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	location := data["url"][0].(string)
 	w.Header().Add("Location", location)
 	w.WriteHeader(http.StatusCreated)
 }
