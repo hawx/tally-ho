@@ -4,16 +4,18 @@ import (
 	"html/template"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 func ParseTemplates(webPath string) (*template.Template, error) {
 	glob := filepath.Join(webPath, "template/*.gotmpl")
 
 	return template.New("t").Funcs(template.FuncMap{
-		"has":     templateHas,
-		"getOr":   templateGetOr,
-		"get":     templateGet,
-		"content": templateContent,
+		"has":       templateHas,
+		"getOr":     templateGetOr,
+		"get":       templateGet,
+		"content":   templateContent,
+		"humanDate": templateHumanDate,
 	}).ParseGlob(glob)
 }
 
@@ -105,4 +107,20 @@ func get(value interface{}, key string) (interface{}, bool) {
 	}
 
 	return nil, false
+}
+
+func templateHumanDate(m map[string][]interface{}, key string) string {
+	v, _ := get(m, key)
+	s, ok := v.(string)
+
+	if !ok {
+		return ""
+	}
+
+	t, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		return s
+	}
+
+	return t.Format("January 02, 2006")
 }
