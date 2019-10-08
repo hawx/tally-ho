@@ -11,30 +11,18 @@ import (
 	"hawx.me/code/tally-ho/writer"
 )
 
-type fakeNotifier struct{}
-
-func (*fakeNotifier) PostChanged(url string) error {
-	return nil
-}
-
-type fakeURLFactory struct{}
-
-func (*fakeURLFactory) URL(path string) string {
-	return "http://example.com/blog/p/1"
-}
-
 type fakePostDB struct {
 	datas                   []map[string][]interface{}
 	replaces, adds, deletes map[string][]map[string][]interface{}
 }
 
-func (b *fakePostDB) createEntry(data map[string][]interface{}) (map[string][]interface{}, error) {
+func (b *fakePostDB) Create(data map[string][]interface{}) (string, error) {
 	b.datas = append(b.datas, data)
 
-	return map[string][]interface{}{"url": {"http://example.com/blog/p/1"}}, nil
+	return "http://example.com/blog/p/1", nil
 }
 
-func (b *fakePostDB) updateEntry(id string, replace, add, delete map[string][]interface{}) error {
+func (b *fakePostDB) Update(id string, replace, add, delete map[string][]interface{}) error {
 	b.replaces[id] = append(b.replaces[id], replace)
 	b.adds[id] = append(b.adds[id], add)
 	b.deletes[id] = append(b.deletes[id], delete)
@@ -48,11 +36,9 @@ func (b *fakePostDB) setNextPage(uf writer.URLFactory, name string) error {
 
 func TestPostEntry(t *testing.T) {
 	assert := assert.New(t)
-	blog := &fakeNotifier{}
-	uf := &fakeURLFactory{}
-	db := &fakePostDB{}
+	blog := &fakePostDB{}
 
-	s := httptest.NewServer(postHandler(blog, uf, db))
+	s := httptest.NewServer(postHandler(blog))
 	defer s.Close()
 
 	resp, err := http.PostForm(s.URL, url.Values{
@@ -66,8 +52,8 @@ func TestPostEntry(t *testing.T) {
 	assert.Equal(http.StatusCreated, resp.StatusCode)
 	assert.Equal("http://example.com/blog/p/1", resp.Header.Get("Location"))
 
-	if assert.Len(db.datas, 1) {
-		data := db.datas[0]
+	if assert.Len(blog.datas, 1) {
+		data := blog.datas[0]
 
 		assert.Equal("entry", data["h"][0])
 		assert.Equal("This is a test", data["content"][0])
@@ -81,11 +67,9 @@ func TestPostEntry(t *testing.T) {
 
 func TestPostEntryJSON(t *testing.T) {
 	assert := assert.New(t)
-	blog := &fakeNotifier{}
-	uf := &fakeURLFactory{}
 	db := &fakePostDB{}
 
-	s := httptest.NewServer(postHandler(blog, uf, db))
+	s := httptest.NewServer(postHandler(db))
 	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
@@ -116,15 +100,13 @@ func TestPostEntryJSON(t *testing.T) {
 
 func TestUpdateEntry(t *testing.T) {
 	assert := assert.New(t)
-	blog := &fakeNotifier{}
-	uf := &fakeURLFactory{}
 	db := &fakePostDB{
 		adds:     map[string][]map[string][]interface{}{},
 		deletes:  map[string][]map[string][]interface{}{},
 		replaces: map[string][]map[string][]interface{}{},
 	}
 
-	s := httptest.NewServer(postHandler(blog, uf, db))
+	s := httptest.NewServer(postHandler(db))
 	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{

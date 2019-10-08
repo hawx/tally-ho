@@ -12,6 +12,7 @@ type getDB interface {
 func getHandler(db getDB, mediaURL string) http.HandlerFunc {
 	configHandler := configHandler(mediaURL)
 	sourceHandler := sourceHandler(db)
+	syndicationHandler := syndicationHandler()
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.FormValue("q") {
@@ -19,6 +20,8 @@ func getHandler(db getDB, mediaURL string) http.HandlerFunc {
 			configHandler.ServeHTTP(w, r)
 		case "source":
 			sourceHandler.ServeHTTP(w, r)
+		case "syndicate-to":
+			syndicationHandler.ServeHTTP(w, r)
 		}
 	}
 }
@@ -59,5 +62,25 @@ func sourceHandler(db getDB) http.HandlerFunc {
 		}
 
 		json.NewEncoder(w).Encode(formToJson(obj))
+	}
+}
+
+type syndicationTarget struct {
+	UID  string `json:"uid"`
+	Name string `json:"name"`
+}
+
+func syndicationHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode(struct {
+			SyndicateTo []syndicationTarget `json:"syndicate-to"`
+		}{
+			SyndicateTo: []syndicationTarget{
+				{
+					UID:  "https://twitter.com/",
+					Name: "Twitter",
+				},
+			},
+		})
 	}
 }

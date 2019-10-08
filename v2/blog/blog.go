@@ -9,6 +9,10 @@ import (
 	"hawx.me/code/route"
 )
 
+type Syndicator interface {
+	Create(map[string][]interface{}) (string, error)
+}
+
 type Blog struct {
 	Me          string
 	Name        string
@@ -16,6 +20,7 @@ type Blog struct {
 	Description string
 	DB          *DB
 	Templates   *template.Template
+	Twitter     Syndicator
 }
 
 func (b *Blog) Handler() http.Handler {

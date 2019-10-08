@@ -13,6 +13,7 @@ import (
 	"hawx.me/code/serve"
 	"hawx.me/code/tally-ho/v2/blog"
 	"hawx.me/code/tally-ho/v2/micropub"
+	"hawx.me/code/tally-ho/v2/syndicate"
 )
 
 func usage() {
@@ -25,6 +26,11 @@ func main() {
 		name        = flag.String("name", "", "")
 		title       = flag.String("title", "", "")
 		description = flag.String("description", "", "")
+
+		twitterConsumerKey       = flag.String("twitter-consumer-key", "", "")
+		twitterConsumerSecret    = flag.String("twitter-consumer-secret", "", "")
+		twitterAccessToken       = flag.String("twitter-access-token", "", "")
+		twitterAccessTokenSecret = flag.String("twitter-access-token-secret", "", "")
 
 		webPath = flag.String("web", "web", "")
 		dbPath  = flag.String("db", "file::memory:", "")
@@ -47,6 +53,13 @@ func main() {
 		return
 	}
 
+	twitter := syndicate.Twitter(syndicate.TwitterOptions{
+		ConsumerKey:       *twitterConsumerKey,
+		ConsumerSecret:    *twitterConsumerSecret,
+		AccessToken:       *twitterAccessToken,
+		AccessTokenSecret: *twitterAccessTokenSecret,
+	})
+
 	b := &blog.Blog{
 		Me:          *me,
 		Name:        *name,
@@ -54,6 +67,7 @@ func main() {
 		Description: *description,
 		DB:          db,
 		Templates:   templates,
+		Twitter:     twitter,
 	}
 
 	http.Handle("/", b.Handler())
