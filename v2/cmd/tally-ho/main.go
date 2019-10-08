@@ -73,7 +73,7 @@ func main() {
 	http.Handle("/", b.Handler())
 
 	http.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir(filepath.Join(*webPath, "static")))))
-	http.Handle("/-/micropub", micropub.Endpoint(db, *me, "some-url"))
+	http.Handle("/-/micropub", micropub.Endpoint(b, *me, "some-url"))
 	http.Handle("/-/webmention", http.NotFoundHandler())
 	http.Handle("/-/media", http.NotFoundHandler())
 

@@ -9,6 +9,8 @@ import (
 	"hawx.me/code/numbersix"
 )
 
+var empty = map[string][]interface{}{}
+
 func Open(path string) (*DB, error) {
 	db, err := sql.Open("sqlite3", path)
 	if err != nil {

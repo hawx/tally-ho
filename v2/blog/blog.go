@@ -3,6 +3,7 @@ package blog
 import (
 	"fmt"
 	"html/template"
+	"log"
 	"net/http"
 	"time"
 
@@ -49,4 +50,39 @@ func (b *Blog) Handler() http.Handler {
 	})
 
 	return route.Default
+}
+
+func (b *Blog) Entry(url string) (data map[string][]interface{}, err error) {
+	return b.DB.Entry(url)
+}
+
+func (b *Blog) Create(data map[string][]interface{}) (location string, err error) {
+	location, err = b.DB.Create(data)
+	if err != nil {
+		return
+	}
+
+	if syndicateTos, ok := data["mp-syndicate-to"]; ok && len(syndicateTos) > 0 {
+		for _, syndicateTo := range syndicateTos {
+			if syndicateTo == "https://twitter.com/" {
+				syndicatedLocation, err := b.Twitter.Create(data)
+				if err != nil {
+					log.Println("syndicating to twitter: ", err)
+					continue
+				}
+
+				if err := b.Update(location, empty, map[string][]interface{}{
+					"syndication": {syndicatedLocation},
+				}, empty); err != nil {
+					log.Println("updating with twitter location: ", err)
+				}
+			}
+		}
+	}
+
+	return
+}
+
+func (b *Blog) Update(url string, replace, add, delete map[string][]interface{}) error {
+	return b.DB.Update(url, replace, add, delete)
 }
