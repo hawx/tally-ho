@@ -1,6 +1,7 @@
 module hawx.me/code/tally-ho
 
 require (
+	github.com/BurntSushi/toml v0.3.1
 	github.com/ChimeraCoder/anaconda v2.0.0+incompatible
 	github.com/ChimeraCoder/tokenbucket v0.0.0-20131201223612-c5a927568de7 // indirect
 	github.com/azr/backoff v0.0.0-20160115115103-53511d3c7330 // indirect

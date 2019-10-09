@@ -10,6 +10,7 @@ import (
 	// register sqlite3 for database/sql
 	_ "github.com/mattn/go-sqlite3"
 
+	"github.com/BurntSushi/toml"
 	"hawx.me/code/serve"
 	"hawx.me/code/tally-ho/v2/blog"
 	"hawx.me/code/tally-ho/v2/micropub"
@@ -20,25 +21,36 @@ func usage() {
 	fmt.Println(`Usage: tally-ho [options]`)
 }
 
+type config struct {
+	Me          string
+	Name        string
+	Title       string
+	Description string
+
+	Twitter struct {
+		ConsumerKey       string
+		ConsumerSecret    string
+		AccessToken       string
+		AccessTokenSecret string
+	}
+}
+
 func main() {
 	var (
-		me          = flag.String("me", "", "")
-		name        = flag.String("name", "", "")
-		title       = flag.String("title", "", "")
-		description = flag.String("description", "", "")
-
-		twitterConsumerKey       = flag.String("twitter-consumer-key", "", "")
-		twitterConsumerSecret    = flag.String("twitter-consumer-secret", "", "")
-		twitterAccessToken       = flag.String("twitter-access-token", "", "")
-		twitterAccessTokenSecret = flag.String("twitter-access-token-secret", "", "")
-
-		webPath = flag.String("web", "web", "")
-		dbPath  = flag.String("db", "file::memory:", "")
-		port    = flag.String("port", "8080", "")
-		socket  = flag.String("socket", "", "")
+		configPath = flag.String("config", "./config.toml", "")
+		webPath    = flag.String("web", "web", "")
+		dbPath     = flag.String("db", "file::memory:", "")
+		port       = flag.String("port", "8080", "")
+		socket     = flag.String("socket", "", "")
 	)
 	flag.Usage = usage
 	flag.Parse()
+
+	var conf config
+	if _, err := toml.DecodeFile(*configPath, &conf); err != nil {
+		log.Println(err)
+		return
+	}
 
 	db, err := blog.Open(*dbPath)
 	if err != nil {
@@ -54,17 +66,17 @@ func main() {
 	}
 
 	twitter := syndicate.Twitter(syndicate.TwitterOptions{
-		ConsumerKey:       *twitterConsumerKey,
-		ConsumerSecret:    *twitterConsumerSecret,
-		AccessToken:       *twitterAccessToken,
-		AccessTokenSecret: *twitterAccessTokenSecret,
+		ConsumerKey:       conf.Twitter.ConsumerKey,
+		ConsumerSecret:    conf.Twitter.ConsumerSecret,
+		AccessToken:       conf.Twitter.AccessToken,
+		AccessTokenSecret: conf.Twitter.AccessTokenSecret,
 	})
 
 	b := &blog.Blog{
-		Me:          *me,
-		Name:        *name,
-		Title:       *title,
-		Description: *description,
+		Me:          conf.Me,
+		Name:        conf.Name,
+		Title:       conf.Title,
+		Description: conf.Description,
 		DB:          db,
 		Templates:   templates,
 		Twitter:     twitter,
@@ -72,8 +84,12 @@ func main() {
 
 	http.Handle("/", b.Handler())
 
-	http.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir(filepath.Join(*webPath, "static")))))
-	http.Handle("/-/micropub", micropub.Endpoint(b, *me, "some-url"))
+	http.Handle("/public/",
+		http.StripPrefix("/public/",
+			http.FileServer(
+				http.Dir(filepath.Join(*webPath, "static")))))
+
+	http.Handle("/-/micropub", micropub.Endpoint(b, conf.Me, "some-url"))
 	http.Handle("/-/webmention", http.NotFoundHandler())
 	http.Handle("/-/media", http.NotFoundHandler())
 

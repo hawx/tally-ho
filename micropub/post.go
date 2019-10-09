@@ -171,5 +171,5 @@ func (h *micropubPostHandler) setPage(w http.ResponseWriter, data map[string][]i
 }
 
 func reservedKey(key string) bool {
-	return key == "access_token" || key == "action" || key == "url" || strings.HasPrefix(key, "mp-")
+	return key == "access_token" || key == "action" || key == "url"
 }

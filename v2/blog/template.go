@@ -11,11 +11,12 @@ func ParseTemplates(webPath string) (*template.Template, error) {
 	glob := filepath.Join(webPath, "template/*.gotmpl")
 
 	return template.New("t").Funcs(template.FuncMap{
-		"has":       templateHas,
-		"getOr":     templateGetOr,
-		"get":       templateGet,
-		"content":   templateContent,
-		"humanDate": templateHumanDate,
+		"has":             templateHas,
+		"getOr":           templateGetOr,
+		"get":             templateGet,
+		"content":         templateContent,
+		"humanDate":       templateHumanDate,
+		"syndicationName": templateSyndicationName,
 	}).ParseGlob(glob)
 }
 
@@ -123,4 +124,12 @@ func templateHumanDate(m map[string][]interface{}, key string) string {
 	}
 
 	return t.Format("January 02, 2006")
+}
+
+func templateSyndicationName(u string) string {
+	if strings.HasPrefix(u, "https://twitter.com/") {
+		return "Twitter"
+	}
+
+	return u
 }

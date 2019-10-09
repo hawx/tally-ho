@@ -1,40 +1,35 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"log"
+	"net/http"
 	"os"
-
-	// register sqlite3 for database/sql
-	_ "github.com/mattn/go-sqlite3"
-
-	"hawx.me/code/tally-ho/v2/blog"
 )
 
 func main() {
-	dbPath := flag.String("db", "", "")
+	token := flag.String("token", "", "")
 	flag.Parse()
 
-	if *dbPath == "" {
-		log.Println("--db PATH required")
+	if *token == "" {
+		log.Println("--token TOKEN required")
 		return
 	}
 
-	db, err := blog.Open(*dbPath)
+	req, err := http.NewRequest("POST", "http://localhost:8080/-/micropub", os.Stdin)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	defer db.Close()
 
-	var data map[string][]interface{}
-	if err := json.NewDecoder(os.Stdin).Decode(&data); err != nil {
+	req.Header.Add("Authorization", "Bearer "+*token)
+	req.Header.Add("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
 		log.Println(err)
 		return
 	}
 
-	if _, err := db.Create(data); err != nil {
-		log.Println(err)
-	}
+	log.Println(resp)
 }

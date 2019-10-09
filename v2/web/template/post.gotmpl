@@ -17,20 +17,22 @@
     <section class="reactions">
       <ol>
         <li>
-          <a href="#">Liked</a> by <a href="#">John Doe</a> 
+          Liked by <a href="#">John Doe</a>
         </li>
         <li>
-          <a href="#">Reply</a> by <a href="#">John Doe</a> 
+          Reply from <a href="#">John Doe</a>
         </li>
         <li>
-          <a href="#">Reposted</a> by <a href="#">John Doe</a> 
+          Reposted by <a href="#">John Doe</a>
         </li>
       </ol>
     </section>
 
     <section class="reactions">
       <ol>
-        <li>Syndicated to <a href="#">Twitter</a></li>
+        {{ range .syndication }}
+          <li>Syndicated to <a href="{{ . }}">{{ syndicationName . }}</a></li>
+        {{ end }}
       </ol>
     </section>
     

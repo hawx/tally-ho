@@ -52,5 +52,5 @@ func (t *twitterSyndicator) Create(data map[string][]interface{}) (location stri
 		return "", err
 	}
 
-	return tweet.User.URL + "/status/" + tweet.IdStr, nil
+	return "https://twitter.com/" + tweet.User.ScreenName + "/status/" + tweet.IdStr, nil
 }
