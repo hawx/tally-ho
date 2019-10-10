@@ -37,7 +37,7 @@ func (b *Blog) Handler() http.Handler {
 		}
 	})
 
-	route.HandleFunc("/p/:id", func(w http.ResponseWriter, r *http.Request) {
+	route.HandleFunc("/entry/:id", func(w http.ResponseWriter, r *http.Request) {
 		post, err := b.DB.Entry(r.URL.Path)
 		if err != nil {
 			fmt.Fprint(w, err)
@@ -48,6 +48,11 @@ func (b *Blog) Handler() http.Handler {
 			fmt.Fprint(w, err)
 		}
 	})
+
+	// route.Handle("/:year/:month/:date/:slug")
+	// route.Handle("/like/...")
+	// route.Handle("/reply/...")
+	// route.Handle("/tag/...")
 
 	return route.Default
 }

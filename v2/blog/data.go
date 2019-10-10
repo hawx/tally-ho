@@ -36,19 +36,18 @@ func (db *DB) Close() error {
 func (db *DB) Create(data map[string][]interface{}) (location string, err error) {
 	id := uuid.New().String()
 
-	slug := id
-	if len(data["name"]) == 1 {
+	data["uid"] = []interface{}{id}
+	// Use /entry/UID as canonical url so I don't have to change it in the future
+	// if I decide on a nicer scheme. This will always be accessible and other
+	// things can be layers on top of this.
+	data["url"] = []interface{}{"/entry/" + id}
+
+	if len(data["mp-slug"]) == 0 && len(data["name"]) > 0 {
 		name := data["name"][0].(string)
 		if len(name) > 0 {
-			slug = slugify(name)
+			data["mp-slug"] = []interface{}{slugify(name)}
 		}
 	}
-	if len(data["mp-slug"]) == 1 {
-		slug = data["mp-slug"][0].(string)
-	}
-
-	data["uid"] = []interface{}{id}
-	data["url"] = []interface{}{"/p/" + slug} // TODO: check that the slug doesn't exist
 
 	if len(data["published"]) == 0 {
 		data["published"] = []interface{}{time.Now().UTC().Format(time.RFC3339)}
