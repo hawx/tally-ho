@@ -152,7 +152,7 @@ nav .previous, nav .next {
 
 .meta {
     margin-top: .5rem;
-    color: var(--faint);
+    color: var(--faintish);
     font-family: var(--monospace);
     font-size: 0.7rem;
     display: flex;

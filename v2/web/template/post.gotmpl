@@ -27,14 +27,6 @@
         </li>
       </ol>
     </section>
-
-    <section class="reactions">
-      <ol>
-        {{ range .syndication }}
-          <li>Syndicated to <a href="{{ . }}">{{ syndicationName . }}</a></li>
-        {{ end }}
-      </ol>
-    </section>
     
     {{ template "footer.gotmpl" . }}
 

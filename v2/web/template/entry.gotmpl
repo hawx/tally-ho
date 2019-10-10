@@ -13,5 +13,12 @@
         {{ humanDate . "published" }}
       </time>
     </a>
+
+    <div>
+      also
+      {{ range withEnd .syndication }}
+        <a href="{{ .El }}">{{ syndicationName .El }}</a>{{ if not .End }}, {{ end }}
+      {{ end }}
+    </div>
   </div>
 </article>

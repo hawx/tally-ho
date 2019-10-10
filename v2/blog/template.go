@@ -17,6 +17,7 @@ func ParseTemplates(webPath string) (*template.Template, error) {
 		"content":         templateContent,
 		"humanDate":       templateHumanDate,
 		"syndicationName": templateSyndicationName,
+		"withEnd":         templateWithEnd,
 	}).ParseGlob(glob)
 }
 
@@ -132,4 +133,19 @@ func templateSyndicationName(u string) string {
 	}
 
 	return u
+}
+
+type endEl struct {
+	El  interface{}
+	End bool
+}
+
+func templateWithEnd(l []interface{}) []endEl {
+	r := make([]endEl, len(l))
+
+	for i, e := range l {
+		r[i] = endEl{El: e, End: i == len(l)-1}
+	}
+
+	return r
 }
