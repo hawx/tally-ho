@@ -9,6 +9,7 @@ import (
 
 func main() {
 	token := flag.String("token", "", "")
+	url := flag.String("url", "http://localhost:8080/-/micropub", "")
 	flag.Parse()
 
 	if *token == "" {
@@ -16,7 +17,7 @@ func main() {
 		return
 	}
 
-	req, err := http.NewRequest("POST", "http://localhost:8080/-/micropub", os.Stdin)
+	req, err := http.NewRequest("POST", *url, os.Stdin)
 	if err != nil {
 		log.Println(err)
 		return
