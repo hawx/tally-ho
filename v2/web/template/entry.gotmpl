@@ -14,11 +14,13 @@
       </time>
     </a>
 
-    <div>
-      also
-      {{ range withEnd .syndication }}
-        <a href="{{ .El }}">{{ syndicationName .El }}</a>{{ if not .End }}, {{ end }}
-      {{ end }}
-    </div>
+    {{ if .syndication }}
+      <div>
+        also
+        {{ range withEnd .syndication }}
+          <a href="{{ .El }}">{{ syndicationName .El }}</a>{{ if not .End }}, {{ end }}
+        {{ end }}
+      </div>
+    {{ end }}
   </div>
 </article>
