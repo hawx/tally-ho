@@ -3,6 +3,7 @@ package blog
 import (
 	"database/sql"
 	"errors"
+	"io"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,20 +18,31 @@ func Open(path string) (*DB, error) {
 		return nil, err
 	}
 
-	six, err := numbersix.For(db, "entries")
+	entries, err := numbersix.For(db, "entries")
 	if err != nil {
 		return nil, err
 	}
 
-	return &DB{six: six}, nil
+	mentions, err := numbersix.For(db, "mentions")
+	if err != nil {
+		return nil, err
+	}
+
+	return &DB{
+		closer:   db,
+		entries:  entries,
+		mentions: mentions,
+	}, nil
 }
 
 type DB struct {
-	six *numbersix.DB
+	closer   io.Closer
+	entries  *numbersix.DB
+	mentions *numbersix.DB
 }
 
 func (db *DB) Close() error {
-	return db.six.Close()
+	return db.closer.Close()
 }
 
 func (db *DB) Create(data map[string][]interface{}) (location string, err error) {
@@ -53,38 +65,47 @@ func (db *DB) Create(data map[string][]interface{}) (location string, err error)
 		data["published"] = []interface{}{time.Now().UTC().Format(time.RFC3339)}
 	}
 
-	return data["url"][0].(string), db.six.SetProperties(id, data)
+	return data["url"][0].(string), db.entries.SetProperties(id, data)
 }
 
 func (db *DB) Update(url string, replace, add, delete map[string][]interface{}) error {
 	replace["updated"] = []interface{}{time.Now().UTC().Format(time.RFC3339)}
 
-	triples, err := db.six.List(numbersix.Where("url", url))
+	triples, err := db.entries.List(numbersix.Where("url", url))
 	if err != nil {
 		return err
 	}
 	id := triples[0].Subject
 
 	for predicate, values := range replace {
-		db.six.DeletePredicate(id, predicate)
-		db.six.SetMany(id, predicate, values)
+		db.entries.DeletePredicate(id, predicate)
+		db.entries.SetMany(id, predicate, values)
 	}
 
 	for predicate, values := range add {
-		db.six.SetMany(id, predicate, values)
+		db.entries.SetMany(id, predicate, values)
 	}
 
 	for predicate, values := range delete {
 		for _, value := range values {
-			db.six.DeleteValue(id, predicate, value)
+			db.entries.DeleteValue(id, predicate, value)
 		}
 	}
 
 	return nil
 }
 
+func (db *DB) Mention(source string, data map[string][]interface{}) error {
+	// TODO: add ability to block by host or url
+	if err := db.mentions.DeleteSubject(source); err != nil {
+		return err
+	}
+
+	return db.mentions.SetProperties(source, data)
+}
+
 func (db *DB) Entry(url string) (data map[string][]interface{}, err error) {
-	triples, err := db.six.List(numbersix.Where("url", url))
+	triples, err := db.entries.List(numbersix.Where("url", url))
 	if err != nil {
 		return
 	}
@@ -96,8 +117,18 @@ func (db *DB) Entry(url string) (data map[string][]interface{}, err error) {
 	return groups[0].Properties, nil
 }
 
+func (db *DB) MentionsForEntry(url string) (list []numbersix.Group, err error) {
+	triples, err := db.mentions.List(numbersix.Where("hx-target", url))
+	if err != nil {
+		return
+	}
+
+	list = numbersix.Grouped(triples)
+	return
+}
+
 func (db *DB) Before(published time.Time) (groups []numbersix.Group, err error) {
-	triples, err := db.six.List(
+	triples, err := db.entries.List(
 		numbersix.
 			Before("published", published.Format(time.RFC3339)).
 			Limit(5),

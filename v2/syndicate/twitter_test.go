@@ -32,7 +32,7 @@ func TestTwitter(t *testing.T) {
   "id": 1050118621198921700,
   "id_str": "1050118621198921728",
   "user": {
-    "url": "https://twitter.com/testing"
+    "screen_name": "testing"
   }
 }`))
 			},

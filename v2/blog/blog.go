@@ -91,3 +91,7 @@ func (b *Blog) Create(data map[string][]interface{}) (location string, err error
 func (b *Blog) Update(url string, replace, add, delete map[string][]interface{}) error {
 	return b.DB.Update(url, replace, add, delete)
 }
+
+func (b *Blog) Mention(source string, data map[string][]interface{}) error {
+	return b.DB.Mention(source, data)
+}

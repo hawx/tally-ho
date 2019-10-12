@@ -15,6 +15,7 @@ import (
 	"hawx.me/code/tally-ho/v2/blog"
 	"hawx.me/code/tally-ho/v2/micropub"
 	"hawx.me/code/tally-ho/v2/syndicate"
+	"hawx.me/code/tally-ho/v2/webmention"
 )
 
 func usage() {
@@ -89,8 +90,8 @@ func main() {
 			http.FileServer(
 				http.Dir(filepath.Join(*webPath, "static")))))
 
-	http.Handle("/-/micropub", micropub.Endpoint(b, conf.Me, "some-url"))
-	http.Handle("/-/webmention", http.NotFoundHandler())
+	http.Handle("/-/micropub", micropub.Endpoint(b, conf.Me, "http://something/-/media"))
+	http.Handle("/-/webmention", webmention.Endpoint(b))
 	http.Handle("/-/media", http.NotFoundHandler())
 
 	serve.Serve(*port, *socket, http.DefaultServeMux)

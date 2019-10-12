@@ -46,6 +46,7 @@ func TestPostEntry(t *testing.T) {
 		"content":      {"This is a test"},
 		"category[]":   {"test", "ignore"},
 		"mp-something": {"what"},
+		"url":          {"what"},
 	})
 
 	assert.Nil(err)
@@ -59,8 +60,9 @@ func TestPostEntry(t *testing.T) {
 		assert.Equal("This is a test", data["content"][0])
 		assert.Equal("test", data["category"][0])
 		assert.Equal("ignore", data["category"][1])
+		assert.Equal("what", data["mp-something"][0])
 
-		_, ok := data["mp-something"]
+		_, ok := data["url"]
 		assert.False(ok)
 	}
 }
@@ -77,7 +79,8 @@ func TestPostEntryJSON(t *testing.T) {
   "properties": {
     "content": ["This is a test"],
     "category": ["test", "ignore"],
-    "mp-something": ["what"]
+    "mp-something": ["what"],
+    "url": ["http://what"]
   }
 }`))
 
@@ -92,8 +95,9 @@ func TestPostEntryJSON(t *testing.T) {
 		assert.Equal("This is a test", data["content"][0])
 		assert.Equal("test", data["category"][0])
 		assert.Equal("ignore", data["category"][1])
+		assert.Equal("what", data["mp-something"][0])
 
-		_, ok := data["mp-something"]
+		_, ok := data["url"]
 		assert.False(ok)
 	}
 }
