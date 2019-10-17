@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"hawx.me/code/mux"
 	"willnorris.com/go/microformats"
@@ -41,6 +42,8 @@ func postHandler(blog Blog) http.HandlerFunc {
 		}
 	}()
 
+	const baseURL = "http://localhost:8080"
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
 			source = r.FormValue("source")
@@ -52,6 +55,13 @@ func postHandler(blog Blog) http.HandlerFunc {
 			http.Error(w, "", http.StatusBadRequest)
 			return
 		}
+
+		if !strings.HasPrefix(target, baseURL) {
+			http.Error(w, "", http.StatusBadRequest)
+			return
+		}
+
+		target = target[len(baseURL):]
 
 		mentions <- webmention{source: source, target: target}
 		w.WriteHeader(http.StatusAccepted)

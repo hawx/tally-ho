@@ -13,6 +13,7 @@ html {
     --foreground: var(--e);
     --primary: var(--a);
     --secondary: var(--b);
+    --secondarier: hsl(5, 79%, 48%);
     --faint: var(--d);
     --faintish: hsl(46, 26%, 51%);
     --fainter: hsl(46, 26%, 11%);
@@ -38,6 +39,10 @@ body {
     -moz-hyphens: auto;
     -ms-hyphens: auto;
     hyphens: auto;
+}
+
+.hidden {
+    display: none;
 }
 
 em, strong {
@@ -139,15 +144,6 @@ p {
 
 p + p {
     margin: 1rem 0;
-}
-
-nav {
-    font-size: 20px;
-    margin: 2em 0;
-}
-
-nav .previous, nav .next {
-    margin: 0 1em;
 }
 
 .meta {
@@ -287,16 +283,22 @@ div.h-cite .u-url {
 /* nav */
 
 nav {
+    font-size: 20px;
+    margin: 2em 0;
     margin: 1rem;
 }
 
+nav .previous, nav .next {
+    margin: 0 1em;
+}
+
 nav a {
-    color: var(--faint);
+    color: var(--secondary);
     text-decoration: none;
 }
 
 nav a:hover {
-    color: var(--foreground);
+    color: var(--secondarier);
     text-decoration: underline;
 }
 
@@ -325,6 +327,7 @@ footer:hover {
 footer a {
     color: var(--faint);
 }
+
 footer a:hover {
     color: var(--foreground);
 }

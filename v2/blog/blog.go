@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"hawx.me/code/numbersix"
 	"hawx.me/code/route"
 )
 
@@ -38,14 +39,26 @@ func (b *Blog) Handler() http.Handler {
 	})
 
 	route.HandleFunc("/entry/:id", func(w http.ResponseWriter, r *http.Request) {
-		post, err := b.DB.Entry(r.URL.Path)
+		entry, err := b.DB.Entry(r.URL.Path)
 		if err != nil {
-			fmt.Fprint(w, err)
+			log.Println(err)
 			return
 		}
 
-		if err := b.Templates.ExecuteTemplate(w, "post.gotmpl", post); err != nil {
-			fmt.Fprint(w, err)
+		mentions, err := b.DB.MentionsForEntry(r.URL.Path)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		if err := b.Templates.ExecuteTemplate(w, "post.gotmpl", struct {
+			Entry    map[string][]interface{}
+			Mentions []numbersix.Group
+		}{
+			Entry:    entry,
+			Mentions: mentions,
+		}); err != nil {
+			log.Println(err)
 		}
 	})
 
