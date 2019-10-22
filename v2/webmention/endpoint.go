@@ -10,8 +10,8 @@ import (
 	"net/url"
 	"strings"
 
+	"hawx.me/code/microformats/authorship"
 	"hawx.me/code/mux"
-	"willnorris.com/go/microformats"
 )
 
 type Blog interface {
@@ -97,7 +97,7 @@ func processMention(mention webmention, blog Blog) error {
 		return nil
 	}
 
-	data := microformats.Parse(resp.Body, source)
+	data := authorship.Parse(resp.Body, source)
 
 	properties := map[string][]interface{}{}
 	for _, item := range data.Items {
