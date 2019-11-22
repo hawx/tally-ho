@@ -1,0 +1,17 @@
+<div class="meta">
+  <a class="u-url" href="{{ get . "url" }}">
+    <time class="dt-published" pubdate="{{ get . "published" }}">
+      {{ humanDate . "published" }}
+    </time>
+  </a>
+  <a class="u-author h-card hidden" href="https://hawx.me/">Joshua Hawxwell</a>
+  
+  {{ if .syndication }}
+    <div>
+      also
+      {{ range withEnd .syndication }}
+        <a href="{{ .El }}">{{ syndicationName .El }}</a>{{ if not .End }}, {{ end }}
+      {{ end }}
+    </div>
+  {{ end }}
+</div>

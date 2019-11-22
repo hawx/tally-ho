@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"hawx.me/code/numbersix"
@@ -33,7 +34,9 @@ func (b *Blog) Handler() http.Handler {
 			return
 		}
 
-		if err := b.Templates.ExecuteTemplate(w, "list.gotmpl", posts); err != nil {
+		groupedPosts := groupLikes(posts)
+
+		if err := b.Templates.ExecuteTemplate(w, "list.gotmpl", groupedPosts); err != nil {
 			fmt.Fprint(w, err)
 		}
 	})
@@ -107,4 +110,58 @@ func (b *Blog) Update(url string, replace, add, delete map[string][]interface{})
 
 func (b *Blog) Mention(source string, data map[string][]interface{}) error {
 	return b.DB.Mention(source, data)
+}
+
+type GroupedPosts struct {
+	Type  string
+	Posts []numbersix.Group
+	Meta  map[string][]interface{}
+}
+
+func groupLikes(posts []numbersix.Group) []GroupedPosts {
+	var groupedPosts []GroupedPosts
+
+	var today string
+	var todaysLikes []numbersix.Group
+
+	for _, post := range posts {
+		if len(post.Properties["like-of"]) > 0 {
+			likeDate := strings.Split(post.Properties["published"][0].(string), "T")[0]
+			if likeDate == today {
+				todaysLikes = append(todaysLikes, post)
+			} else {
+				if len(todaysLikes) > 0 {
+					groupedPosts = append(groupedPosts, GroupedPosts{
+						Type:  "like",
+						Posts: todaysLikes,
+						Meta: map[string][]interface{}{
+							"url":       {"/likes/" + today},
+							"published": {today + "T12:00:00Z"},
+						},
+					})
+				}
+
+				todaysLikes = []numbersix.Group{post}
+				today = likeDate
+			}
+		} else {
+			groupedPosts = append(groupedPosts, GroupedPosts{
+				Type:  "entry",
+				Posts: []numbersix.Group{post}},
+			)
+		}
+	}
+
+	if len(todaysLikes) > 0 {
+		groupedPosts = append(groupedPosts, GroupedPosts{
+			Type:  "like",
+			Posts: todaysLikes,
+			Meta: map[string][]interface{}{
+				"url":       {"/likes/" + today},
+				"published": {today + "T12:00:00Z"},
+			},
+		})
+	}
+
+	return groupedPosts
 }

@@ -209,6 +209,12 @@ div.h-cite .u-url {
     font-weight: bold;
 }
 
+.likes .h-entry:not(:last-child):after {
+    content: ', ';
+    margin-left: -.23em;
+    margin-right: .1rem;
+}
+
 .likes a.u-url {
     color: var(--faint);
     text-decoration: none;

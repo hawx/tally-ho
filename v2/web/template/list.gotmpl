@@ -9,7 +9,7 @@
   </head>
   <body>
     {{ range . }}
-      {{ template "entry.gotmpl" .Properties }}
+      {{ template "entry.gotmpl" . }}
     {{ end }}
     
     {{ template "footer.gotmpl" . }}
