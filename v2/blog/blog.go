@@ -55,10 +55,15 @@ func (b *Blog) Handler() http.Handler {
 		}
 
 		if err := b.Templates.ExecuteTemplate(w, "post.gotmpl", struct {
+			Posts    GroupedPosts
 			Entry    map[string][]interface{}
 			Mentions []numbersix.Group
 		}{
-			Entry:    entry,
+			Entry: entry,
+			Posts: GroupedPosts{
+				Type:  "entry",
+				Posts: []map[string][]interface{}{entry},
+			},
 			Mentions: mentions,
 		}); err != nil {
 			log.Println(err)
@@ -114,7 +119,7 @@ func (b *Blog) Mention(source string, data map[string][]interface{}) error {
 
 type GroupedPosts struct {
 	Type  string
-	Posts []numbersix.Group
+	Posts []map[string][]interface{}
 	Meta  map[string][]interface{}
 }
 
@@ -122,13 +127,13 @@ func groupLikes(posts []numbersix.Group) []GroupedPosts {
 	var groupedPosts []GroupedPosts
 
 	var today string
-	var todaysLikes []numbersix.Group
+	var todaysLikes []map[string][]interface{}
 
 	for _, post := range posts {
 		if len(post.Properties["like-of"]) > 0 {
 			likeDate := strings.Split(post.Properties["published"][0].(string), "T")[0]
 			if likeDate == today {
-				todaysLikes = append(todaysLikes, post)
+				todaysLikes = append(todaysLikes, post.Properties)
 			} else {
 				if len(todaysLikes) > 0 {
 					groupedPosts = append(groupedPosts, GroupedPosts{
@@ -141,13 +146,13 @@ func groupLikes(posts []numbersix.Group) []GroupedPosts {
 					})
 				}
 
-				todaysLikes = []numbersix.Group{post}
+				todaysLikes = []map[string][]interface{}{post.Properties}
 				today = likeDate
 			}
 		} else {
 			groupedPosts = append(groupedPosts, GroupedPosts{
 				Type:  "entry",
-				Posts: []numbersix.Group{post}},
+				Posts: []map[string][]interface{}{post.Properties}},
 			)
 		}
 	}

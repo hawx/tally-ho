@@ -131,7 +131,7 @@ func (db *DB) Before(published time.Time) (groups []numbersix.Group, err error) 
 	triples, err := db.entries.List(
 		numbersix.
 			Before("published", published.Format(time.RFC3339)).
-			Limit(5),
+			Limit(20),
 	)
 	if err != nil {
 		return

@@ -4,10 +4,10 @@
       liked
       {{ range .Posts }}
         <span class="h-entry">
-          <a class="u-like-of" href="{{ get .Properties "like-of" }}">{{ if has .Properties "name" }}{{ get .Properties "name" }}{{ else }}{{ get .Properties "like-of" }}{{ end }}</a>
-          <a class="u-url" href="{{ get .Properties "url" }}">at
-            <time class="dt-published" pubdate="{{ get .Properties "published" }}">
-              {{ time .Properties "published" }}
+          <a class="u-like-of" href="{{ get . "like-of" }}">{{ if has . "name" }}{{ get . "name" }}{{ else }}{{ get . "like-of" }}{{ end }}</a>
+          <a class="u-url" href="{{ get . "url" }}">at
+            <time class="dt-published" pubdate="{{ get . "published" }}">
+              {{ time . "published" }}
             </time>
           </a>
         </span>
@@ -18,14 +18,14 @@
 {{ else }}
   {{ range .Posts }}
     <article class="h-entry">
-      {{ if has .Properties "name" }}
-        <h1 class="p-name"><a href="{{ get .Properties "url" }}">{{ get .Properties "name" }}</a></h1>
+      {{ if has . "name" }}
+        <h1 class="p-name"><a href="{{ get . "url" }}">{{ get . "name" }}</a></h1>
       {{ end }}
 
       <div claass="e-content">
-        {{ content .Properties }}
+        {{ content . }}
       </div>
-      {{ template "entry_meta.gotmpl" .Properties }}
+      {{ template "entry_meta.gotmpl" . }}
     </article>
   {{ end }}
 {{ end }}
