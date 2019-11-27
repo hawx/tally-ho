@@ -2,91 +2,51 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>{{ getOr .Properties "name" "some post" }}</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="{{ .BaseURL }}public/styles.css" />
-    <link rel="stylesheet" href="{{ .BaseURL }}public/print.css" media="print" />
-    <link rel="alternate" type="application/rss+xml" title="feed" href="/weblog/feed.xml" />
-    <link rel="webmention" href="{{ $.Meta.WebmentionURL }}" />
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="{{ getOr .Properties "name" "some post" }}" />
-    <meta property="og:url" content="{{ get .Properties "url" }}" />
-    <!-- <meta property="og:description" content="{{ content .Properties }}" /> -->
+    <title>{{ getOr .Entry "name" "a post" }}</title>
+    <link href="https://fonts.googleapis.com/css?family=Signika+Negative&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/public/normalize.css" type="text/css" />
+    <link rel="stylesheet" href="/public/styles.css" type="text/css" />
+    <link rel="webmention" href="/-/webmention" />
   </head>
   <body>
     <nav>
-      <span>
-        <a href="{{ .PageURL }}">↟ {{ get .Properties "hx-page" }}</a>
-      </span>
+      <a href="/">&uarr; Back to the feed</a>
     </nav>
 
-    {{ with .Properties }}
-      <article class="h-entry">
-        <header>
-          <a class="permalink u-url" title="{{ get . "published" }}" href="{{ get . "url" }}">&#x2020;</a>
-          <h1 class="p-name">{{ getOr . "name" "" }}</h1>
-          <time class="dt-published hidden" datetime="{{ get . "published" }}" pubdate="pubdate">{{ get . "published" }}</time>
-          <a rel="author" class="p-author h-card hidden" href="{{ $.Meta.AuthorURL }}">{{ $.Meta.AuthorName }}</a>
-        </header>
+    {{ template "entry.gotmpl" .Posts }}
 
-        <div class="e-content">
-          {{ template "content.gotmpl" . }}
-        </div>
-      </article>
+    {{ if .Mentions }}
+      <section class="reactions">
+        <ol>
+          {{ range .Mentions }}
+            <li>
+              {{ if has .Properties "in-reply-to" }}
+                Reply from
+              {{ else if has .Properties "repost-of" }}
+                Reposted by
+              {{ else if has .Properties "like-of" }}
+                Liked by
+              {{ else }}
+                Mentioned by
+              {{ end }}
+              <a href="{{ .Subject }}">
+                {{ if has .Properties "author" }}
+                  {{ if has .Properties "author.properties.name" }}
+                    {{ get .Properties "author.properties.name" }}
+                  {{ else }}
+                    {{ get .Properties "author.properties.url" }}
+                  {{ end }}
+                {{ else }}
+                  {{ .Subject }}
+                {{ end }}
+              </a>
+            </li>
+          {{ end }}
+        </ol>
+      </section>
     {{ end }}
+    
+    {{ template "footer.gotmpl" . }}
 
-    <ul class="reactions">
-      {{ range .Reactions }}
-        {{ if has .Properties "in-reply-to" }}
-          <li>
-            <a href="{{ .Subject }}">Reply</a> by
-            {{ if has .Properties "author" }}
-              <a href="{{ get .Properties "author.properties.url" }}">
-                {{ if has .Properties "author.properties.name" }}
-                  {{ get .Properties "author.properties.name" }}
-                {{ else }}
-                  {{ get .Properties "author.properties.url" }}
-                {{ end }}
-            {{ else }}
-                {{ .Subject }}
-            {{ end }}
-              </a>
-          </li>
-
-        {{ else if has .Properties "repost-of" }}
-          <li>
-            <a href="{{ .Subject }}">Reposted</a> by
-            {{ if has .Properties "author" }}
-              <a href="{{ get .Properties "author.properties.url" }}">
-                {{ if has .Properties "author.properties.name" }}
-                  {{ get .Properties "author.properties.name" }}
-                {{ else }}
-                  {{ get .Properties "author.properties.url" }}
-                {{ end }}
-            {{ else }}
-                {{ .Subject }}
-            {{ end }}
-              </a>
-          </li>
-
-        {{ else if has .Properties "like-of" }}
-          <li>
-            <a href="{{ .Subject }}">Liked</a> by
-            {{ if has .Properties "author" }}
-              <a href="{{ get .Properties "author.properties.url" }}">
-                {{ if has .Properties "author.properties.name" }}
-                  {{ get .Properties "author.properties.name" }}
-                {{ else }}
-                  {{ get .Properties "author.properties.url" }}
-                {{ end }}
-            {{ else }}
-                {{ .Subject }}
-            {{ end }}
-              </a>
-          </li>
-        {{ end }}
-      {{ end }}
-    </ul>
   </body>
 </html>

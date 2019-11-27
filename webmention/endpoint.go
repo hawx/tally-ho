@@ -4,23 +4,19 @@
 package webmention
 
 import (
-	"database/sql"
 	"errors"
 	"log"
 	"net/http"
 	"net/url"
+	"strings"
 
+	"hawx.me/code/microformats/authorship"
 	"hawx.me/code/mux"
-	"hawx.me/code/numbersix"
-	"willnorris.com/go/microformats"
 )
 
-type MicropubReader interface {
-	Post(url string) (data map[string][]interface{}, err error)
-}
-
-type Notifier interface {
-	PostChanged(url string) error
+type Blog interface {
+	Entry(url string) (data map[string][]interface{}, err error)
+	Mention(source string, data map[string][]interface{}) error
 }
 
 type webmention struct {
@@ -29,27 +25,24 @@ type webmention struct {
 
 // Endpoint receives webmentions, immediately returning a response of Accepted,
 // and processing them asynchronously.
-func Endpoint(db *sql.DB, mr MicropubReader, blog Notifier) (h http.Handler, r *Reader, err error) {
-	mentions, err := numbersix.For(db, "mentions")
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return mux.Method{"POST": postHandler(mentions, mr, blog)}, &Reader{mentions}, nil
+func Endpoint(blog Blog) http.Handler {
+	return mux.Method{"POST": postHandler(blog)}
 }
 
-func postHandler(db *numbersix.DB, mr MicropubReader, blog Notifier) http.HandlerFunc {
+func postHandler(blog Blog) http.HandlerFunc {
 	mentions := make(chan webmention, 100)
 
 	go func() {
 		for mention := range mentions {
 			log.Println("got mention", mention.target, mention.source)
 
-			if err := processMention(mention, blog, db, mr); err != nil {
+			if err := processMention(mention, blog); err != nil {
 				log.Println(err)
 			}
 		}
 	}()
+
+	const baseURL = "http://localhost:8080"
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
@@ -63,13 +56,20 @@ func postHandler(db *numbersix.DB, mr MicropubReader, blog Notifier) http.Handle
 			return
 		}
 
+		if !strings.HasPrefix(target, baseURL) {
+			http.Error(w, "", http.StatusBadRequest)
+			return
+		}
+
+		target = target[len(baseURL):]
+
 		mentions <- webmention{source: source, target: target}
 		w.WriteHeader(http.StatusAccepted)
 	}
 }
 
-func processMention(mention webmention, blog Notifier, db *numbersix.DB, mr MicropubReader) error {
-	_, err := mr.Post(mention.target)
+func processMention(mention webmention, blog Blog) error {
+	_, err := blog.Entry(mention.target)
 	if err != nil {
 		return errors.New("  no such post at 'target'")
 	}
@@ -87,17 +87,17 @@ func processMention(mention webmention, blog Notifier, db *numbersix.DB, mr Micr
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusGone {
-		if err := upsertMention(db, mention.source, map[string][]interface{}{
+		if err := blog.Mention(mention.source, map[string][]interface{}{
 			"hx-target": {mention.target},
 			"gone":      {true},
 		}); err != nil {
 			return errors.New("  could not tombstone webmention: " + err.Error())
 		}
 
-		return blog.PostChanged(mention.target)
+		return nil
 	}
 
-	data := microformats.Parse(resp.Body, source)
+	data := authorship.Parse(resp.Body, source)
 
 	properties := map[string][]interface{}{}
 	for _, item := range data.Items {
@@ -108,11 +108,11 @@ func processMention(mention webmention, blog Notifier, db *numbersix.DB, mr Micr
 	}
 	properties["hx-target"] = []interface{}{mention.target}
 
-	if err := upsertMention(db, mention.source, properties); err != nil {
+	if err := blog.Mention(mention.source, properties); err != nil {
 		return errors.New("  could not add webmention: " + err.Error())
 	}
 
-	return blog.PostChanged(mention.target)
+	return nil
 }
 
 func contains(needle string, list []string) bool {

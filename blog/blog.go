@@ -1,138 +1,172 @@
-// Package blog writes to disk a blog, using data from different sources.
 package blog
 
 import (
-	"encoding/xml"
+	"fmt"
 	"html/template"
 	"log"
-	"os"
-	"path/filepath"
+	"net/http"
+	"strings"
+	"time"
 
-	"hawx.me/code/tally-ho/micropub"
-	"hawx.me/code/tally-ho/webmention"
-	"hawx.me/code/tally-ho/writer"
+	"hawx.me/code/numbersix"
+	"hawx.me/code/route"
 )
 
-type Looper struct {
-	Blog *Blog
-}
-
-func (l *Looper) PostChanged(url string) error {
-	return l.Blog.PostChanged(url)
-}
-
-type Meta struct {
-	Title         string
-	Description   string
-	AuthorName    string
-	AuthorURL     string
-	WebmentionURL string
+type Syndicator interface {
+	Create(map[string][]interface{}) (string, error)
 }
 
 type Blog struct {
-	Meta       Meta
-	FileWriter writer.FileWriter
-	Entries    *micropub.Reader
-	Mentions   *webmention.Reader
-	Templates  *template.Template
+	Me          string
+	Name        string
+	Title       string
+	Description string
+	DB          *DB
+	Templates   *template.Template
+	Twitter     Syndicator
 }
 
-// PostChanged will render the post at the given url, and also render the page
-// that the post belongs to.
-func (b *Blog) PostChanged(url string) error {
-	post, err := b.Post(url)
+func (b *Blog) Handler() http.Handler {
+	route.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		posts, err := b.DB.Before(time.Now().UTC())
+		if err != nil {
+			fmt.Fprint(w, err)
+			return
+		}
+
+		groupedPosts := groupLikes(posts)
+
+		if err := b.Templates.ExecuteTemplate(w, "list.gotmpl", groupedPosts); err != nil {
+			fmt.Fprint(w, err)
+		}
+	})
+
+	route.HandleFunc("/entry/:id", func(w http.ResponseWriter, r *http.Request) {
+		entry, err := b.DB.Entry(r.URL.Path)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		mentions, err := b.DB.MentionsForEntry(r.URL.Path)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		if err := b.Templates.ExecuteTemplate(w, "post.gotmpl", struct {
+			Posts    GroupedPosts
+			Entry    map[string][]interface{}
+			Mentions []numbersix.Group
+		}{
+			Entry: entry,
+			Posts: GroupedPosts{
+				Type:  "entry",
+				Posts: []map[string][]interface{}{entry},
+			},
+			Mentions: mentions,
+		}); err != nil {
+			log.Println(err)
+		}
+	})
+
+	// route.Handle("/:year/:month/:date/:slug")
+	// route.Handle("/like/...")
+	// route.Handle("/reply/...")
+	// route.Handle("/tag/...")
+
+	return route.Default
+}
+
+func (b *Blog) Entry(url string) (data map[string][]interface{}, err error) {
+	return b.DB.Entry(url)
+}
+
+func (b *Blog) Create(data map[string][]interface{}) (location string, err error) {
+	location, err = b.DB.Create(data)
 	if err != nil {
-		return err
-	}
-	if err := b.RenderPost(post); err != nil {
-		return err
+		return
 	}
 
-	page, err := b.Page(post.PageURL)
-	if err != nil {
-		return err
-	}
-	if err := b.RenderPage(page); err != nil {
-		return err
-	}
+	if syndicateTos, ok := data["mp-syndicate-to"]; ok && len(syndicateTos) > 0 {
+		for _, syndicateTo := range syndicateTos {
+			if syndicateTo == "https://twitter.com/" {
+				syndicatedLocation, err := b.Twitter.Create(data)
+				if err != nil {
+					log.Println("syndicating to twitter: ", err)
+					continue
+				}
 
-	return nil
-}
-
-// RenderPost writes a post.
-func (b *Blog) RenderPost(post *Post) error {
-	url := post.Properties["url"][0].(string)
-
-	return b.write(url, "post.gotmpl", post)
-}
-
-// RenderPage writes the page, if it IsRoot then the root page will also be
-// written. To ensure the next page link works it will write the previous page
-// if there is only one post.
-func (b *Blog) RenderPage(page *Page) error {
-	if err := b.write(page.URL, "page.gotmpl", page); err != nil {
-		return err
-	}
-	if page.IsRoot {
-		if err := b.write(b.FileWriter.URL("/"), "page.gotmpl", page); err != nil {
-			return err
-		}
-
-		if err := b.writeFeed(b.FileWriter.URL("/feed.xml"), b.mapToFeed(page)); err != nil {
-			return err
-		}
-	}
-
-	if len(page.Posts) == 1 {
-		prev, err := page.Prev(b)
-		if err != nil && err != ErrNoPage {
-			return err
-		}
-
-		if prev != nil {
-			// Don't use Render because if the previous page only had 1 post we'll start
-			// doing everything...
-			if err := b.write(prev.URL, "page.gotmpl", prev); err != nil {
-				return err
+				if err := b.Update(location, empty, map[string][]interface{}{
+					"syndication": {syndicatedLocation},
+				}, empty); err != nil {
+					log.Println("updating with twitter location: ", err)
+				}
 			}
 		}
 	}
 
-	return nil
+	return
 }
 
-func (b *Blog) write(url, tmpl string, data interface{}) error {
-	path := b.FileWriter.Path(url)
-	dir := filepath.Dir(path)
-
-	log.Println("mkdir", dir)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
-	}
-
-	log.Println("writing", path)
-	file, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-
-	return b.Templates.ExecuteTemplate(file, tmpl, data)
+func (b *Blog) Update(url string, replace, add, delete map[string][]interface{}) error {
+	return b.DB.Update(url, replace, add, delete)
 }
 
-func (b *Blog) writeFeed(url string, feed Feed) error {
-	path := b.FileWriter.Path(url)
-	dir := filepath.Dir(path)
+func (b *Blog) Mention(source string, data map[string][]interface{}) error {
+	return b.DB.Mention(source, data)
+}
 
-	log.Println("mkdir", dir)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
+type GroupedPosts struct {
+	Type  string
+	Posts []map[string][]interface{}
+	Meta  map[string][]interface{}
+}
+
+func groupLikes(posts []numbersix.Group) []GroupedPosts {
+	var groupedPosts []GroupedPosts
+
+	var today string
+	var todaysLikes []map[string][]interface{}
+
+	for _, post := range posts {
+		if len(post.Properties["like-of"]) > 0 {
+			likeDate := strings.Split(post.Properties["published"][0].(string), "T")[0]
+			if likeDate == today {
+				todaysLikes = append(todaysLikes, post.Properties)
+			} else {
+				if len(todaysLikes) > 0 {
+					groupedPosts = append(groupedPosts, GroupedPosts{
+						Type:  "like",
+						Posts: todaysLikes,
+						Meta: map[string][]interface{}{
+							"url":       {"/likes/" + today},
+							"published": {today + "T12:00:00Z"},
+						},
+					})
+				}
+
+				todaysLikes = []map[string][]interface{}{post.Properties}
+				today = likeDate
+			}
+		} else {
+			groupedPosts = append(groupedPosts, GroupedPosts{
+				Type:  "entry",
+				Posts: []map[string][]interface{}{post.Properties}},
+			)
+		}
 	}
 
-	log.Println("writing", path)
-	file, err := os.Create(path)
-	if err != nil {
-		return err
+	if len(todaysLikes) > 0 {
+		groupedPosts = append(groupedPosts, GroupedPosts{
+			Type:  "like",
+			Posts: todaysLikes,
+			Meta: map[string][]interface{}{
+				"url":       {"/likes/" + today},
+				"published": {today + "T12:00:00Z"},
+			},
+		})
 	}
 
-	return xml.NewEncoder(file).Encode(feed)
+	return groupedPosts
 }

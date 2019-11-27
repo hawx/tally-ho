@@ -1,7 +1,6 @@
 package webmention
 
 import (
-	"database/sql"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -14,9 +13,16 @@ import (
 
 const waitTime = 5 * time.Millisecond
 
-type fakeMicropubReader struct{}
+type mention struct {
+	source string
+	data   map[string][]interface{}
+}
 
-func (b *fakeMicropubReader) Post(url string) (map[string][]interface{}, error) {
+type fakeBlog struct {
+	ch chan mention
+}
+
+func (b *fakeBlog) Entry(url string) (map[string][]interface{}, error) {
 	if url != "http://example.com/weblog/post-id" {
 		return map[string][]interface{}{}, errors.New("what is that")
 	}
@@ -24,12 +30,8 @@ func (b *fakeMicropubReader) Post(url string) (map[string][]interface{}, error) 
 	return map[string][]interface{}{}, nil
 }
 
-type fakeNotifier struct {
-	ch chan string
-}
-
-func (b *fakeNotifier) PostChanged(url string) error {
-	b.ch <- url
+func (b *fakeBlog) Mention(source string, data map[string][]interface{}) error {
+	b.ch <- mention{source, data}
 	return nil
 }
 
@@ -62,9 +64,7 @@ func sequenceHandlers(hs ...http.Handler) http.HandlerFunc {
 func TestMention(t *testing.T) {
 	assert := assert.New(t)
 
-	db, _ := sql.Open("sqlite3", "file::memory:")
-	blog := &fakeNotifier{ch: make(chan string, 1)}
-	mr := &fakeMicropubReader{}
+	blog := &fakeBlog{ch: make(chan mention, 1)}
 
 	source := httptest.NewServer(stringHandler(`
 <div class="h-entry">
@@ -76,7 +76,7 @@ func TestMention(t *testing.T) {
 `))
 	defer source.Close()
 
-	endpoint, reader, _ := Endpoint(db, mr, blog)
+	endpoint := Endpoint(blog)
 	s := httptest.NewServer(endpoint)
 	defer s.Close()
 
@@ -88,16 +88,14 @@ func TestMention(t *testing.T) {
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
 	select {
-	case url := <-blog.ch:
-		grouped, _ := reader.ForPost(url)
+	case m := <-blog.ch:
+		assert.Equal(source.URL, m.source)
 
-		if assert.Len(grouped, 1) {
-			assert.Equal(map[string][]interface{}{
-				"name":        {"A reply to some post"},
-				"in-reply-to": {"http://example.com/weblog/post-id"},
-				"hx-target":   {"http://example.com/weblog/post-id"},
-			}, grouped[0].Properties)
-		}
+		assert.Equal(map[string][]interface{}{
+			"name":        {"A reply to some post"},
+			"in-reply-to": {"http://example.com/weblog/post-id"},
+			"hx-target":   {"http://example.com/weblog/post-id"},
+		}, m.data)
 	case <-time.After(waitTime):
 		t.Fatal("failed to get notified")
 	}
@@ -106,9 +104,7 @@ func TestMention(t *testing.T) {
 func TestMentionWhenPostUpdated(t *testing.T) {
 	assert := assert.New(t)
 
-	db, _ := sql.Open("sqlite3", "file::memory:")
-	blog := &fakeNotifier{ch: make(chan string, 1)}
-	mr := &fakeMicropubReader{}
+	blog := &fakeBlog{ch: make(chan mention, 1)}
 
 	source := httptest.NewServer(sequenceHandlers(stringHandler(`
 <div class="h-entry">
@@ -127,7 +123,7 @@ func TestMentionWhenPostUpdated(t *testing.T) {
 `)))
 	defer source.Close()
 
-	endpoint, reader, _ := Endpoint(db, mr, blog)
+	endpoint := Endpoint(blog)
 	s := httptest.NewServer(endpoint)
 	defer s.Close()
 
@@ -139,14 +135,14 @@ func TestMentionWhenPostUpdated(t *testing.T) {
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
 	select {
-	case url := <-blog.ch:
-		grouped, _ := reader.ForPost(url)
+	case m := <-blog.ch:
+		assert.Equal(source.URL, m.source)
 
 		assert.Equal(map[string][]interface{}{
 			"name":        {"A reply to some post"},
 			"in-reply-to": {"http://example.com/weblog/post-id"},
 			"hx-target":   {"http://example.com/weblog/post-id"},
-		}, grouped[0].Properties)
+		}, m.data)
 	case <-time.After(waitTime):
 		t.Fatal("failed to get notified")
 	}
@@ -159,14 +155,14 @@ func TestMentionWhenPostUpdated(t *testing.T) {
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
 	select {
-	case url := <-blog.ch:
-		grouped, _ := reader.ForPost(url)
+	case m := <-blog.ch:
+		assert.Equal(source.URL, m.source)
 
 		assert.Equal(map[string][]interface{}{
 			"name":        {"A great reply to some post"},
 			"in-reply-to": {"http://example.com/weblog/post-id"},
 			"hx-target":   {"http://example.com/weblog/post-id"},
-		}, grouped[0].Properties)
+		}, m.data)
 	case <-time.After(waitTime):
 		t.Fatal("failed to get notified")
 	}
@@ -175,9 +171,7 @@ func TestMentionWhenPostUpdated(t *testing.T) {
 func TestMentionWithHCardAndHEntry(t *testing.T) {
 	assert := assert.New(t)
 
-	db, _ := sql.Open("sqlite3", "file::memory:")
-	blog := &fakeNotifier{ch: make(chan string, 1)}
-	mr := &fakeMicropubReader{}
+	blog := &fakeBlog{ch: make(chan mention, 1)}
 
 	source := httptest.NewServer(stringHandler(`
 <div class="h-card">
@@ -193,7 +187,7 @@ func TestMentionWithHCardAndHEntry(t *testing.T) {
 `))
 	defer source.Close()
 
-	endpoint, reader, _ := Endpoint(db, mr, blog)
+	endpoint := Endpoint(blog)
 	s := httptest.NewServer(endpoint)
 	defer s.Close()
 
@@ -205,14 +199,14 @@ func TestMentionWithHCardAndHEntry(t *testing.T) {
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
 	select {
-	case url := <-blog.ch:
-		grouped, _ := reader.ForPost(url)
+	case m := <-blog.ch:
+		assert.Equal(source.URL, m.source)
 
 		assert.Equal(map[string][]interface{}{
 			"name":        {"A reply to some post"},
 			"in-reply-to": {"http://example.com/weblog/post-id"},
 			"hx-target":   {"http://example.com/weblog/post-id"},
-		}, grouped[0].Properties)
+		}, m.data)
 	case <-time.After(waitTime):
 		t.Fatal("failed to get notified")
 	}
@@ -221,9 +215,7 @@ func TestMentionWithHCardAndHEntry(t *testing.T) {
 func TestMentionWithoutMicroformats(t *testing.T) {
 	assert := assert.New(t)
 
-	db, _ := sql.Open("sqlite3", "file::memory:")
-	blog := &fakeNotifier{ch: make(chan string, 1)}
-	mr := &fakeMicropubReader{}
+	blog := &fakeBlog{ch: make(chan mention, 1)}
 
 	source := httptest.NewServer(stringHandler(`
 <p>
@@ -232,7 +224,7 @@ func TestMentionWithoutMicroformats(t *testing.T) {
 `))
 	defer source.Close()
 
-	endpoint, reader, _ := Endpoint(db, mr, blog)
+	endpoint := Endpoint(blog)
 	s := httptest.NewServer(endpoint)
 	defer s.Close()
 
@@ -244,12 +236,12 @@ func TestMentionWithoutMicroformats(t *testing.T) {
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
 	select {
-	case url := <-blog.ch:
-		grouped, _ := reader.ForPost(url)
+	case m := <-blog.ch:
+		assert.Equal(source.URL, m.source)
 
 		assert.Equal(map[string][]interface{}{
 			"hx-target": {"http://example.com/weblog/post-id"},
-		}, grouped[0].Properties)
+		}, m.data)
 	case <-time.After(waitTime):
 		t.Fatal("failed to get notified")
 	}
@@ -258,14 +250,12 @@ func TestMentionWithoutMicroformats(t *testing.T) {
 func TestMentionOfDeletedPost(t *testing.T) {
 	assert := assert.New(t)
 
-	db, _ := sql.Open("sqlite3", "file::memory:")
-	blog := &fakeNotifier{ch: make(chan string, 1)}
-	mr := &fakeMicropubReader{}
+	blog := &fakeBlog{ch: make(chan mention, 1)}
 
 	source := httptest.NewServer(goneHandler())
 	defer source.Close()
 
-	endpoint, reader, _ := Endpoint(db, mr, blog)
+	endpoint := Endpoint(blog)
 	s := httptest.NewServer(endpoint)
 	defer s.Close()
 
@@ -277,13 +267,13 @@ func TestMentionOfDeletedPost(t *testing.T) {
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
 	select {
-	case url := <-blog.ch:
-		grouped, _ := reader.ForPost(url)
+	case m := <-blog.ch:
+		assert.Equal(source.URL, m.source)
 
 		assert.Equal(map[string][]interface{}{
 			"hx-target": {"http://example.com/weblog/post-id"},
 			"gone":      {true},
-		}, grouped[0].Properties)
+		}, m.data)
 	case <-time.After(waitTime):
 		t.Fatal("failed to get notified")
 	}

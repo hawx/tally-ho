@@ -7,20 +7,16 @@ import (
 	"strings"
 
 	"hawx.me/code/mux"
-	"hawx.me/code/tally-ho/writer"
 )
 
 type postDB interface {
-	updateEntry(url string, replace, add, delete map[string][]interface{}) error
-	createEntry(data map[string][]interface{}) (map[string][]interface{}, error)
-	setNextPage(uf writer.URLFactory, name string) error
+	Create(data map[string][]interface{}) (string, error)
+	Update(url string, replace, add, delete map[string][]interface{}) error
 }
 
-func postHandler(blog Notifier, uf writer.URLFactory, db postDB) http.Handler {
+func postHandler(db postDB) http.Handler {
 	h := micropubPostHandler{
-		blog: blog,
-		db:   db,
-		uf:   uf,
+		db: db,
 	}
 
 	return mux.ContentType{
@@ -31,9 +27,7 @@ func postHandler(blog Notifier, uf writer.URLFactory, db postDB) http.Handler {
 }
 
 type micropubPostHandler struct {
-	blog Notifier
-	db   postDB
-	uf   writer.URLFactory
+	db postDB
 }
 
 func (h *micropubPostHandler) handleJSON(w http.ResponseWriter, r *http.Request) {
@@ -74,13 +68,7 @@ func (h *micropubPostHandler) handleJSON(w http.ResponseWriter, r *http.Request)
 			delete[key] = value
 		}
 
-		if err := h.db.updateEntry(v.URL, replace, add, delete); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		if err := h.blog.PostChanged(v.URL); err != nil {
-			log.Println(err)
+		if err := h.db.Update(v.URL, replace, add, delete); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -89,22 +77,17 @@ func (h *micropubPostHandler) handleJSON(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	h.createAndRender(w, data)
+	h.create(w, data)
 }
 
 func (h *micropubPostHandler) handleForm(w http.ResponseWriter, r *http.Request) {
 	data := map[string][]interface{}{}
-	isSetPage := false
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "could not parse form: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	for key, values := range r.Form {
-		if key == "action" && len(values) == 1 && values[0] == "hx-page" {
-			isSetPage = true
-		}
-
 		if reservedKey(key) {
 			continue
 		}
@@ -119,12 +102,7 @@ func (h *micropubPostHandler) handleForm(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	if isSetPage {
-		h.setPage(w, data)
-		return
-	}
-
-	h.createAndRender(w, data)
+	h.create(w, data)
 }
 
 func (h *micropubPostHandler) handleMultiPart(w http.ResponseWriter, r *http.Request) {
@@ -132,42 +110,15 @@ func (h *micropubPostHandler) handleMultiPart(w http.ResponseWriter, r *http.Req
 	log.Println("received multi-part request")
 }
 
-func (h *micropubPostHandler) createAndRender(w http.ResponseWriter, data map[string][]interface{}) {
-	data, err := h.db.createEntry(data)
+func (h *micropubPostHandler) create(w http.ResponseWriter, data map[string][]interface{}) {
+	location, err := h.db.Create(data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if err := h.blog.PostChanged(data["url"][0].(string)); err != nil {
-		log.Println(err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	location := data["url"][0].(string)
 	w.Header().Add("Location", location)
 	w.WriteHeader(http.StatusCreated)
-}
-
-func (h *micropubPostHandler) setPage(w http.ResponseWriter, data map[string][]interface{}) {
-	if names, ok := data["name"]; !ok || len(names) != 1 {
-		http.Error(w, "expected 'name'", http.StatusBadRequest)
-		return
-	}
-
-	name, ok := data["name"][0].(string)
-	if !ok {
-		http.Error(w, "expected 'name' to be a string", http.StatusBadRequest)
-		return
-	}
-
-	if err := h.db.setNextPage(h.uf, name); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusNoContent)
 }
 
 func reservedKey(key string) bool {

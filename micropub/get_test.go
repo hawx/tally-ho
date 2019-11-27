@@ -14,7 +14,7 @@ type fakeGetDB struct {
 	entries map[string]map[string][]interface{}
 }
 
-func (b *fakeGetDB) entryByURL(url string) (map[string][]interface{}, error) {
+func (b *fakeGetDB) Entry(url string) (map[string][]interface{}, error) {
 	if entry, ok := b.entries[url]; ok {
 		return entry, nil
 	}
@@ -129,4 +129,28 @@ func TestConfigurationSourceWithManyProperties(t *testing.T) {
 	assert.Equal("Cool post", v.Properties["title"][0])
 	assert.Equal("cool", v.Properties["categories"][0])
 	assert.Equal("test", v.Properties["categories"][1])
+}
+
+func TestConfigurationSyndicationTarget(t *testing.T) {
+	assert := assert.New(t)
+
+	s := httptest.NewServer(getHandler(nil, "http://media.example.com/"))
+	defer s.Close()
+
+	resp, err := http.Get(s.URL + "?q=syndicate-to")
+	assert.Nil(err)
+	assert.Equal(http.StatusOK, resp.StatusCode)
+
+	var v struct {
+		SyndicateTo []struct {
+			UID  string `json:"uid"`
+			Name string `json:"name"`
+		} `json:"syndicate-to"`
+	}
+	json.NewDecoder(resp.Body).Decode(&v)
+
+	if assert.Len(v.SyndicateTo, 1) {
+		assert.Equal("https://twitter.com/", v.SyndicateTo[0].UID)
+		assert.Equal("Twitter", v.SyndicateTo[0].Name)
+	}
 }
