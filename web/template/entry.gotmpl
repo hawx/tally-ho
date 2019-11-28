@@ -16,29 +16,6 @@
     {{ template "entry_meta.gotmpl" .Meta }}
   </article>
 {{ else }}
-  {{ range .Posts }}
-    {{ if has . "like-of" }}
-      <article class="likes">
-        <h1>
-          liked
-          <span class="h-entry">
-            <a class="u-like-of" href="{{ get . "like-of" }}">{{ if has . "name" }}{{ get . "name" }}{{ else }}{{ get . "like-of" }}{{ end }}</a>
-          </span>
-        </h1>
-        {{ template "entry_meta.gotmpl" . }}
-      </article>
-    {{ else }}
-      <article class="h-entry">
-        {{ if has . "name" }}
-          <h1 class="p-name"><a href="{{ get . "url" }}">{{ get . "name" }}</a></h1>
-        {{ end }}
-
-        <div claass="e-content">
-          {{ content . }}
-        </div>
-        {{ template "entry_meta.gotmpl" . }}
-      </article>
-    {{ end }}
-  {{ end }}
+  {{ template "plain-entry.gotmpl" .Meta }}
 {{ end }}
 

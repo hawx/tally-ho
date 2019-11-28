@@ -61,12 +61,26 @@ func (b *Blog) Handler() http.Handler {
 		}{
 			Entry: entry,
 			Posts: GroupedPosts{
-				Type:  "entry",
-				Posts: []map[string][]interface{}{entry},
+				Type: "entry",
+				Meta: entry,
 			},
 			Mentions: mentions,
 		}); err != nil {
 			log.Printf("ERR get-entry-render url=%s; %v\n", r.URL.Path, err)
+		}
+	})
+
+	route.HandleFunc("/likes/:ymd", func(w http.ResponseWriter, r *http.Request) {
+		ymd := route.Vars(r)["ymd"]
+
+		likes, err := b.DB.LikesOn(ymd)
+		if err != nil {
+			log.Printf("ERR likes-on ymd=%s; %v\n", ymd, err)
+			return
+		}
+
+		if err := b.Templates.ExecuteTemplate(w, "day.gotmpl", likes); err != nil {
+			log.Printf("ERR likes-on-render ymd=%s; %v\n", ymd, err)
 		}
 	})
 
@@ -151,9 +165,9 @@ func groupLikes(posts []numbersix.Group) []GroupedPosts {
 			}
 		} else {
 			groupedPosts = append(groupedPosts, GroupedPosts{
-				Type:  "entry",
-				Posts: []map[string][]interface{}{post.Properties}},
-			)
+				Type: "entry",
+				Meta: post.Properties,
+			})
 		}
 	}
 

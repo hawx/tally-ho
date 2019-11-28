@@ -139,3 +139,16 @@ func (db *DB) Before(published time.Time) (groups []numbersix.Group, err error) 
 
 	return numbersix.Grouped(triples), nil
 }
+
+func (db *DB) LikesOn(ymd string) (groups []numbersix.Group, err error) {
+	triples, err := db.entries.List(
+		numbersix.
+			Begins("published", ymd).
+			Has("like-of"),
+	)
+	if err != nil {
+		return
+	}
+
+	return numbersix.Grouped(triples), nil
+}

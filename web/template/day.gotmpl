@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>a day</title>
+    <link href="https://fonts.googleapis.com/css?family=Signika+Negative&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/public/normalize.css" type="text/css" />
+    <link rel="stylesheet" href="/public/styles.css" type="text/css" />
+    <link rel="webmention" href="/-/webmention" />
+  </head>
+  <body>
+    <nav>
+      <a href="/">&uarr; Back to the feed</a>
+    </nav>
+
+    {{ range . }}
+      {{ template "plain-entry.gotmpl" .Properties }}
+    {{ end }}
+    
+    {{ template "footer.gotmpl" . }}
+
+  </body>
+</html>
