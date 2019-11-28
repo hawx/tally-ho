@@ -107,7 +107,7 @@ func (h *micropubPostHandler) handleForm(w http.ResponseWriter, r *http.Request)
 
 func (h *micropubPostHandler) handleMultiPart(w http.ResponseWriter, r *http.Request) {
 	// todo
-	log.Println("received multi-part request")
+	log.Println("WARN multi-part-request-received")
 }
 
 func (h *micropubPostHandler) create(w http.ResponseWriter, data map[string][]interface{}) {

@@ -34,10 +34,10 @@ func postHandler(blog Blog) http.HandlerFunc {
 
 	go func() {
 		for mention := range mentions {
-			log.Println("got mention", mention.target, mention.source)
+			log.Printf("INFO received-webmention target=%s source=%s\n", mention.target, mention.source)
 
 			if err := processMention(mention, blog); err != nil {
-				log.Println(err)
+				log.Println("ERR process-mention;", err)
 			}
 		}
 	}()
@@ -50,7 +50,7 @@ func postHandler(blog Blog) http.HandlerFunc {
 			target = r.FormValue("target")
 		)
 
-		log.Println("queuing", source, target)
+		log.Printf("INFO queuing source=%s target=%s\n", source, target)
 		if source == "" || target == "" {
 			http.Error(w, "", http.StatusBadRequest)
 			return

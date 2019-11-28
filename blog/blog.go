@@ -30,7 +30,7 @@ func (b *Blog) Handler() http.Handler {
 	route.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		posts, err := b.DB.Before(time.Now().UTC())
 		if err != nil {
-			fmt.Fprint(w, err)
+			log.Println("ERR get-all;", err)
 			return
 		}
 
@@ -44,13 +44,13 @@ func (b *Blog) Handler() http.Handler {
 	route.HandleFunc("/entry/:id", func(w http.ResponseWriter, r *http.Request) {
 		entry, err := b.DB.Entry(r.URL.Path)
 		if err != nil {
-			log.Println(err)
+			log.Printf("ERR get-entry url=%s; %v\n", r.URL.Path, err)
 			return
 		}
 
 		mentions, err := b.DB.MentionsForEntry(r.URL.Path)
 		if err != nil {
-			log.Println(err)
+			log.Printf("ERR get-entry-mentions url=%s; %v\n", r.URL.Path, err)
 			return
 		}
 
@@ -66,7 +66,7 @@ func (b *Blog) Handler() http.Handler {
 			},
 			Mentions: mentions,
 		}); err != nil {
-			log.Println(err)
+			log.Printf("ERR get-entry-render url=%s; %v\n", r.URL.Path, err)
 		}
 	})
 
@@ -93,14 +93,14 @@ func (b *Blog) Create(data map[string][]interface{}) (location string, err error
 			if syndicateTo == "https://twitter.com/" {
 				syndicatedLocation, err := b.Twitter.Create(data)
 				if err != nil {
-					log.Println("syndicating to twitter: ", err)
+					log.Printf("ERR syndication to=twitter uid=%s; %v\n", data["uid"][0], err)
 					continue
 				}
 
 				if err := b.Update(location, empty, map[string][]interface{}{
 					"syndication": {syndicatedLocation},
 				}, empty); err != nil {
-					log.Println("updating with twitter location: ", err)
+					log.Printf("ERR confirming-syndication to=twitter uid=%s; %v\n", data["uid"][0], err)
 				}
 			}
 		}

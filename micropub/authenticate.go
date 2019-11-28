@@ -12,7 +12,7 @@ import (
 func authenticate(me, scope string, next http.Handler) http.HandlerFunc {
 	endpoints, err := indieauth.FindEndpoints(me)
 	if err != nil {
-		log.Fatal("indieauth find endpoints:", err)
+		log.Fatal("ERR find-indieauth-endpoints;", err)
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {

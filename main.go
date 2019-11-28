@@ -49,20 +49,20 @@ func main() {
 
 	var conf config
 	if _, err := toml.DecodeFile(*configPath, &conf); err != nil {
-		log.Println(err)
+		log.Println("ERR decode-config;", err)
 		return
 	}
 
 	db, err := blog.Open(*dbPath)
 	if err != nil {
-		log.Println(err)
+		log.Println("ERR open-blog;", err)
 		return
 	}
 	defer db.Close()
 
 	templates, err := blog.ParseTemplates(*webPath)
 	if err != nil {
-		log.Println(err)
+		log.Println("ERR parse-templates;", err)
 		return
 	}
 
