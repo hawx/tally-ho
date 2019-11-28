@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 
@@ -181,6 +182,10 @@ func groupLikes(posts []numbersix.Group) []GroupedPosts {
 			},
 		})
 	}
+
+	sort.Slice(groupedPosts, func(i, j int) bool {
+		return groupedPosts[i].Meta["published"][0].(string) > groupedPosts[j].Meta["published"][0].(string)
+	})
 
 	return groupedPosts
 }
