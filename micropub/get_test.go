@@ -49,6 +49,7 @@ func TestConfigurationConfig(t *testing.T) {
 	resp, err := http.Get(s.URL + "?q=config")
 	assert.Nil(err)
 	assert.Equal(http.StatusOK, resp.StatusCode)
+	assert.Equal("application/json", resp.Header.Get("Content-Type"))
 
 	var v struct {
 		MediaEndpoint string `json:"media-endpoint"`
@@ -83,6 +84,7 @@ func TestConfigurationSource(t *testing.T) {
 	resp, err := http.Get(s.URL + "?q=source&url=https://example.com/weblog/p/1")
 	assert.Nil(err)
 	assert.Equal(http.StatusOK, resp.StatusCode)
+	assert.Equal("application/json", resp.Header.Get("Content-Type"))
 
 	var v struct {
 		Type       []string
@@ -112,6 +114,7 @@ func TestConfigurationSourceWithProperties(t *testing.T) {
 	resp, err := http.Get(s.URL + "?q=source&properties=title&url=https://example.com/weblog/p/1")
 	assert.Nil(err)
 	assert.Equal(http.StatusOK, resp.StatusCode)
+	assert.Equal("application/json", resp.Header.Get("Content-Type"))
 
 	var v struct {
 		Type       []string
@@ -143,6 +146,7 @@ func TestConfigurationSourceWithManyProperties(t *testing.T) {
 	resp, err := http.Get(s.URL + "?q=source&properties[]=title&properties[]=categories&url=https://example.com/weblog/p/1")
 	assert.Nil(err)
 	assert.Equal(http.StatusOK, resp.StatusCode)
+	assert.Equal("application/json", resp.Header.Get("Content-Type"))
 
 	var v struct {
 		Type       []string
@@ -166,6 +170,7 @@ func TestConfigurationSyndicationTarget(t *testing.T) {
 	resp, err := http.Get(s.URL + "?q=syndicate-to")
 	assert.Nil(err)
 	assert.Equal(http.StatusOK, resp.StatusCode)
+	assert.Equal("application/json", resp.Header.Get("Content-Type"))
 
 	var v struct {
 		SyndicateTo []struct {

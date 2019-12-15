@@ -35,6 +35,7 @@ func configHandler(mediaURL string, syndicators []syndicate.Syndicator) http.Han
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(struct {
 			MediaEndpoint string             `json:"media-endpoint"`
 			SyndicateTo   []syndicate.Config `json:"syndicate-to"`
@@ -70,6 +71,7 @@ func sourceHandler(db getDB) http.HandlerFunc {
 			}
 		}
 
+		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(formToJson(obj))
 	}
 }
@@ -81,6 +83,7 @@ type syndicationTarget struct {
 
 func syndicationHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(struct {
 			SyndicateTo []syndicationTarget `json:"syndicate-to"`
 		}{
