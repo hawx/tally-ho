@@ -27,6 +27,7 @@ type config struct {
 	Name        string
 	Title       string
 	Description string
+	BaseURL     string
 
 	Twitter struct {
 		ConsumerKey       string
@@ -81,10 +82,13 @@ func main() {
 	}
 
 	b := &blog.Blog{
-		Me:          conf.Me,
-		Name:        conf.Name,
-		Title:       conf.Title,
-		Description: conf.Description,
+		Config: blog.Config{
+			Me:          conf.Me,
+			Name:        conf.Name,
+			Title:       conf.Title,
+			Description: conf.Description,
+			BaseURL:     conf.BaseURL,
+		},
 		DB:          db,
 		Templates:   templates,
 		Syndicators: syndicators,

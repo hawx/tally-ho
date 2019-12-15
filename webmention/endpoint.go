@@ -17,6 +17,7 @@ import (
 type Blog interface {
 	Entry(url string) (data map[string][]interface{}, err error)
 	Mention(source string, data map[string][]interface{}) error
+	BaseURL() string
 }
 
 type webmention struct {
@@ -31,6 +32,7 @@ func Endpoint(blog Blog) http.Handler {
 
 func postHandler(blog Blog) http.HandlerFunc {
 	mentions := make(chan webmention, 100)
+	baseURL := blog.BaseURL()
 
 	go func() {
 		for mention := range mentions {
@@ -42,27 +44,25 @@ func postHandler(blog Blog) http.HandlerFunc {
 		}
 	}()
 
-	const baseURL = "http://localhost:8080"
-
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
 			source = r.FormValue("source")
 			target = r.FormValue("target")
 		)
 
-		log.Printf("INFO queuing source=%s target=%s\n", source, target)
 		if source == "" || target == "" {
+			log.Printf("ERR invalid-webmention source=%s target=%s; missing argument\n", source, target)
 			http.Error(w, "", http.StatusBadRequest)
 			return
 		}
 
 		if !strings.HasPrefix(target, baseURL) {
+			log.Printf("ERR invalid-webmention target=%s; incorrect base url\n", target)
 			http.Error(w, "", http.StatusBadRequest)
 			return
 		}
 
-		target = target[len(baseURL):]
-
+		log.Printf("INFO webmention-queued source=%s target=%s\n", source, target)
 		mentions <- webmention{source: source, target: target}
 		w.WriteHeader(http.StatusAccepted)
 	}

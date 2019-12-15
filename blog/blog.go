@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -14,17 +15,28 @@ import (
 	"hawx.me/code/tally-ho/syndicate"
 )
 
-type Blog struct {
+type Config struct {
 	Me          string
 	Name        string
 	Title       string
 	Description string
+	BaseURL     string
+}
+
+type Blog struct {
+	Config      Config
 	DB          *DB
 	Templates   *template.Template
 	Syndicators []syndicate.Syndicator
 }
 
+func (b *Blog) BaseURL() string {
+	return b.Config.BaseURL
+}
+
 func (b *Blog) Handler() http.Handler {
+	baseURL, _ := url.Parse(b.Config.BaseURL)
+
 	route.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		posts, err := b.DB.Before(time.Now().UTC())
 		if err != nil {
@@ -46,7 +58,7 @@ func (b *Blog) Handler() http.Handler {
 			return
 		}
 
-		mentions, err := b.DB.MentionsForEntry(r.URL.Path)
+		mentions, err := b.DB.MentionsForEntry(baseURL.ResolveReference(r.URL).String())
 		if err != nil {
 			log.Printf("ERR get-entry-mentions url=%s; %v\n", r.URL.Path, err)
 			return
@@ -91,6 +103,13 @@ func (b *Blog) Handler() http.Handler {
 }
 
 func (b *Blog) Entry(url string) (data map[string][]interface{}, err error) {
+	if strings.HasPrefix(url, b.Config.BaseURL) {
+		url = url[len(b.Config.BaseURL):]
+		if url[0] != '/' {
+			url = "/" + url
+		}
+	}
+
 	return b.DB.Entry(url)
 }
 

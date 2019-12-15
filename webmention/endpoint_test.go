@@ -22,6 +22,10 @@ type fakeBlog struct {
 	ch chan mention
 }
 
+func (b *fakeBlog) BaseURL() string {
+	return "http://example.com/"
+}
+
 func (b *fakeBlog) Entry(url string) (map[string][]interface{}, error) {
 	if url != "http://example.com/weblog/post-id" {
 		return map[string][]interface{}{}, errors.New("what is that")
