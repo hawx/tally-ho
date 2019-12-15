@@ -66,12 +66,19 @@ func main() {
 		return
 	}
 
-	twitter := syndicate.Twitter(syndicate.TwitterOptions{
+	var syndicators []syndicate.Syndicator
+
+	twitter, err := syndicate.Twitter(syndicate.TwitterOptions{
 		ConsumerKey:       conf.Twitter.ConsumerKey,
 		ConsumerSecret:    conf.Twitter.ConsumerSecret,
 		AccessToken:       conf.Twitter.AccessToken,
 		AccessTokenSecret: conf.Twitter.AccessTokenSecret,
 	})
+	if err != nil {
+		log.Println("WARN twitter;", err)
+	} else {
+		syndicators = append(syndicators, twitter)
+	}
 
 	b := &blog.Blog{
 		Me:          conf.Me,
@@ -80,7 +87,7 @@ func main() {
 		Description: conf.Description,
 		DB:          db,
 		Templates:   templates,
-		Twitter:     twitter,
+		Syndicators: syndicators,
 	}
 
 	http.Handle("/", b.Handler())
@@ -90,7 +97,7 @@ func main() {
 			http.FileServer(
 				http.Dir(filepath.Join(*webPath, "static")))))
 
-	http.Handle("/-/micropub", micropub.Endpoint(b, conf.Me, "http://something/-/media"))
+	http.Handle("/-/micropub", micropub.Endpoint(b, conf.Me, "http://something/-/media", syndicators))
 	http.Handle("/-/webmention", webmention.Endpoint(b))
 	http.Handle("/-/media", http.NotFoundHandler())
 

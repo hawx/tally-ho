@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"hawx.me/code/mux"
+	"hawx.me/code/tally-ho/syndicate"
 )
 
 type DB interface {
@@ -20,9 +21,10 @@ func Endpoint(
 	db DB,
 	me string,
 	mediaUploadURL string,
+	syndicators []syndicate.Syndicator,
 ) http.Handler {
 	return authenticate(me, "create", mux.Method{
 		"POST": postHandler(db),
-		"GET":  getHandler(db, mediaUploadURL),
+		"GET":  getHandler(db, mediaUploadURL, syndicators),
 	})
 }

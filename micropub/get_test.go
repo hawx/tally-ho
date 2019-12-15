@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"hawx.me/code/assert"
+	"hawx.me/code/tally-ho/syndicate"
 )
 
 type fakeGetDB struct {
@@ -22,10 +23,27 @@ func (b *fakeGetDB) Entry(url string) (map[string][]interface{}, error) {
 	return nil, errors.New("nope")
 }
 
+type fakeSyndicator struct{}
+
+func (fakeSyndicator) Config() syndicate.Config {
+	return syndicate.Config{
+		UID:  "https://fake/",
+		Name: "fake on fake",
+	}
+}
+
+func (fakeSyndicator) Create(data map[string][]interface{}) (string, error) {
+	return "", nil
+}
+
+func fakeSyndicators() []syndicate.Syndicator {
+	return []syndicate.Syndicator{fakeSyndicator{}}
+}
+
 func TestConfigurationConfig(t *testing.T) {
 	assert := assert.New(t)
 
-	s := httptest.NewServer(getHandler(nil, "http://media.example.com/"))
+	s := httptest.NewServer(getHandler(nil, "http://media.example.com/", fakeSyndicators()))
 	defer s.Close()
 
 	resp, err := http.Get(s.URL + "?q=config")
@@ -34,9 +52,17 @@ func TestConfigurationConfig(t *testing.T) {
 
 	var v struct {
 		MediaEndpoint string `json:"media-endpoint"`
+		SyndicateTo   []struct {
+			UID  string `json:"uid"`
+			Name string `json:"name"`
+		} `json:"syndicate-to"`
 	}
 	json.NewDecoder(resp.Body).Decode(&v)
 	assert.Equal("http://media.example.com/", v.MediaEndpoint)
+	if assert.Len(v.SyndicateTo, 1) {
+		assert.Equal("https://fake/", v.SyndicateTo[0].UID)
+		assert.Equal("fake on fake", v.SyndicateTo[0].Name)
+	}
 }
 
 func TestConfigurationSource(t *testing.T) {
@@ -51,7 +77,7 @@ func TestConfigurationSource(t *testing.T) {
 		},
 	}
 
-	s := httptest.NewServer(getHandler(blog, ""))
+	s := httptest.NewServer(getHandler(blog, "", fakeSyndicators()))
 	defer s.Close()
 
 	resp, err := http.Get(s.URL + "?q=source&url=https://example.com/weblog/p/1")
@@ -80,7 +106,7 @@ func TestConfigurationSourceWithProperties(t *testing.T) {
 		},
 	}
 
-	s := httptest.NewServer(getHandler(blog, ""))
+	s := httptest.NewServer(getHandler(blog, "", fakeSyndicators()))
 	defer s.Close()
 
 	resp, err := http.Get(s.URL + "?q=source&properties=title&url=https://example.com/weblog/p/1")
@@ -111,7 +137,7 @@ func TestConfigurationSourceWithManyProperties(t *testing.T) {
 		},
 	}
 
-	s := httptest.NewServer(getHandler(blog, ""))
+	s := httptest.NewServer(getHandler(blog, "", fakeSyndicators()))
 	defer s.Close()
 
 	resp, err := http.Get(s.URL + "?q=source&properties[]=title&properties[]=categories&url=https://example.com/weblog/p/1")
@@ -134,7 +160,7 @@ func TestConfigurationSourceWithManyProperties(t *testing.T) {
 func TestConfigurationSyndicationTarget(t *testing.T) {
 	assert := assert.New(t)
 
-	s := httptest.NewServer(getHandler(nil, "http://media.example.com/"))
+	s := httptest.NewServer(getHandler(nil, "http://media.example.com/", fakeSyndicators()))
 	defer s.Close()
 
 	resp, err := http.Get(s.URL + "?q=syndicate-to")

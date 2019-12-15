@@ -15,7 +15,7 @@ type TwitterOptions struct {
 	AccessToken, AccessTokenSecret string
 }
 
-func Twitter(options TwitterOptions) *twitterSyndicator {
+func Twitter(options TwitterOptions) (*twitterSyndicator, error) {
 	api := anaconda.NewTwitterApiWithCredentials(
 		options.AccessToken,
 		options.AccessTokenSecret,
@@ -27,13 +27,27 @@ func Twitter(options TwitterOptions) *twitterSyndicator {
 		api.SetBaseUrl(options.BaseURL)
 	}
 
-	return &twitterSyndicator{
-		api: api,
+	user, err := api.GetSelf(url.Values{})
+	if err != nil {
+		return nil, err
 	}
+
+	return &twitterSyndicator{
+		api:        api,
+		screenName: user.ScreenName,
+	}, nil
 }
 
 type twitterSyndicator struct {
-	api *anaconda.TwitterApi
+	api        *anaconda.TwitterApi
+	screenName string
+}
+
+func (t *twitterSyndicator) Config() Config {
+	return Config{
+		UID:  "https://twitter.com/",
+		Name: "@" + t.screenName + " on twitter",
+	}
 }
 
 func (t *twitterSyndicator) Create(data map[string][]interface{}) (location string, err error) {

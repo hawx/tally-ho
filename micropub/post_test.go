@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"hawx.me/code/assert"
-	"hawx.me/code/tally-ho/writer"
 )
 
 type fakePostDB struct {
@@ -27,10 +26,6 @@ func (b *fakePostDB) Update(id string, replace, add, delete map[string][]interfa
 	b.adds[id] = append(b.adds[id], add)
 	b.deletes[id] = append(b.deletes[id], delete)
 
-	return nil
-}
-
-func (b *fakePostDB) setNextPage(uf writer.URLFactory, name string) error {
 	return nil
 }
 

@@ -11,11 +11,8 @@ import (
 
 	"hawx.me/code/numbersix"
 	"hawx.me/code/route"
+	"hawx.me/code/tally-ho/syndicate"
 )
-
-type Syndicator interface {
-	Create(map[string][]interface{}) (string, error)
-}
 
 type Blog struct {
 	Me          string
@@ -24,7 +21,7 @@ type Blog struct {
 	Description string
 	DB          *DB
 	Templates   *template.Template
-	Twitter     Syndicator
+	Syndicators []syndicate.Syndicator
 }
 
 func (b *Blog) Handler() http.Handler {
@@ -105,17 +102,19 @@ func (b *Blog) Create(data map[string][]interface{}) (location string, err error
 
 	if syndicateTos, ok := data["mp-syndicate-to"]; ok && len(syndicateTos) > 0 {
 		for _, syndicateTo := range syndicateTos {
-			if syndicateTo == "https://twitter.com/" {
-				syndicatedLocation, err := b.Twitter.Create(data)
-				if err != nil {
-					log.Printf("ERR syndication to=twitter uid=%s; %v\n", data["uid"][0], err)
-					continue
-				}
+			for _, syndicator := range b.Syndicators {
+				if syndicateTo == syndicator.Config().UID {
+					syndicatedLocation, err := syndicator.Create(data)
+					if err != nil {
+						log.Printf("ERR syndication to=%s uid=%s; %v\n", syndicator.Config().Name, data["uid"][0], err)
+						continue
+					}
 
-				if err := b.Update(location, empty, map[string][]interface{}{
-					"syndication": {syndicatedLocation},
-				}, empty); err != nil {
-					log.Printf("ERR confirming-syndication to=twitter uid=%s; %v\n", data["uid"][0], err)
+					if err := b.Update(location, empty, map[string][]interface{}{
+						"syndication": {syndicatedLocation},
+					}, empty); err != nil {
+						log.Printf("ERR confirming-syndication to=%s uid=%s; %v\n", syndicator.Config().Name, data["uid"][0], err)
+					}
 				}
 			}
 		}

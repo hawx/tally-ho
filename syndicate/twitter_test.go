@@ -23,6 +23,11 @@ func TestTwitter(t *testing.T) {
 	s := httptest.NewServer(
 		http.HandlerFunc(
 			func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/account/verify_credentials.json" {
+					w.Write([]byte(`{"screen_name": "TwitterDev"}`))
+					return
+				}
+
 				body, err := ioutil.ReadAll(r.Body)
 				assert.Nil(err)
 
@@ -40,13 +45,16 @@ func TestTwitter(t *testing.T) {
 	)
 	defer s.Close()
 
-	twitter := Twitter(TwitterOptions{
+	twitter, err := Twitter(TwitterOptions{
 		BaseURL:           s.URL,
 		ConsumerKey:       "consumer-key",
 		ConsumerSecret:    "consumer-secret",
 		AccessToken:       "access-token",
 		AccessTokenSecret: "access-token-secret",
 	})
+	if !assert.Nil(err) {
+		return
+	}
 
 	location, err := twitter.Create(map[string][]interface{}{
 		"content": {"This is my tweet"},
