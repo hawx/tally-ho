@@ -19,6 +19,8 @@ func ParseTemplates(webPath string) (*template.Template, error) {
 		"time":            templateTime,
 		"syndicationName": templateSyndicationName,
 		"withEnd":         templateWithEnd,
+		"title":           templateTitle,
+		"truncate":        templateTruncate,
 	}).ParseGlob(glob)
 }
 
@@ -165,4 +167,34 @@ func templateWithEnd(l []interface{}) []endEl {
 	}
 
 	return r
+}
+
+func templateTitle(m map[string][]interface{}) string {
+	wrap := func(s string) string {
+		if templateHas(m, "like-of") {
+			return "Liked: " + s
+		}
+
+		return s
+	}
+
+	if templateHas(m, "name") {
+		return wrap(templateGet(m, "name").(string))
+	}
+
+	if templateHas(m, "content") {
+		if content, ok := templateContent(m).(string); ok {
+			return wrap(templateTruncate(content, 140))
+		}
+	}
+
+	return wrap("a post")
+}
+
+func templateTruncate(s string, length int) string {
+	if len(s) < length {
+		return s
+	}
+
+	return s[:length] + "…"
 }

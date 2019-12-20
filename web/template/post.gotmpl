@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>{{ getOr .Entry "name" "a post" }}</title>
+    <title>{{ title .Entry }}</title>
     <link href="https://fonts.googleapis.com/css?family=Signika+Negative&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/public/normalize.css" type="text/css" />
     <link rel="stylesheet" href="/public/styles.css" type="text/css" />
@@ -29,7 +29,7 @@
               {{ else }}
                 Mentioned by
               {{ end }}
-              <a href="{{ .Subject }}">
+              &thinsp;<a href="{{ .Subject }}">
                 {{ if has .Properties "author" }}
                   {{ if has .Properties "author.properties.name" }}
                     {{ get .Properties "author.properties.name" }}

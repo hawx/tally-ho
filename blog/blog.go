@@ -1,6 +1,7 @@
 package blog
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"log"
@@ -10,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/net/html"
+	"golang.org/x/net/html/atom"
 	"hawx.me/code/numbersix"
 	"hawx.me/code/route"
 	"hawx.me/code/tally-ho/syndicate"
@@ -114,6 +117,16 @@ func (b *Blog) Entry(url string) (data map[string][]interface{}, err error) {
 }
 
 func (b *Blog) Create(data map[string][]interface{}) (location string, err error) {
+	if len(data["name"]) == 0 {
+		name, err := getName(data)
+		if err != nil {
+			log.Printf("WARN get-name; %v\n", err)
+		} else if name != "" {
+			data["name"] = []interface{}{name}
+			log.Printf("WARN get-name; setting to '%s'\n", name)
+		}
+	}
+
 	location, err = b.DB.Create(data)
 	if err != nil {
 		return
@@ -206,4 +219,45 @@ func groupLikes(posts []numbersix.Group) []GroupedPosts {
 	})
 
 	return groupedPosts
+}
+
+func getName(data map[string][]interface{}) (string, error) {
+	if len(data["like-of"]) > 0 {
+		likeOf := data["like-of"][0].(string)
+
+		resp, err := http.Get(likeOf)
+		if err != nil {
+			return "", err
+		}
+		defer resp.Body.Close()
+
+		root, err := html.Parse(resp.Body)
+		if err != nil {
+			return "", err
+		}
+
+		hentries := searchAll(root, func(node *html.Node) bool {
+			return node.Type == html.ElementNode && hasAttr(node, "class", "h-entry")
+		})
+
+		for _, hentry := range hentries {
+			names := searchAll(hentry, func(node *html.Node) bool {
+				return node.Type == html.ElementNode && hasAttr(node, "class", "p-name")
+			})
+
+			if len(names) > 0 {
+				return textOf(names[0]), nil
+			}
+		}
+
+		titles := searchAll(root, func(node *html.Node) bool {
+			return node.Type == html.ElementNode && node.DataAtom == atom.Title
+		})
+
+		if len(titles) > 0 {
+			return textOf(titles[0]), nil
+		}
+	}
+
+	return "", errors.New("no name to find")
 }
