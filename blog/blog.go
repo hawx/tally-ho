@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"sort"
 	"strings"
 	"time"
 
@@ -116,109 +115,12 @@ func (b *Blog) Entry(url string) (data map[string][]interface{}, err error) {
 	return b.DB.Entry(url)
 }
 
-func (b *Blog) Create(data map[string][]interface{}) (location string, err error) {
-	if len(data["name"]) == 0 {
-		name, err := getName(data)
-		if err != nil {
-			log.Printf("WARN get-name; %v\n", err)
-		} else if name != "" {
-			data["name"] = []interface{}{name}
-			log.Printf("WARN get-name; setting to '%s'\n", name)
-		}
-	}
-
-	location, err = b.DB.Create(data)
-	if err != nil {
-		return
-	}
-
-	if syndicateTos, ok := data["mp-syndicate-to"]; ok && len(syndicateTos) > 0 {
-		for _, syndicateTo := range syndicateTos {
-			for _, syndicator := range b.Syndicators {
-				if syndicateTo == syndicator.Config().UID {
-					syndicatedLocation, err := syndicator.Create(data)
-					if err != nil {
-						log.Printf("ERR syndication to=%s uid=%s; %v\n", syndicator.Config().Name, data["uid"][0], err)
-						continue
-					}
-
-					if err := b.Update(location, empty, map[string][]interface{}{
-						"syndication": {syndicatedLocation},
-					}, empty); err != nil {
-						log.Printf("ERR confirming-syndication to=%s uid=%s; %v\n", syndicator.Config().Name, data["uid"][0], err)
-					}
-				}
-			}
-		}
-	}
-
-	return
-}
-
 func (b *Blog) Update(url string, replace, add, delete map[string][]interface{}) error {
 	return b.DB.Update(url, replace, add, delete)
 }
 
 func (b *Blog) Mention(source string, data map[string][]interface{}) error {
 	return b.DB.Mention(source, data)
-}
-
-type GroupedPosts struct {
-	Type  string
-	Posts []map[string][]interface{}
-	Meta  map[string][]interface{}
-}
-
-func groupLikes(posts []numbersix.Group) []GroupedPosts {
-	var groupedPosts []GroupedPosts
-
-	var today string
-	var todaysLikes []map[string][]interface{}
-
-	for _, post := range posts {
-		if len(post.Properties["like-of"]) > 0 {
-			likeDate := strings.Split(post.Properties["published"][0].(string), "T")[0]
-			if likeDate == today {
-				todaysLikes = append(todaysLikes, post.Properties)
-			} else {
-				if len(todaysLikes) > 0 {
-					groupedPosts = append(groupedPosts, GroupedPosts{
-						Type:  "like",
-						Posts: todaysLikes,
-						Meta: map[string][]interface{}{
-							"url":       {"/likes/" + today},
-							"published": {today + "T12:00:00Z"},
-						},
-					})
-				}
-
-				todaysLikes = []map[string][]interface{}{post.Properties}
-				today = likeDate
-			}
-		} else {
-			groupedPosts = append(groupedPosts, GroupedPosts{
-				Type: "entry",
-				Meta: post.Properties,
-			})
-		}
-	}
-
-	if len(todaysLikes) > 0 {
-		groupedPosts = append(groupedPosts, GroupedPosts{
-			Type:  "like",
-			Posts: todaysLikes,
-			Meta: map[string][]interface{}{
-				"url":       {"/likes/" + today},
-				"published": {today + "T12:00:00Z"},
-			},
-		})
-	}
-
-	sort.Slice(groupedPosts, func(i, j int) bool {
-		return groupedPosts[i].Meta["published"][0].(string) > groupedPosts[j].Meta["published"][0].(string)
-	})
-
-	return groupedPosts
 }
 
 func getName(data map[string][]interface{}) (string, error) {

@@ -3,6 +3,8 @@ package syndicate
 import (
 	"errors"
 	"net/url"
+	"regexp"
+	"strconv"
 
 	"github.com/ChimeraCoder/anaconda"
 )
@@ -50,7 +52,29 @@ func (t *twitterSyndicator) Config() Config {
 	}
 }
 
+var twitterStatusRegexp = regexp.MustCompile(`^https?://twitter\.com/(?:\#!/)?\w+/status(es)?/(\d+)$`)
+
 func (t *twitterSyndicator) Create(data map[string][]interface{}) (location string, err error) {
+	if len(data["like-of"]) > 0 {
+		likeOf, ok := data["like-of"][0].(string)
+		if !ok {
+			return "", ErrUnsure
+		}
+
+		matches := twitterStatusRegexp.FindStringSubmatch(likeOf)
+		if len(matches) == 3 {
+			tweetID, err := strconv.ParseInt(matches[2], 10, 0)
+			if err == nil {
+				_, err := t.api.Favorite(tweetID)
+				if err != nil {
+					return "", err
+				}
+
+				return likeOf, nil
+			}
+		}
+	}
+
 	contents := data["content"]
 	if len(contents) < 1 {
 		return "", ErrUnsure
