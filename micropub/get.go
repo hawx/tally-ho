@@ -11,7 +11,11 @@ type getDB interface {
 	Entry(url string) (data map[string][]interface{}, err error)
 }
 
-func getHandler(db getDB, mediaURL string, syndicators []syndicate.Syndicator) http.HandlerFunc {
+func getHandler(
+	db getDB,
+	mediaURL string,
+	syndicators map[string]syndicate.Syndicator,
+) http.HandlerFunc {
 	configHandler := configHandler(mediaURL, syndicators)
 	sourceHandler := sourceHandler(db)
 	syndicationHandler := syndicationHandler()
@@ -28,17 +32,26 @@ func getHandler(db getDB, mediaURL string, syndicators []syndicate.Syndicator) h
 	}
 }
 
-func configHandler(mediaURL string, syndicators []syndicate.Syndicator) http.HandlerFunc {
-	configs := make([]syndicate.Config, len(syndicators))
-	for i, s := range syndicators {
-		configs[i] = s.Config()
+type syndicateTo struct {
+	UID  string `json:"uid"`
+	Name string `json:"name"`
+}
+
+func configHandler(mediaURL string, syndicators map[string]syndicate.Syndicator) http.HandlerFunc {
+	var configs []syndicateTo
+
+	for _, s := range syndicators {
+		configs = append(configs, syndicateTo{
+			UID:  s.UID(),
+			Name: s.Name(),
+		})
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(struct {
-			MediaEndpoint string             `json:"media-endpoint"`
-			SyndicateTo   []syndicate.Config `json:"syndicate-to"`
+			MediaEndpoint string        `json:"media-endpoint"`
+			SyndicateTo   []syndicateTo `json:"syndicate-to"`
 		}{
 			MediaEndpoint: mediaURL,
 			SyndicateTo:   configs,

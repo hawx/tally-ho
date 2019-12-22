@@ -21,7 +21,7 @@ func Endpoint(
 	db DB,
 	me string,
 	mediaUploadURL string,
-	syndicators []syndicate.Syndicator,
+	syndicators map[string]syndicate.Syndicator,
 ) http.Handler {
 	return authenticate(me, "create", mux.Method{
 		"POST": postHandler(db),

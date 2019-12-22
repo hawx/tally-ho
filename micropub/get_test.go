@@ -25,19 +25,21 @@ func (b *fakeGetDB) Entry(url string) (map[string][]interface{}, error) {
 
 type fakeSyndicator struct{}
 
-func (fakeSyndicator) Config() syndicate.Config {
-	return syndicate.Config{
-		UID:  "https://fake/",
-		Name: "fake on fake",
-	}
+func (fakeSyndicator) UID() string {
+	return "https://fake/"
+}
+func (fakeSyndicator) Name() string {
+	return "fake on fake"
 }
 
 func (fakeSyndicator) Create(data map[string][]interface{}) (string, error) {
 	return "", nil
 }
 
-func fakeSyndicators() []syndicate.Syndicator {
-	return []syndicate.Syndicator{fakeSyndicator{}}
+func fakeSyndicators() map[string]syndicate.Syndicator {
+	return map[string]syndicate.Syndicator{
+		"https://fake/": fakeSyndicator{},
+	}
 }
 
 func TestConfigurationConfig(t *testing.T) {

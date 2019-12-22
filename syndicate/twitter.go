@@ -1,7 +1,6 @@
 package syndicate
 
 import (
-	"errors"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -9,7 +8,7 @@ import (
 	"github.com/ChimeraCoder/anaconda"
 )
 
-var ErrUnsure = errors.New("unsure what to create")
+const TwitterUID = "https://twitter.com/"
 
 type TwitterOptions struct {
 	BaseURL                        string
@@ -45,11 +44,12 @@ type twitterSyndicator struct {
 	screenName string
 }
 
-func (t *twitterSyndicator) Config() Config {
-	return Config{
-		UID:  "https://twitter.com/",
-		Name: "@" + t.screenName + " on twitter",
-	}
+func (t *twitterSyndicator) UID() string {
+	return TwitterUID
+}
+
+func (t *twitterSyndicator) Name() string {
+	return "@" + t.screenName + " on twitter"
 }
 
 var twitterStatusRegexp = regexp.MustCompile(`^https?://twitter\.com/(?:\#!/)?\w+/status(es)?/(\d+)$`)

@@ -67,7 +67,7 @@ func main() {
 		return
 	}
 
-	var syndicators []syndicate.Syndicator
+	syndicators := map[string]syndicate.Syndicator{}
 
 	twitter, err := syndicate.Twitter(syndicate.TwitterOptions{
 		ConsumerKey:       conf.Twitter.ConsumerKey,
@@ -78,7 +78,7 @@ func main() {
 	if err != nil {
 		log.Println("WARN twitter;", err)
 	} else {
-		syndicators = append(syndicators, twitter)
+		syndicators[syndicate.TwitterUID] = twitter
 	}
 
 	b := &blog.Blog{

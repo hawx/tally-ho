@@ -1,11 +1,11 @@
 package syndicate
 
+import "errors"
+
+var ErrUnsure = errors.New("unsure what to create")
+
 type Syndicator interface {
 	Create(data map[string][]interface{}) (location string, err error)
-	Config() Config
-}
-
-type Config struct {
-	UID  string `json:"uid"`
-	Name string `json:"name"`
+	UID() string
+	Name() string
 }

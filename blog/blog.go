@@ -29,7 +29,7 @@ type Blog struct {
 	Config      Config
 	DB          *DB
 	Templates   *template.Template
-	Syndicators []syndicate.Syndicator
+	Syndicators map[string]syndicate.Syndicator
 }
 
 func (b *Blog) BaseURL() string {
