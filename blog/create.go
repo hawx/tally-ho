@@ -1,6 +1,9 @@
 package blog
 
-import "log"
+import (
+	"log"
+	"net/url"
+)
 
 func (b *Blog) Create(data map[string][]interface{}) (location string, err error) {
 	if len(data["name"]) == 0 {
@@ -13,10 +16,13 @@ func (b *Blog) Create(data map[string][]interface{}) (location string, err error
 		}
 	}
 
-	location, err = b.DB.Create(data)
+	relativeLocation, err := b.DB.Create(data)
 	if err != nil {
 		return
 	}
+	baseURL, _ := url.Parse(b.Config.BaseURL)
+	relativeURL, _ := url.Parse(relativeLocation)
+	location = baseURL.ResolveReference(relativeURL).String()
 
 	if syndicateTos, ok := data["mp-syndicate-to"]; ok && len(syndicateTos) > 0 {
 		for _, syndicateTo := range syndicateTos {
