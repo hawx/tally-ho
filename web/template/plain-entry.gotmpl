@@ -14,6 +14,10 @@
       <h1 class="p-name"><a href="{{ get . "url" }}">{{ get . "name" }}</a></h1>
     {{ end }}
 
+    {{ if has . "photo" }}
+      <img src="{{ get . "photo.value" }}" alt="{{ get . "photo.alt" }}" />
+    {{ end }}
+    
     <div claass="e-content">
       {{ content . }}
     </div>
