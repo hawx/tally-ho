@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"hawx.me/code/mux"
+	"hawx.me/code/tally-ho/auth"
 	"hawx.me/code/tally-ho/syndicate"
 )
 
@@ -23,7 +24,7 @@ func Endpoint(
 	mediaUploadURL string,
 	syndicators map[string]syndicate.Syndicator,
 ) http.Handler {
-	return authenticate(me, "create", mux.Method{
+	return auth.Only(me, "create", mux.Method{
 		"POST": postHandler(db),
 		"GET":  getHandler(db, mediaUploadURL, syndicators),
 	})

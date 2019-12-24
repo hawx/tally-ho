@@ -109,3 +109,13 @@ func syndicationHandler() http.HandlerFunc {
 		})
 	}
 }
+
+func contains(needle string, list []string) bool {
+	for _, item := range list {
+		if item == needle {
+			return true
+		}
+	}
+
+	return false
+}

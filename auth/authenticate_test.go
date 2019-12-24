@@ -1,4 +1,4 @@
-package micropub
+package auth
 
 import (
 	"fmt"

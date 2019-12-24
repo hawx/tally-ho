@@ -9,40 +9,39 @@ import (
 	"mime"
 	"mime/multipart"
 	"net/http"
+	"path"
+	"strings"
 
 	"github.com/google/uuid"
 	"hawx.me/code/mux"
-	"hawx.me/code/tally-ho/writer"
+	"hawx.me/code/tally-ho/auth"
 )
 
-// Endpoint returns a simple implementation of a media endpoint. Files will be
-// written to 'path' and then are expected to be hosted from 'url'.
+type FileWriter interface {
+	WriteFile(name string, r io.Reader) (location string, err error)
+}
+
+// Endpoint returns a simple implementation of a media endpoint.
 //
-//   Endpoint("/wwwfiles/media/", "https://example.com/media/")
-//
-// The handler expects a multipart form with at least a single part named
-// 'file'. The first such part will be written to the configured directory named
-// with a uuid, any additional parts will be ignored.
+// The handler expects a multipart form with a single part named 'file'. The
+// part will be written to the configured directory named with a UUID.
 //
 // No limits are imposed on requests made so care should be taken to configure
 // this using a reverse-proxy or similar.
-func Endpoint(path, url string) (h http.Handler, err error) {
-	fw, err := writer.NewFileWriter(path, url)
-	if err != nil {
-		return
-	}
-
-	return mux.Method{"POST": postHandler(fw)}, nil
+func Endpoint(me string, fw FileWriter) http.Handler {
+	return auth.Only(me, "media", mux.Method{"POST": postHandler(fw)})
 }
 
-func postHandler(fw writer.FileWriter) http.HandlerFunc {
+func postHandler(fw FileWriter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		mediaType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 		if err != nil {
-			log.Fatal(err)
+			log.Println("ERR media-upload;", err)
+			return
 		}
 		if mediaType != "multipart/form-data" {
-			w.WriteHeader(http.StatusUnsupportedMediaType)
+			log.Println("ERR media-upload; bad mediaType")
+			http.Error(w, "expected content-type of multipart/form-data", http.StatusUnsupportedMediaType)
 			return
 		}
 
@@ -51,32 +50,54 @@ func postHandler(fw writer.FileWriter) http.HandlerFunc {
 
 		part, err := parts.NextPart()
 		if err == io.EOF {
+			log.Println("ERR media-upload; empty form")
 			http.Error(w, "expected multipart form to contain a part", http.StatusBadRequest)
 			return
 		}
 		if err != nil {
+			log.Println("ERR media-upload;", err)
 			http.Error(w, "problem reading multipart form", http.StatusBadRequest)
 			return
 		}
 
 		mt, ps, er := mime.ParseMediaType(part.Header.Get("Content-Disposition"))
 		if er != nil || mt != "form-data" || ps["name"] != "file" || hadPart {
+			log.Println("ERR media-upload; expected only single part")
 			http.Error(w, "request must only contain a part named 'file'", http.StatusBadRequest)
 			return
 		}
 
 		uid, err := uuid.NewRandom()
 		if err != nil {
+			log.Println("ERR media-upload; failed to assign id")
 			http.Error(w, "problem assigning id to media", http.StatusInternalServerError)
 			return
 		}
 
-		if err := fw.CopyToFile(uid.String(), part); err != nil {
+		ext := extension(part.Header.Get("Content-Type"), ps["filename"])
+
+		location, err := fw.WriteFile(uid.String()+ext, part)
+		if err != nil {
+			log.Println("ERR media-upload;", err)
 			http.Error(w, "problem writing media to file", http.StatusInternalServerError)
 			return
 		}
 
-		w.Header().Set("Location", fw.URL(uid.String()))
+		w.Header().Set("Location", location)
 		w.WriteHeader(http.StatusCreated)
 	}
+}
+
+func extension(contentType, filename string) string {
+	ext := strings.ToLower(path.Ext(filename))
+	if len(ext) > 0 {
+		return ext
+	}
+
+	exts, err := mime.ExtensionsByType(contentType)
+	if err == nil && len(exts) > 0 {
+		return exts[0]
+	}
+
+	return ""
 }

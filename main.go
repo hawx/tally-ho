@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"path/filepath"
 
 	// register sqlite3 for database/sql
@@ -13,6 +14,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"hawx.me/code/serve"
 	"hawx.me/code/tally-ho/blog"
+	"hawx.me/code/tally-ho/media"
 	"hawx.me/code/tally-ho/micropub"
 	"hawx.me/code/tally-ho/syndicate"
 	"hawx.me/code/tally-ho/webmention"
@@ -42,6 +44,7 @@ func main() {
 		configPath = flag.String("config", "./config.toml", "")
 		webPath    = flag.String("web", "web", "")
 		dbPath     = flag.String("db", "file::memory:", "")
+		mediaDir   = flag.String("media-dir", "web/media", "")
 		port       = flag.String("port", "8080", "")
 		socket     = flag.String("socket", "", "")
 	)
@@ -81,15 +84,24 @@ func main() {
 		syndicators[syndicate.TwitterUID] = twitter
 	}
 
+	baseURL, err := url.Parse(conf.BaseURL)
+	if err != nil {
+		log.Println("ERR base-url-invalid;", err)
+		return
+	}
+
+	mediaURL, _ := url.Parse("/-/media")
+
 	b := &blog.Blog{
 		Config: blog.Config{
 			Me:          conf.Me,
 			Name:        conf.Name,
 			Title:       conf.Title,
 			Description: conf.Description,
-			BaseURL:     conf.BaseURL,
+			BaseURL:     baseURL,
 		},
 		DB:          db,
+		MediaDir:    *mediaDir,
 		Templates:   templates,
 		Syndicators: syndicators,
 	}
@@ -101,9 +113,13 @@ func main() {
 			http.FileServer(
 				http.Dir(filepath.Join(*webPath, "static")))))
 
-	http.Handle("/-/micropub", micropub.Endpoint(b, conf.Me, "http://something/-/media", syndicators))
+	http.Handle("/-/micropub", micropub.Endpoint(
+		b,
+		conf.Me,
+		baseURL.ResolveReference(mediaURL).String(),
+		syndicators))
 	http.Handle("/-/webmention", webmention.Endpoint(b))
-	http.Handle("/-/media", http.NotFoundHandler())
+	http.Handle("/-/media", media.Endpoint(conf.Me, b))
 
 	serve.Serve(*port, *socket, http.DefaultServeMux)
 }

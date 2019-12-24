@@ -20,9 +20,9 @@ func (b *Blog) Create(data map[string][]interface{}) (location string, err error
 	if err != nil {
 		return
 	}
-	baseURL, _ := url.Parse(b.Config.BaseURL)
+
 	relativeURL, _ := url.Parse(relativeLocation)
-	location = baseURL.ResolveReference(relativeURL).String()
+	location = b.Config.BaseURL.ResolveReference(relativeURL).String()
 
 	if syndicateTos, ok := data["mp-syndicate-to"]; ok && len(syndicateTos) > 0 {
 		for _, syndicateTo := range syndicateTos {

@@ -22,22 +22,23 @@ type Config struct {
 	Name        string
 	Title       string
 	Description string
-	BaseURL     string
+	BaseURL     *url.URL
 }
 
 type Blog struct {
 	Config      Config
+	MediaDir    string
 	DB          *DB
 	Templates   *template.Template
 	Syndicators map[string]syndicate.Syndicator
 }
 
 func (b *Blog) BaseURL() string {
-	return b.Config.BaseURL
+	return b.Config.BaseURL.String()
 }
 
 func (b *Blog) Handler() http.Handler {
-	baseURL, _ := url.Parse(b.Config.BaseURL)
+	baseURL := b.Config.BaseURL
 
 	route.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		posts, err := b.DB.Before(time.Now().UTC())
@@ -105,8 +106,8 @@ func (b *Blog) Handler() http.Handler {
 }
 
 func (b *Blog) Entry(url string) (data map[string][]interface{}, err error) {
-	if strings.HasPrefix(url, b.Config.BaseURL) {
-		url = url[len(b.Config.BaseURL):]
+	if strings.HasPrefix(url, b.BaseURL()) {
+		url = url[len(b.BaseURL()):]
 		if url[0] != '/' {
 			url = "/" + url
 		}
