@@ -30,6 +30,7 @@ type config struct {
 	Title       string
 	Description string
 	BaseURL     string
+	MediaURL    string
 
 	Twitter struct {
 		ConsumerKey       string
@@ -44,7 +45,7 @@ func main() {
 		configPath = flag.String("config", "./config.toml", "")
 		webPath    = flag.String("web", "web", "")
 		dbPath     = flag.String("db", "file::memory:", "")
-		mediaDir   = flag.String("media-dir", "web/media", "")
+		mediaDir   = flag.String("media-dir", "", "")
 		port       = flag.String("port", "8080", "")
 		socket     = flag.String("socket", "", "")
 	)
@@ -90,7 +91,11 @@ func main() {
 		return
 	}
 
-	mediaURL, _ := url.Parse("/-/media")
+	mediaURL, err := url.Parse(conf.MediaURL)
+	if err != nil {
+		log.Println("ERR media-url-invalid;", err)
+		return
+	}
 
 	b := &blog.Blog{
 		Config: blog.Config{
@@ -99,12 +104,15 @@ func main() {
 			Title:       conf.Title,
 			Description: conf.Description,
 			BaseURL:     baseURL,
+			MediaURL:    mediaURL,
 		},
 		DB:          db,
 		MediaDir:    *mediaDir,
 		Templates:   templates,
 		Syndicators: syndicators,
 	}
+
+	mediaEndpointURL, _ := url.Parse("/-/media")
 
 	http.Handle("/", b.Handler())
 
@@ -116,7 +124,7 @@ func main() {
 	http.Handle("/-/micropub", micropub.Endpoint(
 		b,
 		conf.Me,
-		baseURL.ResolveReference(mediaURL).String(),
+		baseURL.ResolveReference(mediaEndpointURL).String(),
 		syndicators))
 	http.Handle("/-/webmention", webmention.Endpoint(b))
 	http.Handle("/-/media", media.Endpoint(conf.Me, b))

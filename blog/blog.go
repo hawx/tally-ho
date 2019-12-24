@@ -23,6 +23,7 @@ type Config struct {
 	Title       string
 	Description string
 	BaseURL     *url.URL
+	MediaURL    *url.URL
 }
 
 type Blog struct {

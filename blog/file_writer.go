@@ -22,6 +22,6 @@ func (b *Blog) WriteFile(name string, r io.Reader) (location string, err error) 
 	}
 	log.Printf("INFO wrote-file path=%s\n", p)
 
-	relURL, _ := url.Parse(path.Join("-", "media", name))
-	return b.Config.BaseURL.ResolveReference(relURL).String(), nil
+	relURL, _ := url.Parse(name)
+	return b.Config.MediaURL.ResolveReference(relURL).String(), nil
 }
