@@ -15,10 +15,12 @@ Possibly up-to-date feature list:
   * [x] Authentication in body
 
 - Config:
-  * [x] `q=config`
-  * [x] `q=source`
-  * [x] `q=syndicateTo`
   * [ ] Get `q` options
+  * [x] Micropub `q=config`
+  * [x] Micropub `q=source`
+  * [x] Micropub `q=syndicate-to`
+  * [ ] Micropub `q=media-endpoint`
+  * [ ] Media `q=last`
 
 - Posting:
   * [x] Create with `application/x-www-form-urlencoded`
@@ -28,6 +30,8 @@ Possibly up-to-date feature list:
   * [x] Upload to media endpoint
   * [ ] Delete
   * [ ] Undelete
+  * [ ] `mp-slug`
+  * [ ] `post-status`
 
 - Syndication:
   * Twitter:
