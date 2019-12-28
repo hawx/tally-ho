@@ -333,3 +333,21 @@ footer a {
 footer a:hover {
     color: var(--foreground);
 }
+
+/* checkin */
+
+.checkin {
+    padding: var(--top-gutter) var(--left-gutter) 0;
+    margin-bottom: var(--top-gutter);
+}
+
+.checkin .p-name:before {
+    content: '📌 ';
+    position: absolute;
+    margin-left: -1.3rem;
+}
+
+.checkin a, span {
+    font-size: .8rem;
+    display: block;
+}

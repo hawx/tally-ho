@@ -31,9 +31,19 @@
       {{ end }}
     {{ end }}
 
+    {{ if has . "checkin" }}
+      <p class="checkin h-card">
+        <a class="u-url p-name" href="{{ get . "checkin.properties.url" }}">{{ get . "checkin.properties.name" }}</a>
+        <span class="p-street-address">{{ get . "checkin.properties.street-address" }}</span>
+        <span class="p-locality">{{ get . "checkin.properties.locality" }}</span>
+        <span class="p-country-name">{{ get . "checkin.properties.country-name" }}</span>
+      </p>
+    {{ end }}
+
     <div claass="e-content">
       {{ content . }}
     </div>
+
     {{ template "entry_meta.gotmpl" . }}
   </article>
 {{ end }}

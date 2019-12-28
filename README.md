@@ -68,3 +68,4 @@ Possibly up-to-date feature list:
     * [x] Likes
     * [ ] Replies
     * [x] RSVP
+    * [x] Checkin (kinda)
