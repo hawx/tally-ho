@@ -183,7 +183,7 @@ func TestConfigurationSyndicationTarget(t *testing.T) {
 	json.NewDecoder(resp.Body).Decode(&v)
 
 	if assert.Len(v.SyndicateTo, 1) {
-		assert.Equal("https://twitter.com/", v.SyndicateTo[0].UID)
-		assert.Equal("Twitter", v.SyndicateTo[0].Name)
+		assert.Equal("https://fake/", v.SyndicateTo[0].UID)
+		assert.Equal("fake on fake", v.SyndicateTo[0].Name)
 	}
 }

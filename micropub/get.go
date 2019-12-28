@@ -18,7 +18,7 @@ func getHandler(
 ) http.HandlerFunc {
 	configHandler := configHandler(mediaURL, syndicators)
 	sourceHandler := sourceHandler(db)
-	syndicationHandler := syndicationHandler()
+	syndicationHandler := syndicationHandler(syndicators)
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.FormValue("q") {
@@ -94,18 +94,22 @@ type syndicationTarget struct {
 	Name string `json:"name"`
 }
 
-func syndicationHandler() http.HandlerFunc {
+func syndicationHandler(syndicators map[string]syndicate.Syndicator) http.HandlerFunc {
+	var configs []syndicateTo
+
+	for _, s := range syndicators {
+		configs = append(configs, syndicateTo{
+			UID:  s.UID(),
+			Name: s.Name(),
+		})
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(struct {
-			SyndicateTo []syndicationTarget `json:"syndicate-to"`
+			SyndicateTo []syndicateTo `json:"syndicate-to"`
 		}{
-			SyndicateTo: []syndicationTarget{
-				{
-					UID:  "https://twitter.com/",
-					Name: "Twitter",
-				},
-			},
+			SyndicateTo: configs,
 		})
 	}
 }
