@@ -50,7 +50,7 @@ func TestAuthenticate(t *testing.T) {
 	defer meServer.Close()
 	me.Me = meServer.URL
 
-	s := httptest.NewServer(authenticate(meServer.URL, "create", good))
+	s := httptest.NewServer(Only(meServer.URL, "create", good))
 	defer s.Close()
 
 	_, err := http.Get(s.URL + "?access_token=abcde")
@@ -68,7 +68,7 @@ func TestAuthenticateMissingScope(t *testing.T) {
 	defer meServer.Close()
 	me.Me = meServer.URL
 
-	s := httptest.NewServer(authenticate(meServer.URL, "edit", good))
+	s := httptest.NewServer(Only(meServer.URL, "edit", good))
 	defer s.Close()
 
 	_, err := http.Get(s.URL + "?access_token=abcde")
@@ -86,7 +86,7 @@ func TestAuthenticateNotMe(t *testing.T) {
 	defer meServer.Close()
 	me.Me = "http://who.example.com"
 
-	s := httptest.NewServer(authenticate(meServer.URL, "edit", good))
+	s := httptest.NewServer(Only(meServer.URL, "edit", good))
 	defer s.Close()
 
 	_, err := http.Get(s.URL + "?access_token=abcde")
@@ -104,7 +104,7 @@ func TestAuthenticatedBadToken(t *testing.T) {
 	defer meServer.Close()
 	me.Me = meServer.URL
 
-	s := httptest.NewServer(authenticate(meServer.URL, "create", good))
+	s := httptest.NewServer(Only(meServer.URL, "create", good))
 	defer s.Close()
 
 	_, err := http.Get(s.URL + "?access_token=xyz")
