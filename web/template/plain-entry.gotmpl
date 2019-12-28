@@ -24,7 +24,11 @@
     {{ end }}
 
     {{ if has . "photo" }}
-      <img src="{{ get . "photo.value" }}" alt="{{ get . "photo.alt" }}" />
+      {{ if has . "photo.value" }}
+        <img src="{{ get . "photo.value" }}" alt="{{ get . "photo.alt" }}" />
+      {{ else }}
+        <img src="{{ get . "photo" }}" />
+      {{ end }}
     {{ end }}
 
     <div claass="e-content">
