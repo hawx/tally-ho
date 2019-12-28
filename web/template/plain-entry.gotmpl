@@ -8,6 +8,15 @@
     </h1>
     {{ template "entry_meta.gotmpl" . }}
   </article>
+{{ else if has . "rsvp" }}
+  <article class="h-entry rsvp">
+    <h1>
+      <data class="p-rsvp" value="{{ get . "rsvp" }}">{{ humanRSVP . }}</data> to
+      <a class="u-in-reply-to" href="{{ get . "in-reply-to" }}">{{ getOr . "name" "an event" }}</a>
+    </h1>
+
+    {{ template "entry_meta.gotmpl" . }}
+  </article>
 {{ else }}
   <article class="h-entry">
     {{ if has . "name" }}
@@ -17,7 +26,7 @@
     {{ if has . "photo" }}
       <img src="{{ get . "photo.value" }}" alt="{{ get . "photo.alt" }}" />
     {{ end }}
-    
+
     <div claass="e-content">
       {{ content . }}
     </div>

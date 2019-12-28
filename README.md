@@ -63,4 +63,4 @@ Possibly up-to-date feature list:
     * [ ] Videos
     * [x] Likes
     * [ ] Replies
-    * [ ] RSVP
+    * [x] RSVP

@@ -235,10 +235,6 @@ div.h-cite .u-url {
     font-weight: normal;
 }
 
-.rsvp data, .u-rsvp-of {
-    font-weight: bold;
-}
-
 .rsvp h1:before {
     content: '📅  ';
 }

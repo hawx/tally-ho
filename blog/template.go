@@ -16,6 +16,7 @@ func ParseTemplates(webPath string) (*template.Template, error) {
 		"get":             templateGet,
 		"content":         templateContent,
 		"humanDate":       templateHumanDate,
+		"humanRSVP":       templateHumanRSVP,
 		"time":            templateTime,
 		"syndicationName": templateSyndicationName,
 		"withEnd":         templateWithEnd,
@@ -128,6 +129,24 @@ func templateHumanDate(m map[string][]interface{}, key string) string {
 	}
 
 	return t.Format("January 02, 2006")
+}
+
+func templateHumanRSVP(m map[string][]interface{}) string {
+	v, _ := get(m, "rsvp")
+	s, ok := v.(string)
+
+	if !ok {
+		return ""
+	}
+
+	switch s {
+	case "yes":
+		return "going"
+	case "no":
+		return "not going"
+	default:
+		return "might be going"
+	}
 }
 
 func templateTime(m map[string][]interface{}, key string) string {
