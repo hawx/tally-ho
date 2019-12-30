@@ -118,6 +118,14 @@ func (b *Blog) Entry(url string) (data map[string][]interface{}, err error) {
 }
 
 func (b *Blog) Update(url string, replace, add, delete map[string][]interface{}) error {
+	if !strings.HasPrefix(url, b.BaseURL()) {
+		return errors.New("expected url to be for this blog")
+	}
+	url = url[len(b.BaseURL()):]
+	if url[0] != '/' {
+		url = "/" + url
+	}
+
 	return b.DB.Update(url, replace, add, delete)
 }
 
