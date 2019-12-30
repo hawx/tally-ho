@@ -23,11 +23,11 @@
       <h1 class="p-name"><a href="{{ get . "url" }}">{{ get . "name" }}</a></h1>
     {{ end }}
 
-    {{ if has . "photo" }}
-      {{ if has . "photo.value" }}
-        <img src="{{ get . "photo.value" }}" alt="{{ get . "photo.alt" }}" />
+    {{ range .photo }}
+      {{ if has . "value" }}
+        <img src="{{ get . "value" }}" alt="{{ get . "alt" }}" />
       {{ else }}
-        <img src="{{ get . "photo" }}" />
+        <img src="{{ . }}" />
       {{ end }}
     {{ end }}
 

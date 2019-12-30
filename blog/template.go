@@ -25,9 +25,13 @@ func ParseTemplates(webPath string) (*template.Template, error) {
 	}).ParseGlob(glob)
 }
 
-func templateHas(m map[string][]interface{}, key string) bool {
-	_, ok := get(m, key)
+func templateHas(v interface{}, key string) bool {
+	m, ok := v.(map[string][]interface{})
+	if !ok {
+		return false
+	}
 
+	_, ok = get(m, key)
 	return ok
 }
 
