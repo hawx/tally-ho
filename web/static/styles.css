@@ -155,6 +155,10 @@ p + p {
     justify-content: space-between;
 }
 
+.meta .right {
+    text-align: right;
+}
+
 .meta a {
     color: var(--faint);
     text-decoration: none;
