@@ -75,6 +75,9 @@ func (db *DB) Update(url string, replace, add, delete map[string][]interface{}) 
 	if err != nil {
 		return err
 	}
+	if len(triples) == 0 {
+		return errors.New("post to update not found")
+	}
 	id := triples[0].Subject
 
 	for predicate, values := range replace {
