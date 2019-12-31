@@ -60,6 +60,7 @@ Possibly up-to-date feature list:
     * [x] Combine likes
     * [ ] Pagination
     * [ ] By kind
+    * [ ] By category
   * Entry:
     * [x] Notes
     * [x] Posts
@@ -69,3 +70,9 @@ Possibly up-to-date feature list:
     * [ ] Replies
     * [x] RSVP
     * [x] Checkin (kinda)
+
+- Feeds:
+  * [ ] RSS
+  * [ ] Atom
+  * [ ] Jsonfeed (<https://jsonfeed.org/>)
+  * [ ] WebSub (<https://www.w3.org/TR/websub/>)
