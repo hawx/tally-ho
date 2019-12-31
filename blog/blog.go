@@ -117,7 +117,11 @@ func (b *Blog) Entry(url string) (data map[string][]interface{}, err error) {
 	return b.DB.Entry(url)
 }
 
-func (b *Blog) Update(url string, replace, add, delete map[string][]interface{}) error {
+func (b *Blog) Update(
+	url string,
+	replace, add, delete map[string][]interface{},
+	deleteAll []string,
+) error {
 	if !strings.HasPrefix(url, b.BaseURL()) {
 		return errors.New("expected url to be for this blog")
 	}
@@ -126,7 +130,7 @@ func (b *Blog) Update(url string, replace, add, delete map[string][]interface{})
 		url = "/" + url
 	}
 
-	return b.DB.Update(url, replace, add, delete)
+	return b.DB.Update(url, replace, add, delete, deleteAll)
 }
 
 func (b *Blog) Mention(source string, data map[string][]interface{}) error {

@@ -13,6 +13,7 @@ import (
 type fakePostDB struct {
 	datas                   []map[string][]interface{}
 	replaces, adds, deletes map[string][]map[string][]interface{}
+	deleteAlls              map[string][][]string
 }
 
 func (b *fakePostDB) Create(data map[string][]interface{}) (string, error) {
@@ -21,10 +22,15 @@ func (b *fakePostDB) Create(data map[string][]interface{}) (string, error) {
 	return "http://example.com/blog/p/1", nil
 }
 
-func (b *fakePostDB) Update(id string, replace, add, delete map[string][]interface{}) error {
+func (b *fakePostDB) Update(
+	id string,
+	replace, add, delete map[string][]interface{},
+	deleteAlls []string,
+) error {
 	b.replaces[id] = append(b.replaces[id], replace)
 	b.adds[id] = append(b.adds[id], add)
 	b.deletes[id] = append(b.deletes[id], delete)
+	b.deleteAlls[id] = append(b.deleteAlls[id], deleteAlls)
 
 	return nil
 }
@@ -100,9 +106,10 @@ func TestPostEntryJSON(t *testing.T) {
 func TestUpdateEntry(t *testing.T) {
 	assert := assert.New(t)
 	db := &fakePostDB{
-		adds:     map[string][]map[string][]interface{}{},
-		deletes:  map[string][]map[string][]interface{}{},
-		replaces: map[string][]map[string][]interface{}{},
+		adds:       map[string][]map[string][]interface{}{},
+		deletes:    map[string][]map[string][]interface{}{},
+		replaces:   map[string][]map[string][]interface{}{},
+		deleteAlls: map[string][][]string{},
 	}
 
 	s := httptest.NewServer(postHandler(db))
@@ -138,5 +145,71 @@ func TestUpdateEntry(t *testing.T) {
 	delete, ok := db.deletes["https://example.com/blog/p/100"]
 	if assert.True(ok) && assert.Len(delete, 1) {
 		assert.Equal("this", delete[0]["not-important"][0])
+	}
+}
+
+func TestUpdateEntryDelete(t *testing.T) {
+	assert := assert.New(t)
+	db := &fakePostDB{
+		adds:       map[string][]map[string][]interface{}{},
+		deletes:    map[string][]map[string][]interface{}{},
+		replaces:   map[string][]map[string][]interface{}{},
+		deleteAlls: map[string][][]string{},
+	}
+
+	s := httptest.NewServer(postHandler(db))
+	defer s.Close()
+
+	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
+  "action": "update",
+  "url": "https://example.com/blog/p/100",
+  "replace": {
+    "content": ["hello moon"]
+  },
+  "add": {
+    "syndication": ["http://somewhere.com"]
+  },
+  "delete": ["not-important"]
+}`))
+
+	assert.Nil(err)
+	assert.Equal(http.StatusNoContent, resp.StatusCode)
+
+	replace, ok := db.replaces["https://example.com/blog/p/100"]
+	if assert.True(ok) && assert.Len(replace, 1) {
+		assert.Equal("hello moon", replace[0]["content"][0])
+	}
+
+	add, ok := db.adds["https://example.com/blog/p/100"]
+	if assert.True(ok) && assert.Len(add, 1) {
+		assert.Equal("http://somewhere.com", add[0]["syndication"][0])
+	}
+
+	delete, ok := db.deleteAlls["https://example.com/blog/p/100"]
+	if assert.True(ok) && assert.Len(delete, 1) {
+		assert.Equal("not-important", delete[0][0])
+	}
+}
+
+func TestUpdateEntryInvalidDelete(t *testing.T) {
+	s := httptest.NewServer(postHandler(nil))
+	defer s.Close()
+
+	testCases := map[string]string{
+		"array with non-string": `[1]`,
+		"map with non-array":    `{"this-key": "and-value"}`,
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
+  "action": "update",
+  "url": "https://example.com/blog/p/100",
+  "delete": `+tc+`
+}`))
+
+			assert.Nil(t, err)
+			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+		})
 	}
 }

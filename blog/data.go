@@ -68,7 +68,11 @@ func (db *DB) Create(data map[string][]interface{}) (location string, err error)
 	return data["url"][0].(string), db.entries.SetProperties(id, data)
 }
 
-func (db *DB) Update(url string, replace, add, delete map[string][]interface{}) error {
+func (db *DB) Update(
+	url string,
+	replace, add, delete map[string][]interface{},
+	deleteAll []string,
+) error {
 	replace["updated"] = []interface{}{time.Now().UTC().Format(time.RFC3339)}
 
 	triples, err := db.entries.List(numbersix.Where("url", url))
@@ -93,6 +97,10 @@ func (db *DB) Update(url string, replace, add, delete map[string][]interface{}) 
 		for _, value := range values {
 			db.entries.DeleteValue(id, predicate, value)
 		}
+	}
+
+	for _, predicate := range deleteAll {
+		db.entries.DeletePredicate(id, predicate)
 	}
 
 	return nil

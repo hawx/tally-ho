@@ -8,7 +8,7 @@ type jsonMicroformat struct {
 	Action     string                   `json:"action,omitempty"`
 	URL        string                   `json:"url,omitempty"`
 	Add        map[string][]interface{} `json:"add,omitempty"`
-	Delete     map[string][]interface{} `json:"delete,omitempty"`
+	Delete     interface{}              `json:"delete,omitempty"`
 	Replace    map[string][]interface{} `json:"replace,omitempty"`
 }
 

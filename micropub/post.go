@@ -11,7 +11,7 @@ import (
 
 type postDB interface {
 	Create(data map[string][]interface{}) (string, error)
-	Update(url string, replace, add, delete map[string][]interface{}) error
+	Update(url string, replace, add, delete map[string][]interface{}, deleteAlls []string) error
 }
 
 func postHandler(db postDB) http.Handler {
@@ -60,15 +60,33 @@ func (h *micropubPostHandler) handleJSON(w http.ResponseWriter, r *http.Request)
 		}
 
 		delete := map[string][]interface{}{}
-		for key, value := range v.Delete {
-			if reservedKey(key) {
-				continue
-			}
+		var deleteAlls []string
 
-			delete[key] = value
+		if ds, ok := v.Delete.([]interface{}); ok {
+			for _, d := range ds {
+				if dd, ok := d.(string); ok {
+					deleteAlls = append(deleteAlls, dd)
+				} else {
+					http.Error(w, "could not decode json request: malformed delete", http.StatusBadRequest)
+					return
+				}
+			}
+		} else if dm, ok := v.Delete.(map[string]interface{}); ok {
+			for key, value := range dm {
+				if reservedKey(key) {
+					continue
+				}
+
+				if vs, ok := value.([]interface{}); ok {
+					delete[key] = vs
+				} else {
+					http.Error(w, "could not decode json request: malformed delete", http.StatusBadRequest)
+					return
+				}
+			}
 		}
 
-		if err := h.db.Update(v.URL, replace, add, delete); err != nil {
+		if err := h.db.Update(v.URL, replace, add, delete, deleteAlls); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

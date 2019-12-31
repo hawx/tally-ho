@@ -35,7 +35,7 @@ func (b *Blog) Create(data map[string][]interface{}) (location string, err error
 
 				if err := b.Update(location, empty, map[string][]interface{}{
 					"syndication": {syndicatedLocation},
-				}, empty); err != nil {
+				}, empty, []string{}); err != nil {
 					log.Printf("ERR confirming-syndication to=%s uid=%s; %v\n", syndicator.Name(), data["uid"][0], err)
 				}
 			}
