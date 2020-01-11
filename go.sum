@@ -69,6 +69,8 @@ hawx.me/code/numbersix v0.0.0-20190423131821-2ea2741582df h1:kRs0/VGyi7vnc2KTDLp
 hawx.me/code/numbersix v0.0.0-20190423131821-2ea2741582df/go.mod h1:01SfZty+XY7sFK1M1UkfhH7ijSVaLThACAIgSpWk+v4=
 hawx.me/code/numbersix v0.0.0-20191128191945-de81016271a4 h1:GOxWu2oSMYMy6TRVCCtlWzWWqF2seoLPyKxlCDhaQaY=
 hawx.me/code/numbersix v0.0.0-20191128191945-de81016271a4/go.mod h1:01SfZty+XY7sFK1M1UkfhH7ijSVaLThACAIgSpWk+v4=
+hawx.me/code/numbersix v0.0.0-20200111172810-978e04b150a9 h1:/jse5rKIUuc5FMWYW0WIVWEgo2ky6MBkOtqKFslgWTI=
+hawx.me/code/numbersix v0.0.0-20200111172810-978e04b150a9/go.mod h1:01SfZty+XY7sFK1M1UkfhH7ijSVaLThACAIgSpWk+v4=
 hawx.me/code/route v1.0.0 h1:oSH04y0xTXUY5dflvRyUYl+yqs5J/lDvbOwMJc80sYY=
 hawx.me/code/route v1.0.0/go.mod h1:SKWPgx9IKsK2Yy66xj1bSRBOTMwR6kFQcLMjgajaeAc=
 hawx.me/code/serve v0.0.0-20190207181551-eb94630184cf h1:8rHeLEfK+pyTPkL/kH5THN2HgtfbuMeHnnneMFijo3Y=

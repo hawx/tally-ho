@@ -17,7 +17,7 @@ require (
 	hawx.me/code/indieauth v1.0.2-0.20190414103535-e45980f3aa4d
 	hawx.me/code/microformats v0.0.0-20191022184242-49e59d72c0b9
 	hawx.me/code/mux v0.0.0-20171229202905-76b5c781b7be
-	hawx.me/code/numbersix v0.0.0-20191128191945-de81016271a4
+	hawx.me/code/numbersix v0.0.0-20200111172810-978e04b150a9
 	hawx.me/code/route v1.0.0
 	hawx.me/code/serve v0.0.0-20190207181551-eb94630184cf
 	willnorris.com/go/microformats v1.0.0
