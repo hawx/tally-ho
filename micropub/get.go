@@ -53,9 +53,16 @@ func configHandler(mediaURL string, syndicators map[string]syndicate.Syndicator)
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(struct {
+			Q             []string      `json:"q"`
 			MediaEndpoint string        `json:"media-endpoint"`
 			SyndicateTo   []syndicateTo `json:"syndicate-to"`
 		}{
+			Q: []string{
+				"config",
+				"media-endpoint",
+				"source",
+				"syndicate-to",
+			},
 			MediaEndpoint: mediaURL,
 			SyndicateTo:   configs,
 		})

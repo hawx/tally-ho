@@ -54,14 +54,19 @@ func TestConfigurationConfig(t *testing.T) {
 	assert.Equal("application/json", resp.Header.Get("Content-Type"))
 
 	var v struct {
-		MediaEndpoint string `json:"media-endpoint"`
+		Q             []string `json:"q"`
+		MediaEndpoint string   `json:"media-endpoint"`
 		SyndicateTo   []struct {
 			UID  string `json:"uid"`
 			Name string `json:"name"`
 		} `json:"syndicate-to"`
 	}
 	json.NewDecoder(resp.Body).Decode(&v)
+
 	assert.Equal("http://media.example.com/", v.MediaEndpoint)
+
+	assert.Equal([]string{"config", "media-endpoint", "source", "syndicate-to"}, v.Q)
+
 	if assert.Len(v.SyndicateTo, 1) {
 		assert.Equal("https://fake/", v.SyndicateTo[0].UID)
 		assert.Equal("fake on fake", v.SyndicateTo[0].Name)

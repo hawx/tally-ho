@@ -15,11 +15,11 @@ Possibly up-to-date feature list:
   * [x] Authentication in body
 
 - Config:
-  * [ ] Get `q` options
+  * [x] Get `q` options
   * [x] Micropub `q=config`
+  * [x] Micropub `q=media-endpoint`
   * [x] Micropub `q=source`
   * [x] Micropub `q=syndicate-to`
-  * [x] Micropub `q=media-endpoint`
   * [x] Media `q=last`
 
 - Posting:
