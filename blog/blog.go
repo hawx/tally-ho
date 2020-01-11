@@ -62,6 +62,11 @@ func (b *Blog) Handler() http.Handler {
 			return
 		}
 
+		if deleted, ok := entry["hx-deleted"]; ok && len(deleted) > 0 {
+			http.Error(w, "gone", http.StatusGone)
+			return
+		}
+
 		mentions, err := b.DB.MentionsForEntry(baseURL.ResolveReference(r.URL).String())
 		if err != nil {
 			log.Printf("ERR get-entry-mentions url=%s; %v\n", r.URL.Path, err)
