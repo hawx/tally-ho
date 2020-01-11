@@ -14,6 +14,8 @@ type fakePostDB struct {
 	datas                   []map[string][]interface{}
 	replaces, adds, deletes map[string][]map[string][]interface{}
 	deleteAlls              map[string][][]string
+	deleted                 []string
+	undeleted               []string
 }
 
 func (b *fakePostDB) Create(data map[string][]interface{}) (string, error) {
@@ -32,6 +34,16 @@ func (b *fakePostDB) Update(
 	b.deletes[id] = append(b.deletes[id], delete)
 	b.deleteAlls[id] = append(b.deleteAlls[id], deleteAlls)
 
+	return nil
+}
+
+func (b *fakePostDB) Delete(url string) error {
+	b.deleted = append(b.deleted, url)
+	return nil
+}
+
+func (b *fakePostDB) Undelete(url string) error {
+	b.undeleted = append(b.undeleted, url)
 	return nil
 }
 
@@ -211,5 +223,85 @@ func TestUpdateEntryInvalidDelete(t *testing.T) {
 			assert.Nil(t, err)
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 		})
+	}
+}
+
+func TestDeleteEntryWithURLEncodedForm(t *testing.T) {
+	assert := assert.New(t)
+	db := &fakePostDB{}
+
+	s := httptest.NewServer(postHandler(db))
+	defer s.Close()
+
+	resp, err := http.PostForm(s.URL, url.Values{
+		"action": {"delete"},
+		"url":    {"https://example.com/blog/p/1"},
+	})
+
+	assert.Nil(err)
+	assert.Equal(http.StatusNoContent, resp.StatusCode)
+
+	if assert.Len(db.deleted, 1) {
+		assert.Equal("https://example.com/blog/p/1", db.deleted[0])
+	}
+}
+
+func TestDeleteEntryWithJSON(t *testing.T) {
+	assert := assert.New(t)
+	db := &fakePostDB{}
+
+	s := httptest.NewServer(postHandler(db))
+	defer s.Close()
+
+	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
+  "action": "delete",
+  "url": "https://example.com/blog/p/100"
+}`))
+
+	assert.Nil(err)
+	assert.Equal(http.StatusNoContent, resp.StatusCode)
+
+	if assert.Len(db.deleted, 1) {
+		assert.Equal("https://example.com/blog/p/100", db.deleted[0])
+	}
+}
+
+func TestUndeleteEntryWithURLEncodedForm(t *testing.T) {
+	assert := assert.New(t)
+	db := &fakePostDB{}
+
+	s := httptest.NewServer(postHandler(db))
+	defer s.Close()
+
+	resp, err := http.PostForm(s.URL, url.Values{
+		"action": {"undelete"},
+		"url":    {"https://example.com/blog/p/1"},
+	})
+
+	assert.Nil(err)
+	assert.Equal(http.StatusNoContent, resp.StatusCode)
+
+	if assert.Len(db.undeleted, 1) {
+		assert.Equal("https://example.com/blog/p/1", db.undeleted[0])
+	}
+}
+
+func TestUndeleteEntryWithJSON(t *testing.T) {
+	assert := assert.New(t)
+	db := &fakePostDB{}
+
+	s := httptest.NewServer(postHandler(db))
+	defer s.Close()
+
+	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
+  "action": "undelete",
+  "url": "https://example.com/blog/p/100"
+}`))
+
+	assert.Nil(err)
+	assert.Equal(http.StatusNoContent, resp.StatusCode)
+
+	if assert.Len(db.undeleted, 1) {
+		assert.Equal("https://example.com/blog/p/100", db.undeleted[0])
 	}
 }

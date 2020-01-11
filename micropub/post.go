@@ -12,6 +12,8 @@ import (
 type postDB interface {
 	Create(data map[string][]interface{}) (string, error)
 	Update(url string, replace, add, delete map[string][]interface{}, deleteAlls []string) error
+	Delete(url string) error
+	Undelete(url string) error
 }
 
 func postHandler(db postDB) http.Handler {
@@ -95,6 +97,26 @@ func (h *micropubPostHandler) handleJSON(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	if v.Action == "delete" {
+		if err := h.db.Delete(v.URL); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	if v.Action == "undelete" {
+		if err := h.db.Undelete(v.URL); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
 	h.create(w, data)
 }
 
@@ -118,6 +140,26 @@ func (h *micropubPostHandler) handleForm(w http.ResponseWriter, r *http.Request)
 		} else {
 			data[key] = []interface{}{values[0]}
 		}
+	}
+
+	if r.FormValue("action") == "delete" {
+		if err := h.db.Delete(r.FormValue("url")); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	if r.FormValue("action") == "undelete" {
+		if err := h.db.Undelete(r.FormValue("url")); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+		return
 	}
 
 	h.create(w, data)

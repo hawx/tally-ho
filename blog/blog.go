@@ -133,6 +133,30 @@ func (b *Blog) Update(
 	return b.DB.Update(url, replace, add, delete, deleteAll)
 }
 
+func (b *Blog) Delete(url string) error {
+	if !strings.HasPrefix(url, b.BaseURL()) {
+		return errors.New("expected url to be for this blog")
+	}
+	url = url[len(b.BaseURL()):]
+	if url[0] != '/' {
+		url = "/" + url
+	}
+
+	return b.DB.Delete(url)
+}
+
+func (b *Blog) Undelete(url string) error {
+	if !strings.HasPrefix(url, b.BaseURL()) {
+		return errors.New("expected url to be for this blog")
+	}
+	url = url[len(b.BaseURL()):]
+	if url[0] != '/' {
+		url = "/" + url
+	}
+
+	return b.DB.Undelete(url)
+}
+
 func (b *Blog) Mention(source string, data map[string][]interface{}) error {
 	return b.DB.Mention(source, data)
 }

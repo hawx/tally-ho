@@ -106,6 +106,32 @@ func (db *DB) Update(
 	return nil
 }
 
+func (db *DB) Delete(url string) error {
+	triples, err := db.entries.List(numbersix.Where("url", url))
+	if err != nil {
+		return err
+	}
+	if len(triples) == 0 {
+		return errors.New("post to delete not found")
+	}
+	id := triples[0].Subject
+
+	return db.entries.Set(id, "hx-deleted", true)
+}
+
+func (db *DB) Undelete(url string) error {
+	triples, err := db.entries.List(numbersix.Where("url", url))
+	if err != nil {
+		return err
+	}
+	if len(triples) == 0 {
+		return errors.New("post to undelete not found")
+	}
+	id := triples[0].Subject
+
+	return db.entries.DeletePredicate(id, "hx-deleted")
+}
+
 func (db *DB) Mention(source string, data map[string][]interface{}) error {
 	// TODO: add ability to block by host or url
 	if err := db.mentions.DeleteSubject(source); err != nil {
