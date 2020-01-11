@@ -28,8 +28,8 @@ Possibly up-to-date feature list:
   * [ ] Create with `multipart/form-data`
   * [x] Update with `application/json` (although does not yet require `update` scope)
   * [x] Upload to media endpoint
-  * [ ] Delete
-  * [ ] Undelete
+  * [ ] Delete (still needs to filter from grouped likes)
+  * [x] Undelete
   * [ ] `mp-slug`
   * [ ] `post-status`
 
