@@ -4,6 +4,7 @@
 package media
 
 import (
+	"encoding/json"
 	"io"
 	"log"
 	"mime"
@@ -11,6 +12,7 @@ import (
 	"net/http"
 	"path"
 	"strings"
+	"sync"
 
 	"github.com/google/uuid"
 	"hawx.me/code/mux"
@@ -21,6 +23,11 @@ type FileWriter interface {
 	WriteFile(name string, r io.Reader) (location string, err error)
 }
 
+type uploadState struct {
+	sync.RWMutex
+	LastURL string
+}
+
 // Endpoint returns a simple implementation of a media endpoint.
 //
 // The handler expects a multipart form with a single part named 'file'. The
@@ -29,10 +36,37 @@ type FileWriter interface {
 // No limits are imposed on requests made so care should be taken to configure
 // this using a reverse-proxy or similar.
 func Endpoint(me string, fw FileWriter) http.Handler {
-	return auth.Only(me, "media", mux.Method{"POST": postHandler(fw)})
+	state := &uploadState{}
+
+	return auth.Only(me, "media", mux.Method{
+		"GET":  getHandler(state),
+		"POST": postHandler(state, fw),
+	})
 }
 
-func postHandler(fw FileWriter) http.HandlerFunc {
+func getHandler(state *uploadState) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.FormValue("q") != "last" {
+			http.Error(w, "", http.StatusBadRequest)
+			return
+		}
+
+		state.RLock()
+		lastURL := state.LastURL
+		state.RUnlock()
+
+		w.Header().Add("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(struct {
+			URL string `json:"url,omitempty"`
+		}{
+			URL: lastURL,
+		}); err != nil {
+			log.Println("ERR get-last-media;", err)
+		}
+	}
+}
+
+func postHandler(state *uploadState, fw FileWriter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		mediaType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 		if err != nil {
@@ -82,6 +116,10 @@ func postHandler(fw FileWriter) http.HandlerFunc {
 			http.Error(w, "problem writing media to file", http.StatusInternalServerError)
 			return
 		}
+
+		state.Lock()
+		state.LastURL = location
+		state.Unlock()
 
 		w.Header().Set("Location", location)
 		w.WriteHeader(http.StatusCreated)

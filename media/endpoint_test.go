@@ -2,6 +2,7 @@ package media
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -27,8 +28,9 @@ func TestMedia(t *testing.T) {
 	assert := assert.New(t)
 	file := "this is an image"
 	fw := &fakeFileWriter{}
+	state := &uploadState{}
 
-	s := httptest.NewServer(postHandler(fw))
+	s := httptest.NewServer(postHandler(state, fw))
 	defer s.Close()
 
 	var buf bytes.Buffer
@@ -50,12 +52,14 @@ func TestMedia(t *testing.T) {
 	assert.Equal(http.StatusCreated, resp.StatusCode)
 	assert.Equal("a url", resp.Header.Get("Location"))
 	assert.Equal(file, fw.data)
+
+	assert.Equal("a url", state.LastURL)
 }
 
 func TestMediaWhenNoFilePart(t *testing.T) {
 	assert := assert.New(t)
 
-	s := httptest.NewServer(postHandler(&fakeFileWriter{}))
+	s := httptest.NewServer(postHandler(&uploadState{}, &fakeFileWriter{}))
 	defer s.Close()
 
 	var buf bytes.Buffer
@@ -77,7 +81,7 @@ func TestMediaWhenMultipleFileParts(t *testing.T) {
 	file := "this is an image"
 	fw := &fakeFileWriter{}
 
-	s := httptest.NewServer(postHandler(fw))
+	s := httptest.NewServer(postHandler(&uploadState{}, fw))
 	defer s.Close()
 
 	var buf bytes.Buffer
@@ -137,4 +141,62 @@ func TestExtension(t *testing.T) {
 			assert.Equal(t, tc.Expected, ext)
 		})
 	}
+}
+
+func TestQueryUnknown(t *testing.T) {
+	assert := assert.New(t)
+
+	s := httptest.NewServer(getHandler(&uploadState{}))
+	defer s.Close()
+
+	req, err := http.NewRequest("GET", s.URL+"?q=what", nil)
+	assert.Nil(err)
+
+	resp, err := http.DefaultClient.Do(req)
+	assert.Nil(err)
+
+	assert.Equal(http.StatusBadRequest, resp.StatusCode)
+}
+
+func TestQueryLast(t *testing.T) {
+	assert := assert.New(t)
+
+	s := httptest.NewServer(getHandler(&uploadState{
+		LastURL: "http://media.example.com/file.jpg",
+	}))
+	defer s.Close()
+
+	req, err := http.NewRequest("GET", s.URL+"?q=last", nil)
+	assert.Nil(err)
+
+	resp, err := http.DefaultClient.Do(req)
+	assert.Nil(err)
+
+	assert.Equal(http.StatusOK, resp.StatusCode)
+	assert.Equal("application/json", resp.Header.Get("Content-Type"))
+
+	var v map[string]string
+	assert.Nil(json.NewDecoder(resp.Body).Decode(&v))
+	assert.Equal("http://media.example.com/file.jpg", v["url"])
+}
+
+func TestQueryLastWhenNoneUploaded(t *testing.T) {
+	assert := assert.New(t)
+
+	s := httptest.NewServer(getHandler(&uploadState{}))
+	defer s.Close()
+
+	req, err := http.NewRequest("GET", s.URL+"?q=last", nil)
+	assert.Nil(err)
+
+	resp, err := http.DefaultClient.Do(req)
+	assert.Nil(err)
+
+	assert.Equal(http.StatusOK, resp.StatusCode)
+	assert.Equal("application/json", resp.Header.Get("Content-Type"))
+
+	var v map[string]string
+	assert.Nil(json.NewDecoder(resp.Body).Decode(&v))
+	_, ok := v["url"]
+	assert.False(ok)
 }
