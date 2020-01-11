@@ -187,3 +187,22 @@ func TestConfigurationSyndicationTarget(t *testing.T) {
 		assert.Equal("fake on fake", v.SyndicateTo[0].Name)
 	}
 }
+
+func TestConfigurationMediaEndpoint(t *testing.T) {
+	assert := assert.New(t)
+
+	s := httptest.NewServer(getHandler(nil, "http://media.example.com/", fakeSyndicators()))
+	defer s.Close()
+
+	resp, err := http.Get(s.URL + "?q=media-endpoint")
+	assert.Nil(err)
+	assert.Equal(http.StatusOK, resp.StatusCode)
+	assert.Equal("application/json", resp.Header.Get("Content-Type"))
+
+	var v struct {
+		MediaEndpoint string `json:"media-endpoint"`
+	}
+	json.NewDecoder(resp.Body).Decode(&v)
+
+	assert.Equal("http://media.example.com/", v.MediaEndpoint)
+}

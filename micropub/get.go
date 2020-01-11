@@ -19,11 +19,14 @@ func getHandler(
 	configHandler := configHandler(mediaURL, syndicators)
 	sourceHandler := sourceHandler(db)
 	syndicationHandler := syndicationHandler(syndicators)
+	mediaEndpointHandler := mediaEndpointHandler(mediaURL)
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.FormValue("q") {
 		case "config":
 			configHandler.ServeHTTP(w, r)
+		case "media-endpoint":
+			mediaEndpointHandler.ServeHTTP(w, r)
 		case "source":
 			sourceHandler.ServeHTTP(w, r)
 		case "syndicate-to":
@@ -55,6 +58,17 @@ func configHandler(mediaURL string, syndicators map[string]syndicate.Syndicator)
 		}{
 			MediaEndpoint: mediaURL,
 			SyndicateTo:   configs,
+		})
+	}
+}
+
+func mediaEndpointHandler(mediaURL string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(struct {
+			MediaEndpoint string `json:"media-endpoint"`
+		}{
+			MediaEndpoint: mediaURL,
 		})
 	}
 }
