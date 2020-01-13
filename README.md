@@ -25,10 +25,15 @@ Possibly up-to-date feature list:
 - Posting:
   * [x] Create with `application/x-www-form-urlencoded`
   * [x] Create with `application/json`
-  * [ ] Create with `multipart/form-data`
-  * [x] Update with `application/json` (although does not yet require `update` scope)
+  * [x] Create with `multipart/form-data`
+    * [ ] Store photo/audio/video as if they had been sent via the media endpoint
+  * [x] Update with `application/json`
+    * [ ] Require `update` scope for requests
   * [x] Upload to media endpoint
-  * [ ] Delete (still needs to filter from grouped likes)
+  * [x] Delete
+    * [x] `410 Gone` entry
+    * [x] Remove from listing
+    * [ ] Remove from grouped likes
   * [x] Undelete
   * [ ] `mp-slug`
   * [ ] `post-status`

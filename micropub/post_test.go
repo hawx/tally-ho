@@ -1,6 +1,9 @@
 package micropub
 
 import (
+	"bytes"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -96,6 +99,54 @@ func TestPostEntryJSON(t *testing.T) {
     "url": ["http://what"]
   }
 }`))
+
+	assert.Nil(err)
+	assert.Equal(http.StatusCreated, resp.StatusCode)
+	assert.Equal("http://example.com/blog/p/1", resp.Header.Get("Location"))
+
+	if assert.Len(db.datas, 1) {
+		data := db.datas[0]
+
+		assert.Equal("entry", data["h"][0])
+		assert.Equal("This is a test", data["content"][0])
+		assert.Equal("test", data["category"][0])
+		assert.Equal("ignore", data["category"][1])
+		assert.Equal("what", data["mp-something"][0])
+
+		_, ok := data["url"]
+		assert.False(ok)
+	}
+}
+
+func TestPostEntryMultipartForm(t *testing.T) {
+	assert := assert.New(t)
+	db := &fakePostDB{}
+
+	s := httptest.NewServer(postHandler(db))
+	defer s.Close()
+
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	writeField := func(key, value string) {
+		part, err := writer.CreateFormField(key)
+		assert.Nil(err)
+		io.WriteString(part, value)
+	}
+
+	writeField("h", "entry")
+	writeField("content", "This is a test")
+	writeField("category[]", "test")
+	writeField("category[]", "ignore")
+	writeField("mp-something", "what")
+	writeField("url", "what")
+	assert.Nil(writer.Close())
+
+	req, err := http.NewRequest("POST", s.URL, &buf)
+	assert.Nil(err)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	resp, err := http.DefaultClient.Do(req)
 
 	assert.Nil(err)
 	assert.Equal(http.StatusCreated, resp.StatusCode)

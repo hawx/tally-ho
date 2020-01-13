@@ -2,7 +2,11 @@ package micropub
 
 import (
 	"encoding/json"
+	"io"
+	"io/ioutil"
 	"log"
+	"mime"
+	"mime/multipart"
 	"net/http"
 	"strings"
 
@@ -166,8 +170,47 @@ func (h *micropubPostHandler) handleForm(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *micropubPostHandler) handleMultiPart(w http.ResponseWriter, r *http.Request) {
-	// todo
-	log.Println("WARN multi-part-request-received")
+	_, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil {
+		log.Println("ERR micropub-parse-multi-part;", err)
+		return
+	}
+
+	data := map[string][]interface{}{}
+	parts := multipart.NewReader(r.Body, params["boundary"])
+
+	for {
+		p, err := parts.NextPart()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Println("ERR micropub-read-multi-part;", err)
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+
+		slurp, err := ioutil.ReadAll(p)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		key := p.FormName()
+		value := string(slurp)
+
+		if reservedKey(key) {
+			continue
+		}
+
+		if strings.HasSuffix(key, "[]") {
+			key := key[:len(key)-2]
+			data[key] = append(data[key], value)
+		} else {
+			data[key] = []interface{}{value}
+		}
+	}
+
+	h.create(w, data)
 }
 
 func (h *micropubPostHandler) create(w http.ResponseWriter, data map[string][]interface{}) {
