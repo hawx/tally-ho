@@ -34,7 +34,7 @@ func jsonToForm(v jsonMicroformat) map[string][]interface{} {
 	return data
 }
 
-func formToJson(data map[string][]interface{}) jsonMicroformat {
+func formToJSON(data map[string][]interface{}) jsonMicroformat {
 	var htype []string
 	if len(data["h"]) == 1 {
 		htype = []string{"h-" + data["h"][0].(string)}

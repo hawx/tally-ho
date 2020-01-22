@@ -106,7 +106,7 @@ func sourceHandler(db getDB) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(formToJson(obj))
+		json.NewEncoder(w).Encode(formToJSON(obj))
 	}
 }
 
