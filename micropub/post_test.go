@@ -3,6 +3,7 @@ package micropub
 import (
 	"bytes"
 	"io"
+	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -50,11 +51,22 @@ func (b *fakePostDB) Undelete(url string) error {
 	return nil
 }
 
+type fakeFileWriter struct {
+	data []string
+}
+
+func (fw *fakeFileWriter) WriteFile(name, contentType string, r io.Reader) (string, error) {
+	data, _ := ioutil.ReadAll(r)
+	fw.data = append(fw.data, string(data))
+
+	return "http://example.com/" + name, nil
+}
+
 func TestPostEntry(t *testing.T) {
 	assert := assert.New(t)
 	blog := &fakePostDB{}
 
-	s := httptest.NewServer(postHandler(blog))
+	s := httptest.NewServer(postHandler(blog, nil))
 	defer s.Close()
 
 	resp, err := http.PostForm(s.URL, url.Values{
@@ -87,7 +99,7 @@ func TestPostEntryJSON(t *testing.T) {
 	assert := assert.New(t)
 	db := &fakePostDB{}
 
-	s := httptest.NewServer(postHandler(db))
+	s := httptest.NewServer(postHandler(db, nil))
 	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
@@ -122,7 +134,7 @@ func TestPostEntryMultipartForm(t *testing.T) {
 	assert := assert.New(t)
 	db := &fakePostDB{}
 
-	s := httptest.NewServer(postHandler(db))
+	s := httptest.NewServer(postHandler(db, nil))
 	defer s.Close()
 
 	var buf bytes.Buffer
@@ -166,6 +178,119 @@ func TestPostEntryMultipartForm(t *testing.T) {
 	}
 }
 
+func TestPostEntryMultipartFormWithMedia(t *testing.T) {
+	for _, key := range []string{"photo", "video", "audio"} {
+		t.Run(key, func(t *testing.T) {
+			assert := assert.New(t)
+			file := "this is an image"
+			db := &fakePostDB{}
+			fw := &fakeFileWriter{}
+
+			s := httptest.NewServer(postHandler(db, fw))
+			defer s.Close()
+
+			var buf bytes.Buffer
+			writer := multipart.NewWriter(&buf)
+
+			writeField := func(key, value string) {
+				part, err := writer.CreateFormField(key)
+				assert.Nil(err)
+				io.WriteString(part, value)
+			}
+
+			writeField("h", "entry")
+			writeField("content", "This is a test")
+			part, err := writer.CreateFormFile(key, "whatever.png")
+			assert.Nil(err)
+			io.WriteString(part, file)
+
+			assert.Nil(writer.Close())
+
+			req, err := http.NewRequest("POST", s.URL, &buf)
+			assert.Nil(err)
+			req.Header.Set("Content-Type", writer.FormDataContentType())
+
+			resp, err := http.DefaultClient.Do(req)
+
+			assert.Nil(err)
+			assert.Equal(http.StatusCreated, resp.StatusCode)
+			assert.Equal("http://example.com/blog/p/1", resp.Header.Get("Location"))
+
+			if assert.Len(db.datas, 1) {
+				data := db.datas[0]
+
+				assert.Equal("entry", data["h"][0])
+				assert.Equal("This is a test", data["content"][0])
+				assert.Equal("http://example.com/whatever.png", data[key][0])
+			}
+
+			if assert.Len(fw.data, 1) {
+				assert.Equal(file, fw.data[0])
+			}
+		})
+	}
+}
+
+func TestPostEntryMultipartFormWithMultiplePhotos(t *testing.T) {
+	for _, key := range []string{"photo", "video", "audio"} {
+		t.Run(key, func(t *testing.T) {
+
+			assert := assert.New(t)
+			db := &fakePostDB{}
+			fw := &fakeFileWriter{}
+
+			s := httptest.NewServer(postHandler(db, fw))
+			defer s.Close()
+
+			var buf bytes.Buffer
+			writer := multipart.NewWriter(&buf)
+
+			writeField := func(key, value string) {
+				part, err := writer.CreateFormField(key)
+				assert.Nil(err)
+				io.WriteString(part, value)
+			}
+
+			writeFile := func(key, name, value string) {
+				part, err := writer.CreateFormFile(key, name)
+				assert.Nil(err)
+				io.WriteString(part, value)
+			}
+
+			writeField("h", "entry")
+			writeField("content", "This is a test")
+			writeFile(key+"[]", "1.jpg", "the first file")
+			writeFile(key+"[]", "2.jpg", "the second image")
+
+			assert.Nil(writer.Close())
+
+			req, err := http.NewRequest("POST", s.URL, &buf)
+			assert.Nil(err)
+			req.Header.Set("Content-Type", writer.FormDataContentType())
+
+			resp, err := http.DefaultClient.Do(req)
+
+			assert.Nil(err)
+			assert.Equal(http.StatusCreated, resp.StatusCode)
+			assert.Equal("http://example.com/blog/p/1", resp.Header.Get("Location"))
+
+			if assert.Len(db.datas, 1) {
+				data := db.datas[0]
+
+				assert.Equal("entry", data["h"][0])
+				assert.Equal("This is a test", data["content"][0])
+				assert.Equal("http://example.com/1.jpg", data[key][0])
+				assert.Equal("http://example.com/2.jpg", data[key][1])
+			}
+
+			if assert.Len(fw.data, 2) {
+				assert.Equal("the first file", fw.data[0])
+				assert.Equal("the second image", fw.data[1])
+			}
+		})
+	}
+}
+
 func TestUpdateEntry(t *testing.T) {
 	assert := assert.New(t)
 	db := &fakePostDB{
@@ -175,7 +300,7 @@ func TestUpdateEntry(t *testing.T) {
 		deleteAlls: map[string][][]string{},
 	}
 
-	s := httptest.NewServer(postHandler(db))
+	s := httptest.NewServer(postHandler(db, nil))
 	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
@@ -220,7 +345,7 @@ func TestUpdateEntryDelete(t *testing.T) {
 		deleteAlls: map[string][][]string{},
 	}
 
-	s := httptest.NewServer(postHandler(db))
+	s := httptest.NewServer(postHandler(db, nil))
 	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
@@ -255,7 +380,7 @@ func TestUpdateEntryDelete(t *testing.T) {
 }
 
 func TestUpdateEntryInvalidDelete(t *testing.T) {
-	s := httptest.NewServer(postHandler(nil))
+	s := httptest.NewServer(postHandler(nil, nil))
 	defer s.Close()
 
 	testCases := map[string]string{
@@ -281,7 +406,7 @@ func TestDeleteEntryWithURLEncodedForm(t *testing.T) {
 	assert := assert.New(t)
 	db := &fakePostDB{}
 
-	s := httptest.NewServer(postHandler(db))
+	s := httptest.NewServer(postHandler(db, nil))
 	defer s.Close()
 
 	resp, err := http.PostForm(s.URL, url.Values{
@@ -301,7 +426,7 @@ func TestDeleteEntryWithJSON(t *testing.T) {
 	assert := assert.New(t)
 	db := &fakePostDB{}
 
-	s := httptest.NewServer(postHandler(db))
+	s := httptest.NewServer(postHandler(db, nil))
 	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
@@ -321,7 +446,7 @@ func TestUndeleteEntryWithURLEncodedForm(t *testing.T) {
 	assert := assert.New(t)
 	db := &fakePostDB{}
 
-	s := httptest.NewServer(postHandler(db))
+	s := httptest.NewServer(postHandler(db, nil))
 	defer s.Close()
 
 	resp, err := http.PostForm(s.URL, url.Values{
@@ -341,7 +466,7 @@ func TestUndeleteEntryWithJSON(t *testing.T) {
 	assert := assert.New(t)
 	db := &fakePostDB{}
 
-	s := httptest.NewServer(postHandler(db))
+	s := httptest.NewServer(postHandler(db, nil))
 	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{

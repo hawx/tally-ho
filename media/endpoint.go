@@ -10,17 +10,14 @@ import (
 	"mime"
 	"mime/multipart"
 	"net/http"
-	"path"
-	"strings"
 	"sync"
 
-	"github.com/google/uuid"
 	"hawx.me/code/mux"
 	"hawx.me/code/tally-ho/auth"
 )
 
 type FileWriter interface {
-	WriteFile(name string, r io.Reader) (location string, err error)
+	WriteFile(name, contentType string, r io.Reader) (location string, err error)
 }
 
 type uploadState struct {
@@ -79,7 +76,6 @@ func postHandler(state *uploadState, fw FileWriter) http.HandlerFunc {
 			return
 		}
 
-		hadPart := false
 		parts := multipart.NewReader(r.Body, params["boundary"])
 
 		part, err := parts.NextPart()
@@ -95,22 +91,13 @@ func postHandler(state *uploadState, fw FileWriter) http.HandlerFunc {
 		}
 
 		mt, ps, er := mime.ParseMediaType(part.Header.Get("Content-Disposition"))
-		if er != nil || mt != "form-data" || ps["name"] != "file" || hadPart {
+		if er != nil || mt != "form-data" || ps["name"] != "file" {
 			log.Println("ERR media-upload; expected only single part")
 			http.Error(w, "request must only contain a part named 'file'", http.StatusBadRequest)
 			return
 		}
 
-		uid, err := uuid.NewRandom()
-		if err != nil {
-			log.Println("ERR media-upload; failed to assign id")
-			http.Error(w, "problem assigning id to media", http.StatusInternalServerError)
-			return
-		}
-
-		ext := extension(part.Header.Get("Content-Type"), ps["filename"])
-
-		location, err := fw.WriteFile(uid.String()+ext, part)
+		location, err := fw.WriteFile(ps["filename"], part.Header.Get("Content-Type"), part)
 		if err != nil {
 			log.Println("ERR media-upload;", err)
 			http.Error(w, "problem writing media to file", http.StatusInternalServerError)
@@ -124,18 +111,4 @@ func postHandler(state *uploadState, fw FileWriter) http.HandlerFunc {
 		w.Header().Set("Location", location)
 		w.WriteHeader(http.StatusCreated)
 	}
-}
-
-func extension(contentType, filename string) string {
-	ext := strings.ToLower(path.Ext(filename))
-	if len(ext) > 0 {
-		return ext
-	}
-
-	exts, err := mime.ExtensionsByType(contentType)
-	if err == nil && len(exts) > 0 {
-		return exts[0]
-	}
-
-	return ""
 }

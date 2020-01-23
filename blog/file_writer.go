@@ -3,13 +3,22 @@ package blog
 import (
 	"io"
 	"log"
+	"mime"
 	"net/url"
 	"os"
 	"path"
+	"strings"
+
+	"github.com/google/uuid"
 )
 
-func (b *Blog) WriteFile(name string, r io.Reader) (location string, err error) {
-	p := path.Join(b.MediaDir, name)
+func (b *Blog) WriteFile(name, contentType string, r io.Reader) (location string, err error) {
+	uid, err := uuid.NewRandom()
+	if err != nil {
+		return "", err
+	}
+
+	p := path.Join(b.MediaDir, uid.String()+extension(contentType, name))
 
 	file, err := os.Create(p)
 	if err != nil {
@@ -24,4 +33,18 @@ func (b *Blog) WriteFile(name string, r io.Reader) (location string, err error) 
 
 	relURL, _ := url.Parse(name)
 	return b.Config.MediaURL.ResolveReference(relURL).String(), nil
+}
+
+func extension(contentType, filename string) string {
+	ext := strings.ToLower(path.Ext(filename))
+	if len(ext) > 0 {
+		return ext
+	}
+
+	exts, err := mime.ExtensionsByType(contentType)
+	if err == nil && len(exts) > 0 {
+		return exts[0]
+	}
+
+	return ""
 }

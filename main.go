@@ -125,7 +125,8 @@ func main() {
 		b,
 		conf.Me,
 		baseURL.ResolveReference(mediaEndpointURL).String(),
-		syndicators))
+		syndicators,
+		b))
 	http.Handle("/-/webmention", webmention.Endpoint(b))
 	http.Handle("/-/media", media.Endpoint(conf.Me, b))
 

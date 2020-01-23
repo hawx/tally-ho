@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"hawx.me/code/mux"
+	"hawx.me/code/tally-ho/media"
 )
 
 type postDB interface {
@@ -20,9 +21,10 @@ type postDB interface {
 	Undelete(url string) error
 }
 
-func postHandler(db postDB) http.Handler {
+func postHandler(db postDB, fw media.FileWriter) http.Handler {
 	h := micropubPostHandler{
 		db: db,
+		fw: fw,
 	}
 
 	return mux.ContentType{
@@ -34,6 +36,7 @@ func postHandler(db postDB) http.Handler {
 
 type micropubPostHandler struct {
 	db postDB
+	fw media.FileWriter
 }
 
 func (h *micropubPostHandler) handleJSON(w http.ResponseWriter, r *http.Request) {
@@ -190,23 +193,51 @@ func (h *micropubPostHandler) handleMultiPart(w http.ResponseWriter, r *http.Req
 			return
 		}
 
-		slurp, err := ioutil.ReadAll(p)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		key := p.FormName()
-		value := string(slurp)
-
-		if reservedKey(key) {
+		mt, ps, er := mime.ParseMediaType(p.Header.Get("Content-Disposition"))
+		if er != nil || mt != "form-data" {
 			continue
 		}
 
-		if strings.HasSuffix(key, "[]") {
+		key := p.FormName()
+
+		switch key {
+		case "photo", "video", "audio":
+			location, err := h.fw.WriteFile(ps["filename"], p.Header.Get("Content-Type"), p)
+			if err != nil {
+				log.Println("ERR micropub-photo;", err)
+				continue
+			}
+
+			data[key] = []interface{}{location}
+
+		case "photo[]", "video[]", "audio[]":
+			location, err := h.fw.WriteFile(ps["filename"], p.Header.Get("Content-Type"), p)
+			if err != nil {
+				log.Println("ERR micropub-photo;", err)
+				continue
+			}
+
 			key := key[:len(key)-2]
-			data[key] = append(data[key], value)
-		} else {
-			data[key] = []interface{}{value}
+			data[key] = append(data[key], location)
+
+		default:
+			if reservedKey(key) {
+				continue
+			}
+
+			slurp, err := ioutil.ReadAll(p)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			value := string(slurp)
+
+			if strings.HasSuffix(key, "[]") {
+				key := key[:len(key)-2]
+				data[key] = append(data[key], value)
+			} else {
+				data[key] = []interface{}{value}
+			}
 		}
 	}
 

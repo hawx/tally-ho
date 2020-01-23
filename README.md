@@ -26,7 +26,7 @@ Possibly up-to-date feature list:
   * [x] Create with `application/x-www-form-urlencoded`
   * [x] Create with `application/json`
   * [x] Create with `multipart/form-data`
-    * [ ] Store photo/audio/video as if they had been sent via the media endpoint
+    * [x] Store photo/audio/video as if they had been sent via the media endpoint
   * [x] Update with `application/json`
     * [ ] Require `update` scope for requests
   * [x] Upload to media endpoint
