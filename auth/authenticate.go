@@ -18,12 +18,13 @@ func Only(me, scope string, next http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
 		if auth == "" {
+			if r.FormValue("access_token") == "" {
+				w.Header().Set("Content-Type", "application/json")
+				http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+				return
+			}
+
 			auth = "Bearer " + r.FormValue("access_token")
-		}
-		if auth == "" {
-			w.Header().Set("Content-Type", "application/json")
-			http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
-			return
 		}
 
 		req, err := http.NewRequest("GET", endpoints.Token.String(), nil)

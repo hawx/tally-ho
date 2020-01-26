@@ -71,8 +71,9 @@ func TestAuthenticateMissingScope(t *testing.T) {
 	s := httptest.NewServer(Only(meServer.URL, "edit", good))
 	defer s.Close()
 
-	_, err := http.Get(s.URL + "?access_token=abcde")
+	resp, err := http.Get(s.URL + "?access_token=abcde")
 	assert.Nil(err)
+	assert.Equal(http.StatusUnauthorized, resp.StatusCode)
 
 	assert.False(good.OK)
 }
@@ -89,8 +90,9 @@ func TestAuthenticateNotMe(t *testing.T) {
 	s := httptest.NewServer(Only(meServer.URL, "edit", good))
 	defer s.Close()
 
-	_, err := http.Get(s.URL + "?access_token=abcde")
+	resp, err := http.Get(s.URL + "?access_token=abcde")
 	assert.Nil(err)
+	assert.Equal(http.StatusForbidden, resp.StatusCode)
 
 	assert.False(good.OK)
 }
@@ -107,8 +109,28 @@ func TestAuthenticatedBadToken(t *testing.T) {
 	s := httptest.NewServer(Only(meServer.URL, "create", good))
 	defer s.Close()
 
-	_, err := http.Get(s.URL + "?access_token=xyz")
+	resp, err := http.Get(s.URL + "?access_token=xyz")
 	assert.Nil(err)
+	assert.Equal(http.StatusForbidden, resp.StatusCode)
+
+	assert.False(good.OK)
+}
+
+func TestAuthenticatedMissingToken(t *testing.T) {
+	assert := assert.New(t)
+	good := &goodHandler{}
+	me := &meHandler{Token: "abcde"}
+
+	meServer := httptest.NewServer(me)
+	defer meServer.Close()
+	me.Me = meServer.URL
+
+	s := httptest.NewServer(Only(meServer.URL, "create", good))
+	defer s.Close()
+
+	resp, err := http.Get(s.URL)
+	assert.Nil(err)
+	assert.Equal(http.StatusUnauthorized, resp.StatusCode)
 
 	assert.False(good.OK)
 }
