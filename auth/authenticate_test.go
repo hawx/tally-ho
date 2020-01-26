@@ -9,6 +9,19 @@ import (
 	"hawx.me/code/assert"
 )
 
+func testCases(queryAdd, headerAdd string) map[string]func(string) (*http.Response, error) {
+	return map[string]func(string) (*http.Response, error){
+		"query": func(u string) (*http.Response, error) {
+			return http.Get(u + queryAdd)
+		},
+		"header": func(u string) (*http.Response, error) {
+			req, _ := http.NewRequest("GET", u, nil)
+			req.Header.Add("Authorization", "Bearer "+headerAdd)
+			return http.DefaultClient.Do(req)
+		},
+	}
+}
+
 type goodHandler struct {
 	OK bool
 }
@@ -42,95 +55,115 @@ func (h *meHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestAuthenticate(t *testing.T) {
-	assert := assert.New(t)
-	good := &goodHandler{}
-	me := &meHandler{Token: "abcde"}
+	for name, f := range testCases("?access_token=abcde", "abcde") {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			good := &goodHandler{}
+			me := &meHandler{Token: "abcde"}
 
-	meServer := httptest.NewServer(me)
-	defer meServer.Close()
-	me.Me = meServer.URL
+			meServer := httptest.NewServer(me)
+			defer meServer.Close()
+			me.Me = meServer.URL
 
-	s := httptest.NewServer(Only(meServer.URL, "create", good))
-	defer s.Close()
+			s := httptest.NewServer(Only(meServer.URL, "create", good))
+			defer s.Close()
 
-	_, err := http.Get(s.URL + "?access_token=abcde")
-	assert.Nil(err)
+			_, err := f(s.URL)
+			assert.Nil(err)
 
-	assert.True(good.OK)
+			assert.True(good.OK)
+		})
+	}
 }
 
 func TestAuthenticateMissingScope(t *testing.T) {
-	assert := assert.New(t)
-	good := &goodHandler{}
-	me := &meHandler{Token: "abcde"}
+	for name, f := range testCases("?access_token=abcde", "abcde") {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			good := &goodHandler{}
+			me := &meHandler{Token: "abcde"}
 
-	meServer := httptest.NewServer(me)
-	defer meServer.Close()
-	me.Me = meServer.URL
+			meServer := httptest.NewServer(me)
+			defer meServer.Close()
+			me.Me = meServer.URL
 
-	s := httptest.NewServer(Only(meServer.URL, "edit", good))
-	defer s.Close()
+			s := httptest.NewServer(Only(meServer.URL, "edit", good))
+			defer s.Close()
 
-	resp, err := http.Get(s.URL + "?access_token=abcde")
-	assert.Nil(err)
-	assert.Equal(http.StatusUnauthorized, resp.StatusCode)
+			resp, err := f(s.URL)
+			assert.Nil(err)
+			assert.Equal(http.StatusUnauthorized, resp.StatusCode)
 
-	assert.False(good.OK)
+			assert.False(good.OK)
+		})
+	}
 }
 
 func TestAuthenticateNotMe(t *testing.T) {
-	assert := assert.New(t)
-	good := &goodHandler{}
-	me := &meHandler{Token: "abcde"}
+	for name, f := range testCases("?access_token=abcde", "abcde") {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			good := &goodHandler{}
+			me := &meHandler{Token: "abcde"}
 
-	meServer := httptest.NewServer(me)
-	defer meServer.Close()
-	me.Me = "http://who.example.com"
+			meServer := httptest.NewServer(me)
+			defer meServer.Close()
+			me.Me = "http://who.example.com"
 
-	s := httptest.NewServer(Only(meServer.URL, "edit", good))
-	defer s.Close()
+			s := httptest.NewServer(Only(meServer.URL, "edit", good))
+			defer s.Close()
 
-	resp, err := http.Get(s.URL + "?access_token=abcde")
-	assert.Nil(err)
-	assert.Equal(http.StatusForbidden, resp.StatusCode)
+			resp, err := f(s.URL)
+			assert.Nil(err)
+			assert.Equal(http.StatusForbidden, resp.StatusCode)
 
-	assert.False(good.OK)
+			assert.False(good.OK)
+		})
+	}
 }
 
 func TestAuthenticatedBadToken(t *testing.T) {
-	assert := assert.New(t)
-	good := &goodHandler{}
-	me := &meHandler{Token: "abcde"}
+	for name, f := range testCases("?access_token=xyz", "xyz") {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			good := &goodHandler{}
+			me := &meHandler{Token: "abcde"}
 
-	meServer := httptest.NewServer(me)
-	defer meServer.Close()
-	me.Me = meServer.URL
+			meServer := httptest.NewServer(me)
+			defer meServer.Close()
+			me.Me = meServer.URL
 
-	s := httptest.NewServer(Only(meServer.URL, "create", good))
-	defer s.Close()
+			s := httptest.NewServer(Only(meServer.URL, "create", good))
+			defer s.Close()
 
-	resp, err := http.Get(s.URL + "?access_token=xyz")
-	assert.Nil(err)
-	assert.Equal(http.StatusForbidden, resp.StatusCode)
+			resp, err := f(s.URL)
+			assert.Nil(err)
+			assert.Equal(http.StatusForbidden, resp.StatusCode)
 
-	assert.False(good.OK)
+			assert.False(good.OK)
+		})
+	}
 }
 
 func TestAuthenticatedMissingToken(t *testing.T) {
-	assert := assert.New(t)
-	good := &goodHandler{}
-	me := &meHandler{Token: "abcde"}
+	for name, f := range testCases("", "") {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			good := &goodHandler{}
+			me := &meHandler{Token: "abcde"}
 
-	meServer := httptest.NewServer(me)
-	defer meServer.Close()
-	me.Me = meServer.URL
+			meServer := httptest.NewServer(me)
+			defer meServer.Close()
+			me.Me = meServer.URL
 
-	s := httptest.NewServer(Only(meServer.URL, "create", good))
-	defer s.Close()
+			s := httptest.NewServer(Only(meServer.URL, "create", good))
+			defer s.Close()
 
-	resp, err := http.Get(s.URL)
-	assert.Nil(err)
-	assert.Equal(http.StatusUnauthorized, resp.StatusCode)
+			resp, err := f(s.URL)
+			assert.Nil(err)
+			assert.Equal(http.StatusUnauthorized, resp.StatusCode)
 
-	assert.False(good.OK)
+			assert.False(good.OK)
+		})
+	}
 }

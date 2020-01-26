@@ -17,7 +17,7 @@ func Only(me, scope string, next http.Handler) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
-		if auth == "" {
+		if auth == "" || strings.TrimSpace(auth) == "Bearer" {
 			if r.FormValue("access_token") == "" {
 				w.Header().Set("Content-Type", "application/json")
 				http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
