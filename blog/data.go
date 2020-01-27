@@ -182,6 +182,7 @@ func (db *DB) LikesOn(ymd string) (groups []numbersix.Group, err error) {
 	triples, err := db.entries.List(
 		numbersix.
 			Begins("published", ymd).
+			Without("hx-deleted").
 			Has("like-of"),
 	)
 	if err != nil {

@@ -33,7 +33,7 @@ Possibly up-to-date feature list:
   * [x] Delete
     * [x] `410 Gone` entry
     * [x] Remove from listing
-    * [ ] Remove from grouped likes
+    * [x] Remove from grouped likes
   * [x] Undelete
   * [ ] `mp-slug`
   * [ ] `post-status`
