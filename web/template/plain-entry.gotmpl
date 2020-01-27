@@ -10,9 +10,17 @@
   </article>
 {{ else if has . "rsvp" }}
   <article class="h-entry rsvp">
-    <h1>
+    <h1 class="p-summary">
       <data class="p-rsvp" value="{{ get . "rsvp" }}">{{ humanRSVP . }}</data> to
       <a class="u-in-reply-to" href="{{ get . "in-reply-to" }}">{{ getOr . "name" "an event" }}</a>
+    </h1>
+
+    {{ template "entry_meta.gotmpl" . }}
+  </article>
+{{ else if has . "read-of" }}
+  <article class="h-entry book">
+    <h1 class="p-summary">
+      {{ if eq (get . "read-status") "to-read" }}want to read{{ end }}{{ if eq (get . "read-status") "reading" }}reading{{ end }}{{ if eq (get . "read-status") "finished" }}read{{ end }} <span class="h-cite"><strong class="p-name">{{ get . "read-of.properties.name" }}</strong> by <strong class="p-author">{{ get . "read-of.properties.author" }}</strong></span>
     </h1>
 
     {{ template "entry_meta.gotmpl" . }}
@@ -40,7 +48,7 @@
       </p>
     {{ end }}
 
-    <div claass="e-content">
+    <div class="e-content">
       {{ content . }}
     </div>
 
