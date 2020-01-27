@@ -37,7 +37,8 @@ Possibly up-to-date feature list:
   * [x] Undelete
   * [ ] `mp-slug`
   * [ ] `post-status`
-  * [x] [indiebookclub](https://indiebookclub.biz/documentation#micropub)
+  * [x] [indiebookclub](https://indiebookclub.biz/)
+  * [x] [teacup](https://teacup.p3k.io/)
 
 - Syndication:
   * Twitter:

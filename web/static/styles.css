@@ -171,16 +171,16 @@ p + p {
 
 /* small posts */
 
-.reply, .likes, .rsvp, .book {
+.reply, .likes, .rsvp, .book, .drank {
     padding: var(--top-gutter) var(--left-gutter) 0;
 }
 
-.reply h1, .likes h1, .rsvp h1, .book h1 {
+.reply h1, .likes h1, .rsvp h1, .book h1, .drank h1 {
     font-size: 1rem;
     position: relative;
 }
 
-.reply h1:before, .likes h1:before, .rsvp h1:before, .book h1:before {
+.reply h1:before, .likes h1:before, .rsvp h1:before, .book h1:before, .drank h1:before {
     position: absolute;
     margin-left: -1.5rem;
 }
@@ -251,6 +251,16 @@ div.h-cite .u-url {
 
 .book h1:before {
     content: '📕 ';
+}
+
+/* drank */
+
+.drank h1 {
+    font-weight: normal;
+}
+
+.drank h1:before {
+    content: '🍼 ';
 }
 
 /* reactions */
