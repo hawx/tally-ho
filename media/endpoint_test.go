@@ -2,6 +2,7 @@ package media
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"io/ioutil"
@@ -24,13 +25,19 @@ func (fw *fakeFileWriter) WriteFile(name, contentType string, r io.Reader) (stri
 	return "a url", nil
 }
 
+func withScope(scope string, handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), "__hawx.me/code/tally-ho:Scopes__", []string{scope})))
+	})
+}
+
 func TestMedia(t *testing.T) {
 	assert := assert.New(t)
 	file := "this is an image"
 	fw := &fakeFileWriter{}
 	state := &uploadState{}
 
-	s := httptest.NewServer(postHandler(state, fw))
+	s := httptest.NewServer(withScope("media", postHandler(state, fw)))
 	defer s.Close()
 
 	var buf bytes.Buffer
@@ -59,7 +66,7 @@ func TestMedia(t *testing.T) {
 func TestMediaWhenNoFilePart(t *testing.T) {
 	assert := assert.New(t)
 
-	s := httptest.NewServer(postHandler(&uploadState{}, &fakeFileWriter{}))
+	s := httptest.NewServer(withScope("media", postHandler(&uploadState{}, &fakeFileWriter{})))
 	defer s.Close()
 
 	var buf bytes.Buffer
@@ -81,7 +88,7 @@ func TestMediaWhenMultipleFileParts(t *testing.T) {
 	file := "this is an image"
 	fw := &fakeFileWriter{}
 
-	s := httptest.NewServer(postHandler(&uploadState{}, fw))
+	s := httptest.NewServer(withScope("media", postHandler(&uploadState{}, fw)))
 	defer s.Close()
 
 	var buf bytes.Buffer
@@ -112,7 +119,7 @@ func TestMediaWhenMultipleFileParts(t *testing.T) {
 func TestQueryUnknown(t *testing.T) {
 	assert := assert.New(t)
 
-	s := httptest.NewServer(getHandler(&uploadState{}))
+	s := httptest.NewServer(withScope("media", getHandler(&uploadState{})))
 	defer s.Close()
 
 	req, err := http.NewRequest("GET", s.URL+"?q=what", nil)
@@ -127,9 +134,9 @@ func TestQueryUnknown(t *testing.T) {
 func TestQueryLast(t *testing.T) {
 	assert := assert.New(t)
 
-	s := httptest.NewServer(getHandler(&uploadState{
+	s := httptest.NewServer(withScope("media", getHandler(&uploadState{
 		LastURL: "http://media.example.com/file.jpg",
-	}))
+	})))
 	defer s.Close()
 
 	req, err := http.NewRequest("GET", s.URL+"?q=last", nil)
@@ -149,7 +156,7 @@ func TestQueryLast(t *testing.T) {
 func TestQueryLastWhenNoneUploaded(t *testing.T) {
 	assert := assert.New(t)
 
-	s := httptest.NewServer(getHandler(&uploadState{}))
+	s := httptest.NewServer(withScope("media", getHandler(&uploadState{})))
 	defer s.Close()
 
 	req, err := http.NewRequest("GET", s.URL+"?q=last", nil)

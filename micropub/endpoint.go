@@ -26,7 +26,7 @@ func Endpoint(
 	syndicators map[string]syndicate.Syndicator,
 	fw media.FileWriter,
 ) http.Handler {
-	return auth.Only(me, "create", mux.Method{
+	return auth.Only(me, mux.Method{
 		"POST": postHandler(db, fw),
 		"GET":  getHandler(db, mediaUploadURL, syndicators),
 	})

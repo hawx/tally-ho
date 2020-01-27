@@ -35,7 +35,7 @@ type uploadState struct {
 func Endpoint(me string, fw FileWriter) http.Handler {
 	state := &uploadState{}
 
-	return auth.Only(me, "media", mux.Method{
+	return auth.Only(me, mux.Method{
 		"GET":  getHandler(state),
 		"POST": postHandler(state, fw),
 	})
@@ -43,6 +43,10 @@ func Endpoint(me string, fw FileWriter) http.Handler {
 
 func getHandler(state *uploadState) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if !auth.HasScope(w, r, "media") {
+			return
+		}
+
 		if r.FormValue("q") != "last" {
 			http.Error(w, "", http.StatusBadRequest)
 			return
@@ -65,6 +69,10 @@ func getHandler(state *uploadState) http.HandlerFunc {
 
 func postHandler(state *uploadState, fw FileWriter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if !auth.HasScope(w, r, "media") {
+			return
+		}
+
 		mediaType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 		if err != nil {
 			log.Println("ERR media-upload;", err)

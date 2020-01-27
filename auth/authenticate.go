@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -9,7 +10,7 @@ import (
 	"hawx.me/code/indieauth"
 )
 
-func Only(me, scope string, next http.Handler) http.HandlerFunc {
+func Only(me string, next http.Handler) http.HandlerFunc {
 	endpoints, err := indieauth.FindEndpoints(me)
 	if err != nil {
 		log.Fatal("ERR find-indieauth-endpoints;", err)
@@ -62,16 +63,31 @@ func Only(me, scope string, next http.Handler) http.HandlerFunc {
 			return
 		}
 
-		hasScope := contains(scope, strings.Fields(tokenData.Scope))
-		if !hasScope {
-			log.Printf("ERR token-missing-scope wanted=%s; %s\n", scope, tokenData.Scope)
-			w.Header().Set("Content-Type", "application/json")
-			http.Error(w, `{"error":"insufficient_scope"}`, http.StatusUnauthorized)
-			return
-		}
-
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(w, r.WithContext(
+			context.WithValue(r.Context(), scopesKey, strings.Fields(tokenData.Scope)),
+		))
 	}
+}
+
+const scopesKey = "__hawx.me/code/tally-ho:Scopes__"
+
+func HasScope(w http.ResponseWriter, r *http.Request, scope string) bool {
+	rv := r.Context().Value(scopesKey)
+	if rv == nil {
+		return false
+	}
+
+	scopes := rv.([]string)
+
+	hasScope := contains(scope, scopes)
+	if !hasScope {
+		log.Printf("ERR token-missing-scope wanted=%s; %s\n", scope, strings.Join(scopes, " "))
+		w.Header().Set("Content-Type", "application/json")
+		http.Error(w, `{"error":"insufficient_scope"}`, http.StatusUnauthorized)
+		return false
+	}
+
+	return true
 }
 
 func contains(needle string, list []string) bool {

@@ -2,6 +2,7 @@ package micropub
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -13,6 +14,12 @@ import (
 
 	"hawx.me/code/assert"
 )
+
+func withScope(scope string, handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), "__hawx.me/code/tally-ho:Scopes__", []string{scope})))
+	})
+}
 
 type fakePostDB struct {
 	datas                   []map[string][]interface{}
@@ -66,7 +73,7 @@ func TestPostEntry(t *testing.T) {
 	assert := assert.New(t)
 	blog := &fakePostDB{}
 
-	s := httptest.NewServer(postHandler(blog, nil))
+	s := httptest.NewServer(withScope("create", postHandler(blog, nil)))
 	defer s.Close()
 
 	resp, err := http.PostForm(s.URL, url.Values{
@@ -99,7 +106,7 @@ func TestPostEntryJSON(t *testing.T) {
 	assert := assert.New(t)
 	db := &fakePostDB{}
 
-	s := httptest.NewServer(postHandler(db, nil))
+	s := httptest.NewServer(withScope("create", postHandler(db, nil)))
 	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
@@ -134,7 +141,7 @@ func TestPostEntryMultipartForm(t *testing.T) {
 	assert := assert.New(t)
 	db := &fakePostDB{}
 
-	s := httptest.NewServer(postHandler(db, nil))
+	s := httptest.NewServer(withScope("create", postHandler(db, nil)))
 	defer s.Close()
 
 	var buf bytes.Buffer
@@ -186,7 +193,7 @@ func TestPostEntryMultipartFormWithMedia(t *testing.T) {
 			db := &fakePostDB{}
 			fw := &fakeFileWriter{}
 
-			s := httptest.NewServer(postHandler(db, fw))
+			s := httptest.NewServer(withScope("create", postHandler(db, fw)))
 			defer s.Close()
 
 			var buf bytes.Buffer
@@ -239,7 +246,7 @@ func TestPostEntryMultipartFormWithMultiplePhotos(t *testing.T) {
 			db := &fakePostDB{}
 			fw := &fakeFileWriter{}
 
-			s := httptest.NewServer(postHandler(db, fw))
+			s := httptest.NewServer(withScope("create", postHandler(db, fw)))
 			defer s.Close()
 
 			var buf bytes.Buffer
@@ -300,7 +307,7 @@ func TestUpdateEntry(t *testing.T) {
 		deleteAlls: map[string][][]string{},
 	}
 
-	s := httptest.NewServer(postHandler(db, nil))
+	s := httptest.NewServer(withScope("create", postHandler(db, nil)))
 	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
@@ -345,7 +352,7 @@ func TestUpdateEntryDelete(t *testing.T) {
 		deleteAlls: map[string][][]string{},
 	}
 
-	s := httptest.NewServer(postHandler(db, nil))
+	s := httptest.NewServer(withScope("create", postHandler(db, nil)))
 	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
@@ -380,7 +387,7 @@ func TestUpdateEntryDelete(t *testing.T) {
 }
 
 func TestUpdateEntryInvalidDelete(t *testing.T) {
-	s := httptest.NewServer(postHandler(nil, nil))
+	s := httptest.NewServer(withScope("create", postHandler(nil, nil)))
 	defer s.Close()
 
 	testCases := map[string]string{
@@ -406,7 +413,7 @@ func TestDeleteEntryWithURLEncodedForm(t *testing.T) {
 	assert := assert.New(t)
 	db := &fakePostDB{}
 
-	s := httptest.NewServer(postHandler(db, nil))
+	s := httptest.NewServer(withScope("create", postHandler(db, nil)))
 	defer s.Close()
 
 	resp, err := http.PostForm(s.URL, url.Values{
@@ -426,7 +433,7 @@ func TestDeleteEntryWithJSON(t *testing.T) {
 	assert := assert.New(t)
 	db := &fakePostDB{}
 
-	s := httptest.NewServer(postHandler(db, nil))
+	s := httptest.NewServer(withScope("create", postHandler(db, nil)))
 	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
@@ -446,7 +453,7 @@ func TestUndeleteEntryWithURLEncodedForm(t *testing.T) {
 	assert := assert.New(t)
 	db := &fakePostDB{}
 
-	s := httptest.NewServer(postHandler(db, nil))
+	s := httptest.NewServer(withScope("create", postHandler(db, nil)))
 	defer s.Close()
 
 	resp, err := http.PostForm(s.URL, url.Values{
@@ -466,7 +473,7 @@ func TestUndeleteEntryWithJSON(t *testing.T) {
 	assert := assert.New(t)
 	db := &fakePostDB{}
 
-	s := httptest.NewServer(postHandler(db, nil))
+	s := httptest.NewServer(withScope("create", postHandler(db, nil)))
 	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{

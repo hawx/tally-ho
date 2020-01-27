@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"hawx.me/code/mux"
+	"hawx.me/code/tally-ho/auth"
 	"hawx.me/code/tally-ho/media"
 )
 
@@ -40,6 +41,10 @@ type micropubPostHandler struct {
 }
 
 func (h *micropubPostHandler) handleJSON(w http.ResponseWriter, r *http.Request) {
+	if !auth.HasScope(w, r, "create") {
+		return
+	}
+
 	v := jsonMicroformat{Properties: map[string][]interface{}{}}
 
 	if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
@@ -128,6 +133,10 @@ func (h *micropubPostHandler) handleJSON(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *micropubPostHandler) handleForm(w http.ResponseWriter, r *http.Request) {
+	if !auth.HasScope(w, r, "create") {
+		return
+	}
+
 	data := map[string][]interface{}{}
 
 	if err := r.ParseForm(); err != nil {
@@ -173,6 +182,10 @@ func (h *micropubPostHandler) handleForm(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *micropubPostHandler) handleMultiPart(w http.ResponseWriter, r *http.Request) {
+	if !auth.HasScope(w, r, "create") {
+		return
+	}
+
 	_, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
 		log.Println("ERR micropub-parse-multi-part;", err)
