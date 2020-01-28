@@ -43,10 +43,6 @@ func Endpoint(me string, fw FileWriter) http.Handler {
 
 func getHandler(state *uploadState) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !auth.HasScope(w, r, "media") {
-			return
-		}
-
 		if r.FormValue("q") != "last" {
 			http.Error(w, "", http.StatusBadRequest)
 			return
@@ -69,7 +65,7 @@ func getHandler(state *uploadState) http.HandlerFunc {
 
 func postHandler(state *uploadState, fw FileWriter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !auth.HasScope(w, r, "media") {
+		if !auth.HasScope(w, r, "media", "create") {
 			return
 		}
 

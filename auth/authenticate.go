@@ -71,7 +71,7 @@ func Only(me string, next http.Handler) http.HandlerFunc {
 
 const scopesKey = "__hawx.me/code/tally-ho:Scopes__"
 
-func HasScope(w http.ResponseWriter, r *http.Request, scope string) bool {
+func HasScope(w http.ResponseWriter, r *http.Request, valid ...string) bool {
 	rv := r.Context().Value(scopesKey)
 	if rv == nil {
 		w.Header().Set("Content-Type", "application/json")
@@ -81,9 +81,8 @@ func HasScope(w http.ResponseWriter, r *http.Request, scope string) bool {
 
 	scopes := rv.([]string)
 
-	hasScope := contains(scope, scopes)
+	hasScope := intersects(valid, scopes)
 	if !hasScope {
-		log.Printf("ERR token-missing-scope wanted=%s; %s\n", scope, strings.Join(scopes, " "))
 		w.Header().Set("Content-Type", "application/json")
 		http.Error(w, `{"error":"insufficient_scope"}`, http.StatusUnauthorized)
 		return false
@@ -92,10 +91,12 @@ func HasScope(w http.ResponseWriter, r *http.Request, scope string) bool {
 	return true
 }
 
-func contains(needle string, list []string) bool {
-	for _, item := range list {
-		if item == needle {
-			return true
+func intersects(needles []string, list []string) bool {
+	for _, needle := range needles {
+		for _, item := range list {
+			if item == needle {
+				return true
+			}
 		}
 	}
 
