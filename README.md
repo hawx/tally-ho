@@ -28,7 +28,7 @@ Possibly up-to-date feature list:
   * [x] Create with `multipart/form-data`
     * [x] Store photo/audio/video as if they had been sent via the media endpoint
   * [x] Update with `application/json`
-    * [ ] Require `update` scope for requests
+    * [x] Require `update` scope for requests
   * [x] Upload to media endpoint
   * [x] Delete
     * [x] `410 Gone` entry

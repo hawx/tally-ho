@@ -70,46 +70,18 @@ func (fw *fakeFileWriter) WriteFile(name, contentType string, r io.Reader) (stri
 }
 
 func TestPostEntry(t *testing.T) {
-	assert := assert.New(t)
-	blog := &fakePostDB{}
-
-	s := httptest.NewServer(withScope("create", postHandler(blog, nil)))
-	defer s.Close()
-
-	resp, err := http.PostForm(s.URL, url.Values{
-		"h":            {"entry"},
-		"content":      {"This is a test"},
-		"category[]":   {"test", "ignore"},
-		"mp-something": {"what"},
-		"url":          {"what"},
-	})
-
-	assert.Nil(err)
-	assert.Equal(http.StatusCreated, resp.StatusCode)
-	assert.Equal("http://example.com/blog/p/1", resp.Header.Get("Location"))
-
-	if assert.Len(blog.datas, 1) {
-		data := blog.datas[0]
-
-		assert.Equal("entry", data["h"][0])
-		assert.Equal("This is a test", data["content"][0])
-		assert.Equal("test", data["category"][0])
-		assert.Equal("ignore", data["category"][1])
-		assert.Equal("what", data["mp-something"][0])
-
-		_, ok := data["url"]
-		assert.False(ok)
-	}
-}
-
-func TestPostEntryJSON(t *testing.T) {
-	assert := assert.New(t)
-	db := &fakePostDB{}
-
-	s := httptest.NewServer(withScope("create", postHandler(db, nil)))
-	defer s.Close()
-
-	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
+	testCases := map[string]func(string) (*http.Response, error){
+		"url-encoded-form": func(u string) (*http.Response, error) {
+			return http.PostForm(u, url.Values{
+				"h":            {"entry"},
+				"content":      {"This is a test"},
+				"category[]":   {"test", "ignore"},
+				"mp-something": {"what"},
+				"url":          {"what"},
+			})
+		},
+		"json": func(u string) (*http.Response, error) {
+			return http.Post(u, "application/json", strings.NewReader(`{
   "type": ["h-entry"],
   "properties": {
     "content": ["This is a test"],
@@ -118,70 +90,145 @@ func TestPostEntryJSON(t *testing.T) {
     "url": ["http://what"]
   }
 }`))
+		},
+		"multipart-form": func(u string) (*http.Response, error) {
+			var buf bytes.Buffer
+			writer := multipart.NewWriter(&buf)
 
-	assert.Nil(err)
-	assert.Equal(http.StatusCreated, resp.StatusCode)
-	assert.Equal("http://example.com/blog/p/1", resp.Header.Get("Location"))
+			var werr error
+			writeField := func(key, value string) {
+				part, err := writer.CreateFormField(key)
+				if err != nil {
+					werr = err
+				}
+				io.WriteString(part, value)
+			}
 
-	if assert.Len(db.datas, 1) {
-		data := db.datas[0]
+			writeField("h", "entry")
+			writeField("content", "This is a test")
+			writeField("category[]", "test")
+			writeField("category[]", "ignore")
+			writeField("mp-something", "what")
+			writeField("url", "what")
+			if err := writer.Close(); err != nil {
+				return nil, err
+			}
+			if werr != nil {
+				return nil, werr
+			}
 
-		assert.Equal("entry", data["h"][0])
-		assert.Equal("This is a test", data["content"][0])
-		assert.Equal("test", data["category"][0])
-		assert.Equal("ignore", data["category"][1])
-		assert.Equal("what", data["mp-something"][0])
+			req, err := http.NewRequest("POST", u, &buf)
+			if err != nil {
+				return nil, err
+			}
+			req.Header.Set("Content-Type", writer.FormDataContentType())
 
-		_, ok := data["url"]
-		assert.False(ok)
+			return http.DefaultClient.Do(req)
+		},
+	}
+
+	for name, f := range testCases {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			blog := &fakePostDB{}
+
+			s := httptest.NewServer(withScope("create", postHandler(blog, nil)))
+			defer s.Close()
+
+			resp, err := f(s.URL)
+
+			assert.Nil(err)
+			assert.Equal(http.StatusCreated, resp.StatusCode)
+			assert.Equal("http://example.com/blog/p/1", resp.Header.Get("Location"))
+
+			if assert.Len(blog.datas, 1) {
+				data := blog.datas[0]
+
+				assert.Equal("entry", data["h"][0])
+				assert.Equal("This is a test", data["content"][0])
+				assert.Equal("test", data["category"][0])
+				assert.Equal("ignore", data["category"][1])
+				assert.Equal("what", data["mp-something"][0])
+
+				_, ok := data["url"]
+				assert.False(ok)
+			}
+		})
 	}
 }
 
-func TestPostEntryMultipartForm(t *testing.T) {
-	assert := assert.New(t)
-	db := &fakePostDB{}
+func TestPostEntryMissingScope(t *testing.T) {
+	testCases := map[string]func(string) (*http.Response, error){
+		"url-encoded-form": func(u string) (*http.Response, error) {
+			return http.PostForm(u, url.Values{
+				"h":            {"entry"},
+				"content":      {"This is a test"},
+				"category[]":   {"test", "ignore"},
+				"mp-something": {"what"},
+				"url":          {"what"},
+			})
+		},
+		"json": func(u string) (*http.Response, error) {
+			return http.Post(u, "application/json", strings.NewReader(`{
+  "type": ["h-entry"],
+  "properties": {
+    "content": ["This is a test"],
+    "category": ["test", "ignore"],
+    "mp-something": ["what"],
+    "url": ["http://what"]
+  }
+}`))
+		},
+		"multipart-form": func(u string) (*http.Response, error) {
+			var buf bytes.Buffer
+			writer := multipart.NewWriter(&buf)
 
-	s := httptest.NewServer(withScope("create", postHandler(db, nil)))
-	defer s.Close()
+			var werr error
+			writeField := func(key, value string) {
+				part, err := writer.CreateFormField(key)
+				if err != nil {
+					werr = err
+				}
+				io.WriteString(part, value)
+			}
 
-	var buf bytes.Buffer
-	writer := multipart.NewWriter(&buf)
+			writeField("h", "entry")
+			writeField("content", "This is a test")
+			writeField("category[]", "test")
+			writeField("category[]", "ignore")
+			writeField("mp-something", "what")
+			writeField("url", "what")
+			if err := writer.Close(); err != nil {
+				return nil, err
+			}
+			if werr != nil {
+				return nil, werr
+			}
 
-	writeField := func(key, value string) {
-		part, err := writer.CreateFormField(key)
-		assert.Nil(err)
-		io.WriteString(part, value)
+			req, err := http.NewRequest("POST", u, &buf)
+			if err != nil {
+				return nil, err
+			}
+			req.Header.Set("Content-Type", writer.FormDataContentType())
+
+			return http.DefaultClient.Do(req)
+		},
 	}
 
-	writeField("h", "entry")
-	writeField("content", "This is a test")
-	writeField("category[]", "test")
-	writeField("category[]", "ignore")
-	writeField("mp-something", "what")
-	writeField("url", "what")
-	assert.Nil(writer.Close())
+	for name, f := range testCases {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			blog := &fakePostDB{}
 
-	req, err := http.NewRequest("POST", s.URL, &buf)
-	assert.Nil(err)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
+			s := httptest.NewServer(postHandler(blog, nil))
+			defer s.Close()
 
-	resp, err := http.DefaultClient.Do(req)
+			resp, err := f(s.URL)
 
-	assert.Nil(err)
-	assert.Equal(http.StatusCreated, resp.StatusCode)
-	assert.Equal("http://example.com/blog/p/1", resp.Header.Get("Location"))
-
-	if assert.Len(db.datas, 1) {
-		data := db.datas[0]
-
-		assert.Equal("entry", data["h"][0])
-		assert.Equal("This is a test", data["content"][0])
-		assert.Equal("test", data["category"][0])
-		assert.Equal("ignore", data["category"][1])
-		assert.Equal("what", data["mp-something"][0])
-
-		_, ok := data["url"]
-		assert.False(ok)
+			assert.Nil(err)
+			assert.Equal(http.StatusUnauthorized, resp.StatusCode)
+			assert.Len(blog.datas, 0)
+		})
 	}
 }
 
@@ -234,6 +281,48 @@ func TestPostEntryMultipartFormWithMedia(t *testing.T) {
 			if assert.Len(fw.data, 1) {
 				assert.Equal(file, fw.data[0])
 			}
+		})
+	}
+}
+
+func TestPostEntryMultipartFormWithMediaMissingScope(t *testing.T) {
+	for _, key := range []string{"photo", "video", "audio"} {
+		t.Run(key, func(t *testing.T) {
+			assert := assert.New(t)
+			file := "this is an image"
+			db := &fakePostDB{}
+			fw := &fakeFileWriter{}
+
+			s := httptest.NewServer(postHandler(db, fw))
+			defer s.Close()
+
+			var buf bytes.Buffer
+			writer := multipart.NewWriter(&buf)
+
+			writeField := func(key, value string) {
+				part, err := writer.CreateFormField(key)
+				assert.Nil(err)
+				io.WriteString(part, value)
+			}
+
+			writeField("h", "entry")
+			writeField("content", "This is a test")
+			part, err := writer.CreateFormFile(key, "whatever.png")
+			assert.Nil(err)
+			io.WriteString(part, file)
+
+			assert.Nil(writer.Close())
+
+			req, err := http.NewRequest("POST", s.URL, &buf)
+			assert.Nil(err)
+			req.Header.Set("Content-Type", writer.FormDataContentType())
+
+			resp, err := http.DefaultClient.Do(req)
+
+			assert.Nil(err)
+			assert.Equal(http.StatusUnauthorized, resp.StatusCode)
+			assert.Len(db.datas, 0)
+			assert.Len(fw.data, 0)
 		})
 	}
 }
@@ -307,7 +396,7 @@ func TestUpdateEntry(t *testing.T) {
 		deleteAlls: map[string][][]string{},
 	}
 
-	s := httptest.NewServer(withScope("create", postHandler(db, nil)))
+	s := httptest.NewServer(withScope("update", postHandler(db, nil)))
 	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
@@ -343,6 +432,45 @@ func TestUpdateEntry(t *testing.T) {
 	}
 }
 
+func TestUpdateEntryMissingScope(t *testing.T) {
+	assert := assert.New(t)
+	db := &fakePostDB{
+		adds:       map[string][]map[string][]interface{}{},
+		deletes:    map[string][]map[string][]interface{}{},
+		replaces:   map[string][]map[string][]interface{}{},
+		deleteAlls: map[string][][]string{},
+	}
+
+	s := httptest.NewServer(postHandler(db, nil))
+	defer s.Close()
+
+	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
+  "action": "update",
+  "url": "https://example.com/blog/p/100",
+  "replace": {
+    "content": ["hello moon"]
+  },
+  "add": {
+    "syndication": ["http://somewhere.com"]
+  },
+  "delete": {
+    "not-important": ["this"]
+  }
+}`))
+
+	assert.Nil(err)
+	assert.Equal(http.StatusUnauthorized, resp.StatusCode)
+
+	_, ok := db.replaces["https://example.com/blog/p/100"]
+	assert.False(ok)
+
+	_, ok = db.adds["https://example.com/blog/p/100"]
+	assert.False(ok)
+
+	_, ok = db.deletes["https://example.com/blog/p/100"]
+	assert.False(ok)
+}
+
 func TestUpdateEntryDelete(t *testing.T) {
 	assert := assert.New(t)
 	db := &fakePostDB{
@@ -352,7 +480,7 @@ func TestUpdateEntryDelete(t *testing.T) {
 		deleteAlls: map[string][][]string{},
 	}
 
-	s := httptest.NewServer(withScope("create", postHandler(db, nil)))
+	s := httptest.NewServer(withScope("update", postHandler(db, nil)))
 	defer s.Close()
 
 	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
@@ -387,7 +515,7 @@ func TestUpdateEntryDelete(t *testing.T) {
 }
 
 func TestUpdateEntryInvalidDelete(t *testing.T) {
-	s := httptest.NewServer(withScope("create", postHandler(nil, nil)))
+	s := httptest.NewServer(withScope("update", postHandler(nil, nil)))
 	defer s.Close()
 
 	testCases := map[string]string{
@@ -409,82 +537,140 @@ func TestUpdateEntryInvalidDelete(t *testing.T) {
 	}
 }
 
-func TestDeleteEntryWithURLEncodedForm(t *testing.T) {
-	assert := assert.New(t)
-	db := &fakePostDB{}
-
-	s := httptest.NewServer(withScope("create", postHandler(db, nil)))
-	defer s.Close()
-
-	resp, err := http.PostForm(s.URL, url.Values{
-		"action": {"delete"},
-		"url":    {"https://example.com/blog/p/1"},
-	})
-
-	assert.Nil(err)
-	assert.Equal(http.StatusNoContent, resp.StatusCode)
-
-	if assert.Len(db.deleted, 1) {
-		assert.Equal("https://example.com/blog/p/1", db.deleted[0])
-	}
-}
-
-func TestDeleteEntryWithJSON(t *testing.T) {
-	assert := assert.New(t)
-	db := &fakePostDB{}
-
-	s := httptest.NewServer(withScope("create", postHandler(db, nil)))
-	defer s.Close()
-
-	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
+func TestDeleteEntry(t *testing.T) {
+	testCases := map[string]func(string) (*http.Response, error){
+		"url-encoded-form": func(u string) (*http.Response, error) {
+			return http.PostForm(u, url.Values{
+				"action": {"delete"},
+				"url":    {"https://example.com/blog/p/1"},
+			})
+		},
+		"json": func(u string) (*http.Response, error) {
+			return http.Post(u, "application/json", strings.NewReader(`{
   "action": "delete",
-  "url": "https://example.com/blog/p/100"
+  "url": "https://example.com/blog/p/1"
 }`))
+		},
+	}
 
-	assert.Nil(err)
-	assert.Equal(http.StatusNoContent, resp.StatusCode)
+	for name, f := range testCases {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			db := &fakePostDB{}
 
-	if assert.Len(db.deleted, 1) {
-		assert.Equal("https://example.com/blog/p/100", db.deleted[0])
+			s := httptest.NewServer(withScope("delete", postHandler(db, nil)))
+			defer s.Close()
+
+			resp, err := f(s.URL)
+
+			assert.Nil(err)
+			assert.Equal(http.StatusNoContent, resp.StatusCode)
+
+			if assert.Len(db.deleted, 1) {
+				assert.Equal("https://example.com/blog/p/1", db.deleted[0])
+			}
+		})
 	}
 }
 
-func TestUndeleteEntryWithURLEncodedForm(t *testing.T) {
-	assert := assert.New(t)
-	db := &fakePostDB{}
+func TestDeleteEntryMissingScope(t *testing.T) {
+	testCases := map[string]func(string) (*http.Response, error){
+		"url-encoded-form": func(u string) (*http.Response, error) {
+			return http.PostForm(u, url.Values{
+				"action": {"delete"},
+				"url":    {"https://example.com/blog/p/1"},
+			})
+		},
+		"json": func(u string) (*http.Response, error) {
+			return http.Post(u, "application/json", strings.NewReader(`{
+  "action": "delete",
+  "url": "https://example.com/blog/p/1"
+}`))
+		},
+	}
 
-	s := httptest.NewServer(withScope("create", postHandler(db, nil)))
-	defer s.Close()
+	for name, f := range testCases {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			db := &fakePostDB{}
 
-	resp, err := http.PostForm(s.URL, url.Values{
-		"action": {"undelete"},
-		"url":    {"https://example.com/blog/p/1"},
-	})
+			s := httptest.NewServer(postHandler(db, nil))
+			defer s.Close()
 
-	assert.Nil(err)
-	assert.Equal(http.StatusNoContent, resp.StatusCode)
+			resp, err := f(s.URL)
 
-	if assert.Len(db.undeleted, 1) {
-		assert.Equal("https://example.com/blog/p/1", db.undeleted[0])
+			assert.Nil(err)
+			assert.Equal(http.StatusUnauthorized, resp.StatusCode)
+			assert.Len(db.deleted, 0)
+		})
 	}
 }
 
-func TestUndeleteEntryWithJSON(t *testing.T) {
-	assert := assert.New(t)
-	db := &fakePostDB{}
-
-	s := httptest.NewServer(withScope("create", postHandler(db, nil)))
-	defer s.Close()
-
-	resp, err := http.Post(s.URL, "application/json", strings.NewReader(`{
+func TestUndeleteEntry(t *testing.T) {
+	testCases := map[string]func(string) (*http.Response, error){
+		"url-encoded-form": func(u string) (*http.Response, error) {
+			return http.PostForm(u, url.Values{
+				"action": {"undelete"},
+				"url":    {"https://example.com/blog/p/1"},
+			})
+		},
+		"json": func(u string) (*http.Response, error) {
+			return http.Post(u, "application/json", strings.NewReader(`{
   "action": "undelete",
-  "url": "https://example.com/blog/p/100"
+  "url": "https://example.com/blog/p/1"
 }`))
+		},
+	}
 
-	assert.Nil(err)
-	assert.Equal(http.StatusNoContent, resp.StatusCode)
+	for name, f := range testCases {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			db := &fakePostDB{}
 
-	if assert.Len(db.undeleted, 1) {
-		assert.Equal("https://example.com/blog/p/100", db.undeleted[0])
+			s := httptest.NewServer(withScope("delete", postHandler(db, nil)))
+			defer s.Close()
+
+			resp, err := f(s.URL)
+
+			assert.Nil(err)
+			assert.Equal(http.StatusNoContent, resp.StatusCode)
+
+			if assert.Len(db.undeleted, 1) {
+				assert.Equal("https://example.com/blog/p/1", db.undeleted[0])
+			}
+		})
+	}
+}
+
+func TestUndeleteEntryMissingScope(t *testing.T) {
+	testCases := map[string]func(string) (*http.Response, error){
+		"url-encoded-form": func(u string) (*http.Response, error) {
+			return http.PostForm(u, url.Values{
+				"action": {"undelete"},
+				"url":    {"https://example.com/blog/p/1"},
+			})
+		},
+		"json": func(u string) (*http.Response, error) {
+			return http.Post(u, "application/json", strings.NewReader(`{
+  "action": "undelete",
+  "url": "https://example.com/blog/p/1"
+}`))
+		},
+	}
+
+	for name, f := range testCases {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			db := &fakePostDB{}
+
+			s := httptest.NewServer(postHandler(db, nil))
+			defer s.Close()
+
+			resp, err := f(s.URL)
+
+			assert.Nil(err)
+			assert.Equal(http.StatusUnauthorized, resp.StatusCode)
+			assert.Len(db.undeleted, 0)
+		})
 	}
 }

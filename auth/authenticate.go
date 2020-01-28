@@ -74,6 +74,8 @@ const scopesKey = "__hawx.me/code/tally-ho:Scopes__"
 func HasScope(w http.ResponseWriter, r *http.Request, scope string) bool {
 	rv := r.Context().Value(scopesKey)
 	if rv == nil {
+		w.Header().Set("Content-Type", "application/json")
+		http.Error(w, `{"error":"insufficient_scope"}`, http.StatusUnauthorized)
 		return false
 	}
 
