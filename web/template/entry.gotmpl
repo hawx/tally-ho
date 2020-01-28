@@ -6,7 +6,7 @@
         <span class="h-entry">
           <a class="u-like-of" href="{{ get . "like-of" }}">{{ if has . "name" }}{{ get . "name" }}{{ else }}{{ get . "like-of" }}{{ end }}</a>
           <a class="u-url" href="{{ get . "url" }}">at
-            <time class="dt-published" pubdate="{{ get . "published" }}">
+            <time class="dt-published" datetime="{{ get . "published" }}">
               {{ time . "published" }}
             </time>
           </a>
