@@ -16,6 +16,12 @@
     {{ template "entry.gotmpl" .Posts }}
 
     <div class="meta more">
+      {{ if has .Posts.Meta "hx-client-id" }}
+        <div>
+          posted by
+          <a href="{{ get .Posts.Meta "hx-client-id" }}">{{ get .Posts.Meta "hx-client-id" }}</a>
+        </div>
+      {{ end }}
       {{ if .Posts.Meta.syndication }}
         <div>
           syndicated to

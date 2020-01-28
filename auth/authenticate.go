@@ -64,12 +64,16 @@ func Only(me string, next http.Handler) http.HandlerFunc {
 		}
 
 		next.ServeHTTP(w, r.WithContext(
-			context.WithValue(r.Context(), scopesKey, strings.Fields(tokenData.Scope)),
+			context.WithValue(context.WithValue(r.Context(),
+				scopesKey, strings.Fields(tokenData.Scope)),
+				clientKey, tokenData.ClientID,
+			),
 		))
 	}
 }
 
 const scopesKey = "__hawx.me/code/tally-ho:Scopes__"
+const clientKey = "__hawx.me/code/tally-ho:ClientID__"
 
 func HasScope(w http.ResponseWriter, r *http.Request, valid ...string) bool {
 	rv := r.Context().Value(scopesKey)
@@ -89,6 +93,15 @@ func HasScope(w http.ResponseWriter, r *http.Request, valid ...string) bool {
 	}
 
 	return true
+}
+
+func ClientID(r *http.Request) string {
+	rv := r.Context().Value(clientKey)
+	if rv == nil {
+		return ""
+	}
+
+	return rv.(string)
 }
 
 func intersects(needles []string, list []string) bool {

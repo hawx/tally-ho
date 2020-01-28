@@ -238,6 +238,10 @@ func (h *micropubPostHandler) create(w http.ResponseWriter, r *http.Request, dat
 		return
 	}
 
+	if clientID := auth.ClientID(r); clientID != "" {
+		data["hx-client-id"] = []interface{}{clientID}
+	}
+
 	location, err := h.db.Create(data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
