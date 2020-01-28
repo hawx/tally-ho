@@ -146,17 +146,17 @@ p + p {
     margin: 1rem 0;
 }
 
+/* meta */
+
 .meta {
     margin-top: .5rem;
     color: var(--faintish);
     font-family: var(--monospace);
     font-size: 0.7rem;
-    display: flex;
-    justify-content: space-between;
 }
 
-.meta .right {
-    text-align: right;
+.meta.more {
+    line-height: 1.75;
 }
 
 .meta a {
@@ -172,7 +172,7 @@ p + p {
 /* small posts */
 
 .reply, .likes, .rsvp, .book, .drank {
-    padding: var(--top-gutter) var(--left-gutter) 0;
+    padding: var(--top-gutter) 0 0 var(--left-gutter);
 }
 
 .reply h1, .likes h1, .rsvp h1, .book h1, .drank h1 {

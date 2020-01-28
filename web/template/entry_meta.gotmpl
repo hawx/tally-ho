@@ -5,23 +5,4 @@
     </time>
   </a>
   <a class="u-author h-card hidden" href="https://hawx.me/">Joshua Hawxwell</a>
-
-  <div class="right">
-    {{ if .syndication }}
-      <div>
-        also
-        {{ range withEnd .syndication }}
-          <a href="{{ .El }}">{{ syndicationName .El }}</a>{{ if not .End }}, {{ end }}
-        {{ end }}
-      </div>
-    {{ end }}
-    {{ if .category }}
-      <div>
-        filed under
-        {{ range withEnd .category }}
-          <a href="/category/{{ .El }}">{{ .El }}</a>{{ if not .End }}, {{ end }}
-        {{ end }}
-      </div>
-    {{ end }}
-  </div>
 </div>
