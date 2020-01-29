@@ -214,10 +214,10 @@ func templateWithEnd(l []interface{}) []endEl {
 func templateTitle(m map[string][]interface{}) string {
 	switch templateGet(m, "hx-kind").(string) {
 	case "like":
-		if templateHas(m, "name") {
-			return "liked " + templateGet(m, "name").(string)
+		if templateHas(m, "like-of.properties.name") {
+			return "liked " + templateGet(m, "like-of.properties.name").(string)
 		} else {
-			return "liked " + templateGet(m, "like-of").(string)
+			return "liked " + templateGet(m, "like-of.properties.url").(string)
 		}
 	case "rsvp":
 		return templateHumanRSVP(m) + " to " + templateGetOr(m, "name", "an event").(string)

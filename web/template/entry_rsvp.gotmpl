@@ -1,8 +1,0 @@
-<article class="h-entry rsvp">
-  <h1 class="p-summary">
-    <data class="p-rsvp" value="{{ get . "rsvp" }}">{{ humanRSVP . }}</data> to
-    <a class="u-in-reply-to" href="{{ get . "in-reply-to" }}">{{ getOr . "name" "an event" }}</a>
-  </h1>
-
-  {{ template "entry_meta.gotmpl" . }}
-</article>

@@ -6,17 +6,18 @@ import (
 )
 
 func (b *Blog) Create(data map[string][]interface{}) (location string, err error) {
-	if len(data["name"]) == 0 {
-		name, err := getName(data)
+	kind := postTypeDiscovery(data)
+
+	if kind == "like" {
+		cite, err := getCite(data["like-of"][0].(string))
 		if err != nil {
-			log.Printf("WARN get-name; %v\n", err)
-		} else if name != "" {
-			data["name"] = []interface{}{name}
-			log.Printf("WARN get-name; setting to '%s'\n", name)
+			log.Printf("WARN get-cite; %v\n", err)
 		}
+		data["like-of"] = []interface{}{cite}
+		log.Printf("WARN get-cite; setting to '%s'\n", cite)
 	}
 
-	data["hx-kind"] = []interface{}{postTypeDiscovery(data)}
+	data["hx-kind"] = []interface{}{kind}
 
 	relativeLocation, err := b.DB.Create(data)
 	if err != nil {

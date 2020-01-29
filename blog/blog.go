@@ -341,43 +341,53 @@ func (b *Blog) Mention(source string, data map[string][]interface{}) error {
 	return b.DB.Mention(source, data)
 }
 
-func getName(data map[string][]interface{}) (string, error) {
-	if len(data["like-of"]) > 0 {
-		likeOf := data["like-of"][0].(string)
+type Microformat struct {
+	Type       []string                 `json:"type"`
+	Properties map[string][]interface{} `json:"properties"`
+}
 
-		resp, err := http.Get(likeOf)
-		if err != nil {
-			return "", err
-		}
-		defer resp.Body.Close()
+func getCite(u string) (cite Microformat, err error) {
+	cite = Microformat{
+		Type: []string{"h-cite"},
+		Properties: map[string][]interface{}{
+			"url": {u},
+		},
+	}
 
-		root, err := html.Parse(resp.Body)
-		if err != nil {
-			return "", err
-		}
+	resp, err := http.Get(u)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
 
-		hentries := searchAll(root, func(node *html.Node) bool {
-			return node.Type == html.ElementNode && hasAttr(node, "class", "h-entry")
+	root, err := html.Parse(resp.Body)
+	if err != nil {
+		return
+	}
+
+	hentries := searchAll(root, func(node *html.Node) bool {
+		return node.Type == html.ElementNode && hasAttr(node, "class", "h-entry")
+	})
+
+	for _, hentry := range hentries {
+		names := searchAll(hentry, func(node *html.Node) bool {
+			return node.Type == html.ElementNode && hasAttr(node, "class", "p-name")
 		})
 
-		for _, hentry := range hentries {
-			names := searchAll(hentry, func(node *html.Node) bool {
-				return node.Type == html.ElementNode && hasAttr(node, "class", "p-name")
-			})
-
-			if len(names) > 0 {
-				return textOf(names[0]), nil
-			}
-		}
-
-		titles := searchAll(root, func(node *html.Node) bool {
-			return node.Type == html.ElementNode && node.DataAtom == atom.Title
-		})
-
-		if len(titles) > 0 {
-			return textOf(titles[0]), nil
+		if len(names) > 0 {
+			cite.Properties["name"] = []interface{}{textOf(names[0])}
+			return
 		}
 	}
 
-	return "", errors.New("no name to find")
+	titles := searchAll(root, func(node *html.Node) bool {
+		return node.Type == html.ElementNode && node.DataAtom == atom.Title
+	})
+
+	if len(titles) > 0 {
+		cite.Properties["name"] = []interface{}{textOf(titles[0])}
+		return
+	}
+
+	return cite, errors.New("no name to find")
 }

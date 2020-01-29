@@ -166,16 +166,16 @@ p + p {
 
 /* small posts */
 
-.reply, .likes, .rsvp, .book, .drank, .checkin {
+.reply, .like, .rsvp, .read, .drank, .checkin {
     padding: var(--top-gutter) 0 0 var(--left-gutter);
 }
 
-.reply h1, .likes h1, .rsvp h1, .book h1, .drank h1, .checkin h1 {
+.reply h1, .like h1, .rsvp h1, .read h1, .drank h1, .checkin h1 {
     font-size: 1rem;
     position: relative;
 }
 
-.reply h1:before, .likes h1:before, .rsvp h1:before, .book h1:before, .drank h1:before, .checkin h1:before {
+.reply h1:before, .like h1:before, .rsvp h1:before, .read h1:before, .drank h1:before, .checkin h1:before {
     position: absolute;
     margin-left: -1.5rem;
 }
@@ -198,33 +198,33 @@ div.h-cite .u-url {
     display: none; /* already show link at the top, this just exists so it can be parsed */
 }
 
-/* likes */
+/* like */
 
-.likes h1 {
+.like h1 {
     font-weight: normal;
 }
 
-.likes h1 .u-like-of {
+.like h1 .u-like-of {
     font-weight: bold;
 }
 
-.likes .h-entry:not(:last-child):after {
+.like .h-entry:not(:last-child):after {
     content: ', ';
     margin-left: -.23em;
     margin-right: .1rem;
 }
 
-.likes a.u-url {
+.like a.u-url {
     color: var(--faint);
     text-decoration: none;
 }
 
-.likes a.u-url:hover {
+.like a.u-url:hover {
     color: var(--foreground);
     text-decoration: underline;
 }
 
-.likes h1:before {
+.like h1:before {
     content: '❤️  ';
 }
 
@@ -238,13 +238,13 @@ div.h-cite .u-url {
     content: '📅  ';
 }
 
-/* book */
+/* read */
 
-.book h1 {
+.read h1 {
     font-weight: normal;
 }
 
-.book h1:before {
+.read h1:before {
     content: '📕 ';
 }
 
