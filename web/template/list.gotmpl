@@ -3,9 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <title>a blog</title>
-    <link href="https://fonts.googleapis.com/css?family=Signika+Negative&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/public/normalize.css" type="text/css" />
-    <link rel="stylesheet" href="/public/styles.css" type="text/css" />
+    {{ template "meta.gotmpl" }}
   </head>
   <body>
     {{ if eq .OlderThan "NOMORE" }}
