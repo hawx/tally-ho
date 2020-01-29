@@ -1,0 +1,9 @@
+<article class="likes">
+  <h1>
+    liked
+    <span class="h-entry">
+      <a class="u-like-of" href="{{ get . "like-of" }}">{{ if has . "name" }}{{ get . "name" }}{{ else }}{{ get . "like-of" }}{{ end }}</a>
+    </span>
+  </h1>
+  {{ template "entry_meta.gotmpl" . }}
+</article>

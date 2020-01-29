@@ -1,38 +1,13 @@
 {{ if has . "like-of" }}
-  <article class="likes">
-    <h1>
-      liked
-      <span class="h-entry">
-        <a class="u-like-of" href="{{ get . "like-of" }}">{{ if has . "name" }}{{ get . "name" }}{{ else }}{{ get . "like-of" }}{{ end }}</a>
-      </span>
-    </h1>
-    {{ template "entry_meta.gotmpl" . }}
-  </article>
+  {{ template "entry_like.gotmpl" . }}
 {{ else if has . "rsvp" }}
-  <article class="h-entry rsvp">
-    <h1 class="p-summary">
-      <data class="p-rsvp" value="{{ get . "rsvp" }}">{{ humanRSVP . }}</data> to
-      <a class="u-in-reply-to" href="{{ get . "in-reply-to" }}">{{ getOr . "name" "an event" }}</a>
-    </h1>
-
-    {{ template "entry_meta.gotmpl" . }}
-  </article>
+  {{ template "entry_rsvp.gotmpl" . }}
 {{ else if has . "read-of" }}
-  <article class="h-entry book">
-    <h1 class="p-summary">
-      {{ if eq (get . "read-status") "to-read" }}want to read{{ end }}{{ if eq (get . "read-status") "reading" }}reading{{ end }}{{ if eq (get . "read-status") "finished" }}read{{ end }} <span class="h-cite"><strong class="p-name">{{ get . "read-of.properties.name" }}</strong> by <strong class="p-author">{{ get . "read-of.properties.author" }}</strong></span>
-    </h1>
-
-    {{ template "entry_meta.gotmpl" . }}
-  </article>
+  {{ template "entry_read.gotmpl" . }}
 {{ else if has . "drank" }}
-  <article class="h-entry drank">
-    <h1 class="p-summary">
-      drank <strong>{{ get . "drank.properties.name" }}</strong>
-    </h1>
-
-    {{ template "entry_meta.gotmpl" . }}
-  </article>
+  {{ template "entry_drank.gotmpl" . }}
+{{ else if has . "checkin" }}
+  {{ template "entry_checkin.gotmpl" . }}
 {{ else }}
   <article class="h-entry">
     {{ if has . "name" }}
@@ -45,15 +20,6 @@
       {{ else }}
         <img src="{{ . }}" />
       {{ end }}
-    {{ end }}
-
-    {{ if has . "checkin" }}
-      <p class="checkin h-card">
-        <a class="u-url p-name" href="{{ get . "checkin.properties.url" }}">{{ get . "checkin.properties.name" }}</a>
-        <span class="p-street-address">{{ get . "checkin.properties.street-address" }}</span>
-        <span class="p-locality">{{ get . "checkin.properties.locality" }}</span>
-        <span class="p-country-name">{{ get . "checkin.properties.country-name" }}</span>
-      </p>
     {{ end }}
 
     <div class="e-content">

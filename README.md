@@ -79,7 +79,7 @@ Possibly up-to-date feature list:
     * [x] Checkin (kinda)
 
 - Feeds:
-  * [ ] RSS
-  * [ ] Atom
-  * [ ] Jsonfeed (<https://jsonfeed.org/>)
+  * [x] RSS
+  * [x] Atom
+  * [x] Jsonfeed (<https://jsonfeed.org/>)
   * [ ] WebSub (<https://www.w3.org/TR/websub/>)

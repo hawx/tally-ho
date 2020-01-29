@@ -4,12 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
+	"github.com/gorilla/feeds"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 	"hawx.me/code/numbersix"
@@ -198,12 +200,90 @@ func (b *Blog) Handler() http.Handler {
 		}
 	})
 
+	route.HandleFunc("/feed/rss", func(w http.ResponseWriter, r *http.Request) {
+		f, err := b.feed()
+		if err != nil {
+			log.Println("ERR feed-rss;", err)
+			return
+		}
+
+		rss, err := f.ToRss()
+		if err != nil {
+			log.Println("ERR feed-rss;", err)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/rss+xml")
+		io.WriteString(w, rss)
+	})
+
+	route.HandleFunc("/feed/atom", func(w http.ResponseWriter, r *http.Request) {
+		f, err := b.feed()
+		if err != nil {
+			log.Println("ERR feed-atom;", err)
+			return
+		}
+
+		atom, err := f.ToAtom()
+		if err != nil {
+			log.Println("ERR feed-atom;", err)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/atom+xml")
+		io.WriteString(w, atom)
+	})
+
+	route.HandleFunc("/feed/jsonfeed", func(w http.ResponseWriter, r *http.Request) {
+		f, err := b.feed()
+		if err != nil {
+			log.Println("ERR feed-jsonfeed;", err)
+			return
+		}
+
+		json, err := f.ToJSON()
+		if err != nil {
+			log.Println("ERR feed-jsonfeed;", err)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		io.WriteString(w, json)
+	})
+
 	// route.Handle("/:year/:month/:date/:slug")
-	// route.Handle("/like/...")
-	// route.Handle("/reply/...")
-	// route.Handle("/tag/...")
 
 	return route.Default
+}
+
+func (b *Blog) feed() (*feeds.Feed, error) {
+	feed := &feeds.Feed{
+		Title:   b.Config.Title,
+		Link:    &feeds.Link{Href: b.Config.BaseURL.String()},
+		Author:  &feeds.Author{Name: b.Config.Name},
+		Created: time.Now(),
+	}
+
+	posts, err := b.DB.Before(time.Now().UTC())
+	if err != nil {
+		return nil, err
+	}
+
+	for _, post := range posts {
+		relURL, _ := url.Parse(post.Properties["url"][0].(string))
+		absURL := b.Config.BaseURL.ResolveReference(relURL)
+
+		createdAt, _ := time.Parse(time.RFC3339, post.Properties["published"][0].(string))
+
+		feed.Items = append(feed.Items, &feeds.Item{
+			Title:       templateTitle(post.Properties),
+			Link:        &feeds.Link{Href: absURL.String()},
+			Description: "",
+			Created:     createdAt,
+		})
+	}
+
+	return feed, nil
 }
 
 func (b *Blog) Entry(url string) (data map[string][]interface{}, err error) {

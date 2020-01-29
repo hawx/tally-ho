@@ -17,6 +17,7 @@ func ParseTemplates(webPath string) (*template.Template, error) {
 		"content":         templateContent,
 		"humanDate":       templateHumanDate,
 		"humanRSVP":       templateHumanRSVP,
+		"humanReadStatus": templateHumanReadStatus,
 		"time":            templateTime,
 		"syndicationName": templateSyndicationName,
 		"withEnd":         templateWithEnd,
@@ -153,6 +154,24 @@ func templateHumanRSVP(m map[string][]interface{}) string {
 	}
 }
 
+func templateHumanReadStatus(m map[string][]interface{}) string {
+	v, _ := get(m, "read-status")
+	s, ok := v.(string)
+
+	if !ok {
+		return ""
+	}
+
+	switch s {
+	case "to-read":
+		return "want to read"
+	case "reading":
+		return "reading"
+	default:
+		return "read"
+	}
+}
+
 func templateTime(m map[string][]interface{}, key string) string {
 	v, _ := get(m, key)
 	s, ok := v.(string)
@@ -193,25 +212,34 @@ func templateWithEnd(l []interface{}) []endEl {
 }
 
 func templateTitle(m map[string][]interface{}) string {
-	wrap := func(s string) string {
-		if templateHas(m, "like-of") {
-			return "Liked: " + s
+	switch templateGet(m, "hx-kind").(string) {
+	case "like":
+		if templateHas(m, "name") {
+			return "liked " + templateGet(m, "name").(string)
+		} else {
+			return "liked " + templateGet(m, "like-of").(string)
 		}
-
-		return s
+	case "rsvp":
+		return templateHumanRSVP(m) + " to " + templateGetOr(m, "name", "an event").(string)
+	case "read":
+		return templateHumanReadStatus(m) + " " + templateGet(m, "read-of.properties.name").(string) + " by " + templateGet(m, "read-of.properties.author").(string)
+	case "drank":
+		return "drank " + templateGet(m, "drank.properties.name").(string)
+	case "checkin":
+		return "checked in to " + templateGet(m, "checkin.properties.name").(string)
 	}
 
 	if templateHas(m, "name") {
-		return wrap(templateGet(m, "name").(string))
+		return templateGet(m, "name").(string)
 	}
 
 	if templateHas(m, "content") {
 		if content, ok := templateContent(m).(string); ok {
-			return wrap(templateTruncate(content, 140))
+			return templateTruncate(content, 140)
 		}
 	}
 
-	return wrap("a post")
+	return "a post"
 }
 
 func templateTruncate(s string, length int) string {

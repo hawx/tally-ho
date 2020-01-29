@@ -9,6 +9,7 @@ require (
 	github.com/dustin/gojson v0.0.0-20160307161227-2e71ec9dd5ad // indirect
 	github.com/garyburd/go-oauth v0.0.0-20180319155456-bca2e7f09a17 // indirect
 	github.com/google/uuid v1.1.1
+	github.com/gorilla/feeds v1.1.1
 	github.com/gorilla/sessions v1.1.3
 	github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348 // indirect
 	github.com/mattn/go-sqlite3 v1.10.0
