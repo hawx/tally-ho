@@ -57,8 +57,10 @@ func (b *Blog) Handler() http.Handler {
 		}
 
 		olderThan := ""
-		if len(posts) > 0 {
+		if len(posts) == 25 {
 			olderThan = posts[len(posts)-1].Properties["published"][0].(string)
+		} else if len(posts) == 0 {
+			olderThan = "NOMORE"
 		}
 
 		if err := b.Templates.ExecuteTemplate(w, "list.gotmpl", struct {
@@ -92,8 +94,10 @@ func (b *Blog) Handler() http.Handler {
 		}
 
 		olderThan := ""
-		if len(posts) > 0 {
+		if len(posts) == 25 {
 			olderThan = posts[len(posts)-1].Properties["published"][0].(string)
+		} else if len(posts) == 0 {
+			olderThan = "NOMORE"
 		}
 
 		if err := b.Templates.ExecuteTemplate(w, "list.gotmpl", struct {
@@ -127,8 +131,10 @@ func (b *Blog) Handler() http.Handler {
 		}
 
 		olderThan := ""
-		if len(posts) > 0 {
+		if len(posts) == 25 {
 			olderThan = posts[len(posts)-1].Properties["published"][0].(string)
+		} else if len(posts) == 0 {
+			olderThan = "NOMORE"
 		}
 
 		if err := b.Templates.ExecuteTemplate(w, "list.gotmpl", struct {

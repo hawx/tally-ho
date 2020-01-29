@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="/public/styles.css" type="text/css" />
   </head>
   <body>
-    {{ if eq .OlderThan "" }}
+    {{ if eq .OlderThan "NOMORE" }}
       <p>👏 You have reached the end. Try going back to the <a class="latest" href="/">Latest</a>.</p>
     {{ else }}
       {{ range .GroupedPosts }}
@@ -16,7 +16,9 @@
       {{ end }}
 
       <nav class="arrows">
-        <a class="older" href="?before={{ .OlderThan }}">Older</a>
+        {{ if not (eq .OlderThan "") }}
+          <a class="older" href="?before={{ .OlderThan }}">Older</a>
+        {{ end }}
         {{ if .ShowLatest }}
           <a class="latest" href="/">Latest</a>
         {{ end }}
