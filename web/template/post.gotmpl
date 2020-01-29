@@ -15,30 +15,33 @@
 
     {{ template "entry.gotmpl" .Posts }}
 
-    <div class="meta more">
-      {{ if has .Posts.Meta "hx-client-id" }}
-        <div>
-          posted by
-          <a href="{{ get .Posts.Meta "hx-client-id" }}">{{ get .Posts.Meta "hx-client-id" }}</a>
-        </div>
-      {{ end }}
-      {{ if .Posts.Meta.syndication }}
-        <div>
-          syndicated to
-          {{ range withEnd .Posts.Meta.syndication }}
-            <a href="{{ .El }}">{{ syndicationName .El }}</a>{{ if not .End }}, {{ end }}
-          {{ end }}
-        </div>
-      {{ end }}
-      {{ if .Posts.Meta.category }}
-        <div>
-          filed under
-          {{ range withEnd .Posts.Meta.category }}
-            <a href="/category/{{ .El }}">{{ .El }}</a>{{ if not .End }}, {{ end }}
-          {{ end }}
-        </div>
-      {{ end }}
-    </div>
+    {{ with .Posts.Meta }}
+      <div class="meta more">
+        {{ if has . "hx-client-id" }}
+          <div>
+            <a href="/kind/{{ get . "hx-kind" }}">{{ get . "hx-kind" }}</a>
+            posted by
+            <a href="{{ get . "hx-client-id" }}">{{ get . "hx-client-id" }}</a>
+          </div>
+        {{ end }}
+        {{ if .syndication }}
+          <div>
+            syndicated to
+            {{ range withEnd .syndication }}
+              <a href="{{ .El }}">{{ syndicationName .El }}</a>{{ if not .End }}, {{ end }}
+            {{ end }}
+          </div>
+        {{ end }}
+        {{ if .category }}
+          <div>
+            filed under
+            {{ range withEnd .category }}
+              <a href="/category/{{ .El }}">{{ .El }}</a>{{ if not .End }}, {{ end }}
+            {{ end }}
+          </div>
+        {{ end }}
+      </div>
+    {{ end }}
 
     {{ if .Mentions }}
       <section class="reactions">
