@@ -10,7 +10,7 @@
       <p>👏 You have reached the end. Try going back to the <a class="latest" href="/">Latest</a>.</p>
     {{ else }}
       {{ range .GroupedPosts }}
-        {{ template "entry.gotmpl" . }}
+        {{ template "entry_grouping.gotmpl" . }}
       {{ end }}
 
       <nav class="arrows">

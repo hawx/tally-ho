@@ -11,7 +11,7 @@
     </nav>
 
     {{ range . }}
-      {{ template "plain-entry.gotmpl" .Properties }}
+      {{ template "entry.gotmpl" .Properties }}
     {{ end }}
     
     {{ template "footer.gotmpl" . }}

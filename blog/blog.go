@@ -65,7 +65,7 @@ func (b *Blog) Handler() http.Handler {
 			olderThan = "NOMORE"
 		}
 
-		if err := b.Templates.ExecuteTemplate(w, "list.gotmpl", struct {
+		if err := b.Templates.ExecuteTemplate(w, "page_list.gotmpl", struct {
 			GroupedPosts []GroupedPosts
 			OlderThan    string
 			ShowLatest   bool
@@ -102,7 +102,7 @@ func (b *Blog) Handler() http.Handler {
 			olderThan = "NOMORE"
 		}
 
-		if err := b.Templates.ExecuteTemplate(w, "list.gotmpl", struct {
+		if err := b.Templates.ExecuteTemplate(w, "page_list.gotmpl", struct {
 			GroupedPosts []GroupedPosts
 			OlderThan    string
 			ShowLatest   bool
@@ -139,7 +139,7 @@ func (b *Blog) Handler() http.Handler {
 			olderThan = "NOMORE"
 		}
 
-		if err := b.Templates.ExecuteTemplate(w, "list.gotmpl", struct {
+		if err := b.Templates.ExecuteTemplate(w, "page_list.gotmpl", struct {
 			GroupedPosts []GroupedPosts
 			OlderThan    string
 			ShowLatest   bool
@@ -170,7 +170,7 @@ func (b *Blog) Handler() http.Handler {
 			return
 		}
 
-		if err := b.Templates.ExecuteTemplate(w, "post.gotmpl", struct {
+		if err := b.Templates.ExecuteTemplate(w, "page_post.gotmpl", struct {
 			Posts    GroupedPosts
 			Entry    map[string][]interface{}
 			Mentions []numbersix.Group
@@ -195,7 +195,7 @@ func (b *Blog) Handler() http.Handler {
 			return
 		}
 
-		if err := b.Templates.ExecuteTemplate(w, "day.gotmpl", likes); err != nil {
+		if err := b.Templates.ExecuteTemplate(w, "page_day.gotmpl", likes); err != nil {
 			log.Printf("ERR likes-on-render ymd=%s; %v\n", ymd, err)
 		}
 	})

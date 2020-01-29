@@ -1,21 +1,31 @@
-{{ if eq .Type "like" }}
-  <article class="likes">
-    <h1>
-      liked
-      {{ range .Posts }}
-        <span class="h-entry">
-          <a class="u-like-of" href="{{ get . "like-of" }}">{{ if has . "name" }}{{ get . "name" }}{{ else }}{{ get . "like-of" }}{{ end }}</a>
-          <a class="u-url" href="{{ get . "url" }}">at
-            <time class="dt-published" datetime="{{ get . "published" }}">
-              {{ time . "published" }}
-            </time>
-          </a>
-        </span>
-      {{ end }}
-    </h1>
-    {{ template "entry_meta.gotmpl" .Meta }}
-  </article>
+{{ if has . "like-of" }}
+  {{ template "entry_like.gotmpl" . }}
+{{ else if has . "rsvp" }}
+  {{ template "entry_rsvp.gotmpl" . }}
+{{ else if has . "read-of" }}
+  {{ template "entry_read.gotmpl" . }}
+{{ else if has . "drank" }}
+  {{ template "entry_drank.gotmpl" . }}
+{{ else if has . "checkin" }}
+  {{ template "entry_checkin.gotmpl" . }}
 {{ else }}
-  {{ template "plain-entry.gotmpl" .Meta }}
-{{ end }}
+  <article class="h-entry">
+    {{ if has . "name" }}
+      <h1 class="p-name"><a href="{{ get . "url" }}">{{ get . "name" }}</a></h1>
+    {{ end }}
 
+    {{ range .photo }}
+      {{ if has . "value" }}
+        <img src="{{ get . "value" }}" alt="{{ get . "alt" }}" />
+      {{ else }}
+        <img src="{{ . }}" />
+      {{ end }}
+    {{ end }}
+
+    <div class="e-content">
+      {{ content . }}
+    </div>
+
+    {{ template "entry_meta.gotmpl" . }}
+  </article>
+{{ end }}
