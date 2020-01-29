@@ -74,6 +74,7 @@ Possibly up-to-date feature list:
     * [x] Photos
     * [ ] Videos
     * [x] Likes
+      * [ ] Store page as cite
     * [ ] Replies
     * [x] RSVP
     * [x] Checkin (kinda)
