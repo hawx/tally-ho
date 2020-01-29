@@ -193,6 +193,21 @@ func (db *DB) KindBefore(kind string, published time.Time) (groups []numbersix.G
 	return numbersix.Grouped(triples), nil
 }
 
+func (db *DB) CategoryBefore(category string, published time.Time) (groups []numbersix.Group, err error) {
+	triples, err := db.entries.List(
+		numbersix.
+			Before("published", published.Format(time.RFC3339)).
+			Where("category", category).
+			Without("hx-deleted").
+			Limit(25),
+	)
+	if err != nil {
+		return
+	}
+
+	return numbersix.Grouped(triples), nil
+}
+
 func (db *DB) LikesOn(ymd string) (groups []numbersix.Group, err error) {
 	triples, err := db.entries.List(
 		numbersix.
