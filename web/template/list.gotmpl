@@ -8,11 +8,21 @@
     <link rel="stylesheet" href="/public/styles.css" type="text/css" />
   </head>
   <body>
-    {{ range . }}
-      {{ template "entry.gotmpl" . }}
+    {{ if eq .OlderThan "" }}
+      <p>👏 You have reached the end. Try going back to the <a class="latest" href="/">Latest</a>.</p>
+    {{ else }}
+      {{ range .GroupedPosts }}
+        {{ template "entry.gotmpl" . }}
+      {{ end }}
+
+      <nav class="arrows">
+        <a class="older" href="/?before={{ .OlderThan }}">Older</a>
+        {{ if .ShowLatest }}
+          <a class="latest" href="/">Latest</a>
+        {{ end }}
+      </nav>
     {{ end }}
     
-    {{ template "footer.gotmpl" . }}
-
+    {{ template "footer.gotmpl" .GroupedPosts }}
   </body>
 </html>

@@ -169,7 +169,7 @@ func (db *DB) Before(published time.Time) (groups []numbersix.Group, err error) 
 		numbersix.
 			Before("published", published.Format(time.RFC3339)).
 			Without("hx-deleted").
-			Limit(20),
+			Limit(25),
 	)
 	if err != nil {
 		return

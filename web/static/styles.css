@@ -332,6 +332,10 @@ nav.arrows {
     text-align: center;
 }
 
+.arrows .older:before {
+    content: '← ';
+}
+
 nav a + a {
     margin-left: 2rem;
 }

@@ -42,15 +42,34 @@ func (b *Blog) Handler() http.Handler {
 	baseURL := b.Config.BaseURL
 
 	route.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		posts, err := b.DB.Before(time.Now().UTC())
+		showLatest := true
+
+		before, err := time.Parse(time.RFC3339, r.FormValue("before"))
+		if err != nil {
+			showLatest = false
+			before = time.Now().UTC()
+		}
+
+		posts, err := b.DB.Before(before)
 		if err != nil {
 			log.Println("ERR get-all;", err)
 			return
 		}
 
-		groupedPosts := groupLikes(posts)
+		olderThan := ""
+		if len(posts) > 0 {
+			olderThan = posts[len(posts)-1].Properties["published"][0].(string)
+		}
 
-		if err := b.Templates.ExecuteTemplate(w, "list.gotmpl", groupedPosts); err != nil {
+		if err := b.Templates.ExecuteTemplate(w, "list.gotmpl", struct {
+			GroupedPosts []GroupedPosts
+			OlderThan    string
+			ShowLatest   bool
+		}{
+			GroupedPosts: groupLikes(posts),
+			OlderThan:    olderThan,
+			ShowLatest:   showLatest,
+		}); err != nil {
 			fmt.Fprint(w, err)
 		}
 	})
