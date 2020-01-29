@@ -66,7 +66,7 @@ Possibly up-to-date feature list:
     * [x] All
     * [x] Combine likes
     * [x] Pagination
-    * [ ] By kind
+    * [x] By kind
     * [ ] By category
   * Entry:
     * [x] Notes

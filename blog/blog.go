@@ -74,6 +74,41 @@ func (b *Blog) Handler() http.Handler {
 		}
 	})
 
+	route.HandleFunc("/kind/:kind", func(w http.ResponseWriter, r *http.Request) {
+		vars := route.Vars(r)
+
+		showLatest := true
+
+		before, err := time.Parse(time.RFC3339, r.FormValue("before"))
+		if err != nil {
+			showLatest = false
+			before = time.Now().UTC()
+		}
+
+		posts, err := b.DB.KindBefore(vars["kind"], before)
+		if err != nil {
+			log.Println("ERR get-all;", err)
+			return
+		}
+
+		olderThan := ""
+		if len(posts) > 0 {
+			olderThan = posts[len(posts)-1].Properties["published"][0].(string)
+		}
+
+		if err := b.Templates.ExecuteTemplate(w, "list.gotmpl", struct {
+			GroupedPosts []GroupedPosts
+			OlderThan    string
+			ShowLatest   bool
+		}{
+			GroupedPosts: groupLikes(posts),
+			OlderThan:    olderThan,
+			ShowLatest:   showLatest,
+		}); err != nil {
+			fmt.Fprint(w, err)
+		}
+	})
+
 	route.HandleFunc("/entry/:id", func(w http.ResponseWriter, r *http.Request) {
 		entry, err := b.DB.Entry(r.URL.Path)
 		if err != nil {
