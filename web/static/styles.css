@@ -318,10 +318,19 @@ div.h-cite .u-url {
 
 /* nav */
 
-nav {
-    font-size: 20px;
-    margin: 2em 0;
+p.page {
+    color: var(--secondary);
     margin: 1rem;
+    font-size: .9rem;
+}
+
+p.page strong {
+    color: var(--secondarier);
+}
+
+nav {
+    margin: 1rem;
+    font-size: .9rem;
 }
 
 nav .previous, nav .next {
@@ -356,8 +365,9 @@ footer {
     color: var(--faintish);
     opacity: .5;
     font-size: 0.8rem;
-    margin: 5rem 0;
+    margin: 5rem auto;
     transition: .3s;
+    text-align: center;
 }
 
 footer:hover {

@@ -69,6 +69,8 @@ func (b *Blog) Handler() http.Handler {
 			GroupedPosts []GroupedPosts
 			OlderThan    string
 			ShowLatest   bool
+			Kind         string
+			Category     string
 		}{
 			GroupedPosts: groupLikes(posts),
 			OlderThan:    olderThan,
@@ -106,10 +108,12 @@ func (b *Blog) Handler() http.Handler {
 			GroupedPosts []GroupedPosts
 			OlderThan    string
 			ShowLatest   bool
+			Kind         string
 		}{
 			GroupedPosts: groupLikes(posts),
 			OlderThan:    olderThan,
 			ShowLatest:   showLatest,
+			Kind:         vars["kind"],
 		}); err != nil {
 			fmt.Fprint(w, err)
 		}
@@ -143,10 +147,14 @@ func (b *Blog) Handler() http.Handler {
 			GroupedPosts []GroupedPosts
 			OlderThan    string
 			ShowLatest   bool
+			Kind         string
+			Category     string
 		}{
 			GroupedPosts: groupLikes(posts),
 			OlderThan:    olderThan,
 			ShowLatest:   showLatest,
+			Kind:         "",
+			Category:     vars["category"],
 		}); err != nil {
 			fmt.Fprint(w, err)
 		}

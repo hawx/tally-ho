@@ -6,6 +6,12 @@
     {{ template "meta.gotmpl" }}
   </head>
   <body>
+    {{ if .Kind }}
+      <p class="page">kind <strong>{{ .Kind }}</strong></p>
+    {{ else if .Category }}
+      <p class="page">category <strong>{{ .Category }}</strong></p>
+    {{ end }}
+
     {{ if eq .OlderThan "NOMORE" }}
       <p>👏 You have reached the end. Try going back to the <a class="latest" href="/">Latest</a>.</p>
     {{ else }}
@@ -23,6 +29,6 @@
       </nav>
     {{ end }}
     
-    {{ template "footer.gotmpl" .GroupedPosts }}
+    {{ template "footer.gotmpl" }}
   </body>
 </html>
