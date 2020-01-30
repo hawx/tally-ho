@@ -3,6 +3,8 @@ package blog
 import (
 	"log"
 	"net/url"
+
+	"mvdan.cc/xurls/v2"
 )
 
 func (b *Blog) Create(data map[string][]interface{}) (location string, err error) {
@@ -18,6 +20,19 @@ func (b *Blog) Create(data map[string][]interface{}) (location string, err error
 	}
 
 	data["hx-kind"] = []interface{}{kind}
+
+	if content, ok := data["content"]; ok && len(content) > 0 {
+		if s, ok := content[0].(string); ok {
+			html := xurls.Strict().ReplaceAllStringFunc(s, func(u string) string {
+				return `<a href="` + u + `">` + u + `</a>`
+			})
+
+			data["content"] = []interface{}{map[string]string{
+				"text": s,
+				"html": html,
+			}}
+		}
+	}
 
 	relativeLocation, err := b.DB.Create(data)
 	if err != nil {
