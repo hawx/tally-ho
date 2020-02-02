@@ -12,64 +12,50 @@
 
     {{ template "entry_grouping.gotmpl" .Posts }}
 
-    {{ with .Posts.Meta }}
-      <div class="meta more">
-        {{ if has . "hx-client-id" }}
-          <div>
-            <a href="/kind/{{ get . "hx-kind" }}">{{ get . "hx-kind" }}</a>
-            posted by
-            <a href="{{ get . "hx-client-id" }}">{{ get . "hx-client-id" }}</a>
-          </div>
-        {{ end }}
-        {{ if .syndication }}
-          <div>
-            syndicated to
-            {{ range withEnd .syndication }}
-              <a href="{{ .El }}">{{ syndicationName .El }}</a>{{ if not .End }}, {{ end }}
-            {{ end }}
-          </div>
-        {{ end }}
-        {{ if .category }}
-          <div>
-            filed under
-            {{ range withEnd .category }}
-              <a href="/category/{{ .El }}">{{ .El }}</a>{{ if not .End }}, {{ end }}
-            {{ end }}
-          </div>
+    <details open class="meta">
+      <summary>Metadata</summary>
+
+      <div class="inner">
+        {{ with .Posts.Meta }}
+          {{ if has . "hx-client-id" }}
+            <div>
+              <a href="/kind/{{ get . "hx-kind" }}">{{ get . "hx-kind" }}</a>
+              posted by
+              <a href="{{ get . "hx-client-id" }}">{{ get . "hx-client-id" }}</a>
+            </div>
+          {{ end }}
+          {{ if .syndication }}
+            <div>
+              syndicated to
+              {{ range withEnd .syndication }}
+                <a href="{{ .El }}">{{ syndicationName .El }}</a>{{ if not .End }}, {{ end }}
+              {{ end }}
+            </div>
+          {{ end }}
+          {{ if .category }}
+            <div>
+              filed under
+              {{ range withEnd .category }}
+                <a href="/category/{{ .El }}">{{ .El }}</a>{{ if not .End }}, {{ end }}
+              {{ end }}
+            </div>
+          {{ end }}
         {{ end }}
       </div>
-    {{ end }}
+    </details>
 
-    {{ if .Mentions }}
-      <section class="reactions">
-        <ol>
-          {{ range .Mentions }}
-            <li>
-              {{ if has .Properties "in-reply-to" }}
-                Reply from
-              {{ else if has .Properties "repost-of" }}
-                Reposted by
-              {{ else if has .Properties "like-of" }}
-                Liked by
-              {{ else }}
-                Mentioned by
-              {{ end }}
-              &thinsp;<a href="{{ .Subject }}">
-                {{ if has .Properties "author" }}
-                  {{ if has .Properties "author.properties.name" }}
-                    {{ get .Properties "author.properties.name" }}
-                  {{ else }}
-                    {{ get .Properties "author.properties.url" }}
-                  {{ end }}
-                {{ else }}
-                  {{ .Subject }}
-                {{ end }}
-              </a>
-            </li>
-          {{ end }}
-        </ol>
-      </section>
-    {{ end }}
+    <details class="meta">
+      <summary>Interactions</summary>
+      
+      <ol class="inner">
+        {{ range .Mentions }}
+          <li>
+            {{ if has .Properties "in-reply-to" }}reply from{{ else if has .Properties "repost-of" }}reposted by{{ else if has .Properties "like-of" }}liked by{{ else }}mentioned by{{ end }}
+            <a href="{{ .Subject }}">{{ if has .Properties "author" }}{{ if has .Properties "author.properties.name" }}{{ get .Properties "author.properties.name" }}{{ else }}{{ get .Properties "author.properties.url" }}{{ end }}{{ else }}{{ .Subject }}{{ end }}</a>
+          </li>
+        {{ end }}
+      </ol>
+    </details>    
 
     {{ template "footer.gotmpl" }}
   </body>

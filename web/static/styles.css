@@ -149,10 +149,6 @@ p + p {
     font-size: 0.7rem;
 }
 
-.meta.more {
-    line-height: 1.75;
-}
-
 .meta a {
     color: var(--faint);
     text-decoration: none;
@@ -161,6 +157,23 @@ p + p {
 .meta a:hover {
     color: var(--foreground);
     text-decoration: underline;
+}
+
+details.meta {
+    margin-bottom: 1rem;
+}
+
+details.meta summary {
+    margin-bottom: .5rem;
+    user-select: none;
+    cursor: pointer;
+}
+
+details.meta .inner {
+    line-height: 1.75;
+    margin: 0 0 0 1rem;
+    padding: 0;
+    list-style: none;
 }
 
 /* small posts */
@@ -270,49 +283,6 @@ div.h-cite .u-url {
 .checkin .full-address {
     font-size: .8rem;
     color: var(--faintish);
-}
-
-/* reactions */
-
-.reactions {
-    font-size: .8rem;
-    color: var(--faintish);
-    font-style: italic;
-    border-top: 1px solid var(--fainter);
-}
-
-.reactions:hover ol {
-    opacity: 1;
-}
-
-.reactions h2 {
-    font-weight: normal;
-    font-style: normal;
-    font-size: 1rem;
-    font-family: var(--monospace);
-}
-
-.reactions ol {
-    opacity: .5;
-    transition: .3s;
-    list-style: none;
-    padding: 0;
-    margin: 1rem;
-}
-
-.reactions li {
-    margin: .3rem 0;
-}
-
-.reactions a {
-    color: var(--faint);
-    font-style: normal;
-    text-decoration: none;
-}
-
-.reactions a:hover {
-    color: var(--foreground);
-    text-decoration: underline;
 }
 
 /* nav */
