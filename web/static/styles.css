@@ -25,7 +25,6 @@ body {
     font: 1rem/1.35 var(--sans);
     margin: 3rem auto;
     max-width: 35rem;
-    text-align: justify;
     background: var(--background);
     color: var(--foreground);
     text-shadow: 1px 1px 2px black;
