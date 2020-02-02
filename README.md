@@ -57,7 +57,7 @@ Possibly up-to-date feature list:
 
 - Webmentions:
   * [x] Receive webmentions for posts
-  * [ ] Send webmentions on create
+  * [x] Send webmentions on create
   * [ ] Send webmentions on update
   * [ ] Send webmentions on delete
 

@@ -77,8 +77,27 @@ func (b *Blog) sendWebmentions(location string, data map[string][]interface{}) {
 	var links []string
 
 	links = append(links, findAs(data)...)
-	// and like-of
-	// etc.
+
+	for key, value := range data {
+		if strings.HasPrefix(key, "hx-") ||
+			strings.HasPrefix(key, "mp-") ||
+			key == "url" ||
+			len(value) == 0 {
+			continue
+		}
+
+		if v, ok := value[0].(string); ok {
+			if u, err := url.Parse(v); err == nil && u.IsAbs() {
+				links = append(links, v)
+			}
+		} else if v, ok := templateGet(data, key+".properties.url").(string); ok {
+			if u, err := url.Parse(v); err == nil && u.IsAbs() {
+				links = append(links, v)
+			}
+		}
+	}
+
+	log.Printf("INFO sending-webmentions; %v\n", links)
 
 	for _, link := range links {
 		if err := webmention.Send(location, link); err != nil {

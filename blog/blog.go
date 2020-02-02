@@ -350,15 +350,10 @@ func (b *Blog) Mention(source string, data map[string][]interface{}) error {
 	return b.DB.Mention(source, data)
 }
 
-type Microformat struct {
-	Type       []string                 `json:"type"`
-	Properties map[string][]interface{} `json:"properties"`
-}
-
-func getCite(u string) (cite Microformat, err error) {
-	cite = Microformat{
-		Type: []string{"h-cite"},
-		Properties: map[string][]interface{}{
+func getCite(u string) (cite map[string]interface{}, err error) {
+	cite = map[string]interface{}{
+		"type": []string{"h-cite"},
+		"properties": map[string][]interface{}{
 			"url": {u},
 		},
 	}
@@ -384,7 +379,13 @@ func getCite(u string) (cite Microformat, err error) {
 		})
 
 		if len(names) > 0 {
-			cite.Properties["name"] = []interface{}{htmlutil.TextOf(names[0])}
+			cite = map[string]interface{}{
+				"type": []string{"h-cite"},
+				"properties": map[string][]interface{}{
+					"url":  {u},
+					"name": {htmlutil.TextOf(names[0])},
+				},
+			}
 			return
 		}
 	}
@@ -394,7 +395,13 @@ func getCite(u string) (cite Microformat, err error) {
 	})
 
 	if len(titles) > 0 {
-		cite.Properties["name"] = []interface{}{htmlutil.TextOf(titles[0])}
+		cite = map[string]interface{}{
+			"type": []string{"h-cite"},
+			"properties": map[string][]interface{}{
+				"url":  {u},
+				"name": {htmlutil.TextOf(titles[0])},
+			},
+		}
 		return
 	}
 
