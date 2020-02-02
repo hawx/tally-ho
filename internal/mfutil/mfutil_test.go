@@ -1,4 +1,4 @@
-package blog
+package mfutil
 
 import (
 	"testing"
@@ -6,7 +6,7 @@ import (
 	"hawx.me/code/assert"
 )
 
-func TestGet(t *testing.T) {
+func TestSafeGet(t *testing.T) {
 	assert := assert.New(t)
 
 	m := map[string][]interface{}{
@@ -24,24 +24,24 @@ func TestGet(t *testing.T) {
 		},
 	}
 
-	value, ok := get(m, "missing")
+	value, ok := SafeGet(m, "missing")
 	assert.False(ok)
 
-	value, ok = get(m, "empty")
+	value, ok = SafeGet(m, "empty")
 	assert.False(ok)
 
-	value, ok = get(m, "simple")
+	value, ok = SafeGet(m, "simple")
 	assert.True(ok)
 	assert.Equal("a string", value)
 
-	value, ok = get(m, "map.key")
+	value, ok = SafeGet(m, "map.key")
 	assert.True(ok)
 	assert.Equal("a map", value)
 
-	value, ok = get(m, "map.missing")
+	value, ok = SafeGet(m, "map.missing")
 	assert.False(ok)
 
-	value, ok = get(m, "nested.key")
+	value, ok = SafeGet(m, "nested.key")
 	assert.True(ok)
 	assert.Equal("a nested", value)
 }

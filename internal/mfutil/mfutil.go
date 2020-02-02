@@ -4,7 +4,7 @@ import "strings"
 
 func Get(value interface{}, keys ...string) interface{} {
 	for _, key := range keys {
-		if v, ok := get(value, key); ok {
+		if v, ok := SafeGet(value, key); ok {
 			return v
 		}
 	}
@@ -12,11 +12,17 @@ func Get(value interface{}, keys ...string) interface{} {
 	return nil
 }
 
-func get(value interface{}, key string) (interface{}, bool) {
+func Has(value interface{}, key string) bool {
+	_, ok := SafeGet(value, key)
+
+	return ok
+}
+
+func SafeGet(value interface{}, key string) (interface{}, bool) {
 	// if an array get the first value
 	if typed, ok := value.([]interface{}); ok {
 		if len(typed) > 0 {
-			return get(typed[0], key)
+			return SafeGet(typed[0], key)
 		}
 
 		return nil, false
@@ -37,10 +43,10 @@ func get(value interface{}, key string) (interface{}, bool) {
 		}
 
 		if len(parts) == 2 {
-			return get(next[0], parts[1])
+			return SafeGet(next[0], parts[1])
 		}
 
-		return get(next[0], "")
+		return SafeGet(next[0], "")
 	}
 
 	if typed, ok := value.(map[string]interface{}); ok {
@@ -51,10 +57,10 @@ func get(value interface{}, key string) (interface{}, bool) {
 		}
 
 		if len(parts) == 2 {
-			return get(next, parts[1])
+			return SafeGet(next, parts[1])
 		}
 
-		return get(next, "")
+		return SafeGet(next, "")
 	}
 
 	return nil, false

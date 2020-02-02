@@ -34,12 +34,11 @@ func templateHas(v interface{}, key string) bool {
 		return false
 	}
 
-	_, ok = mfutil.Get(m, key)
-	return ok
+	return mfutil.Has(m, key)
 }
 
 func templateGetOr(m map[string][]interface{}, key string, or interface{}) interface{} {
-	if value, ok := mfutil.Get(m, key); ok {
+	if value, ok := mfutil.SafeGet(m, key); ok {
 		return value
 	}
 
@@ -47,9 +46,7 @@ func templateGetOr(m map[string][]interface{}, key string, or interface{}) inter
 }
 
 func templateGet(m map[string][]interface{}, key string) interface{} {
-	value, _ := mfutil.Get(m, key)
-
-	return value
+	return mfutil.Get(m, key)
 }
 
 func templateContent(m map[string][]interface{}) interface{} {
@@ -75,9 +72,7 @@ func templateContent(m map[string][]interface{}) interface{} {
 }
 
 func templateHumanDate(m map[string][]interface{}, key string) string {
-	v, _ := mfutil.Get(m, key)
-	s, ok := v.(string)
-
+	s, ok := mfutil.Get(m, key).(string)
 	if !ok {
 		return ""
 	}
@@ -91,9 +86,7 @@ func templateHumanDate(m map[string][]interface{}, key string) string {
 }
 
 func templateHumanRSVP(m map[string][]interface{}) string {
-	v, _ := mfutil.Get(m, "rsvp")
-	s, ok := v.(string)
-
+	s, ok := mfutil.Get(m, "rsvp").(string)
 	if !ok {
 		return ""
 	}
@@ -109,9 +102,7 @@ func templateHumanRSVP(m map[string][]interface{}) string {
 }
 
 func templateHumanReadStatus(m map[string][]interface{}) string {
-	v, _ := mfutil.Get(m, "read-status")
-	s, ok := v.(string)
-
+	s, ok := mfutil.Get(m, "read-status").(string)
 	if !ok {
 		return ""
 	}
@@ -127,9 +118,7 @@ func templateHumanReadStatus(m map[string][]interface{}) string {
 }
 
 func templateTime(m map[string][]interface{}, key string) string {
-	v, _ := mfutil.Get(m, key)
-	s, ok := v.(string)
-
+	s, ok := mfutil.Get(m, key).(string)
 	if !ok {
 		return ""
 	}
