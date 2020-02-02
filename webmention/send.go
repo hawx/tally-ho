@@ -39,17 +39,19 @@ func discoverEndpoint(target string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	linkHeader := resp.Header.Get("Link")
-	if linkHeader != "" {
-		links := linkheader.Parse(linkHeader)
-		webmentionLinks := links.FilterByRel("webmention")
-		if len(webmentionLinks) > 0 {
-			webmentionLinkURL, err := url.Parse(webmentionLinks[0].URL)
-			if err != nil {
-				return "", err
-			}
-			return targetURL.ResolveReference(webmentionLinkURL).String(), nil
+	for _, header := range resp.Header["Link"] {
+		link := hrefByRel("webmention", linkheader.Parse(header))
+
+		if link == "" {
+			continue
 		}
+
+		linkURL, err := url.Parse(link)
+		if err != nil {
+			return "", err
+		}
+
+		return targetURL.ResolveReference(linkURL).String(), nil
 	}
 
 	root, err := html.Parse(resp.Body)
@@ -60,7 +62,8 @@ func discoverEndpoint(target string) (string, error) {
 	links := searchAll(root, func(node *html.Node) bool {
 		return node.Type == html.ElementNode &&
 			(node.DataAtom == atom.Link || node.DataAtom == atom.A) &&
-			hasAttr(node, "rel", "webmention")
+			hasAttr(node, "rel", "webmention") &&
+			has(node, "href")
 	})
 
 	if len(links) > 0 {
@@ -102,10 +105,32 @@ func hasAttr(node *html.Node, attrName, attrValue string) bool {
 	return false
 }
 
+func has(node *html.Node, attrName string) bool {
+	for _, attr := range node.Attr {
+		if attr.Key == attrName {
+			return true
+		}
+	}
+
+	return false
+}
+
 func getAttr(node *html.Node, attrName string) string {
 	for _, attr := range node.Attr {
 		if attr.Key == attrName {
 			return attr.Val
+		}
+	}
+
+	return ""
+}
+
+func hrefByRel(rel string, links linkheader.Links) string {
+	for _, link := range links {
+		for _, r := range strings.Fields(link.Rel) {
+			if r == rel {
+				return link.URL
+			}
 		}
 	}
 
