@@ -60,7 +60,7 @@ func (t *twitterSyndicator) Create(data map[string][]interface{}) (location stri
 	case "like":
 		likeOf, ok := mfutil.Get(data, "like-of.properties.url", "like-of").(string)
 		if !ok {
-			return "", ErrUnsure
+			return "", ErrUnsure{data}
 		}
 
 		matches := twitterStatusRegexp.FindStringSubmatch(likeOf)
@@ -78,7 +78,7 @@ func (t *twitterSyndicator) Create(data map[string][]interface{}) (location stri
 	case "note":
 		content, ok := mfutil.Get(data, "content.text", "content").(string)
 		if !ok {
-			return "", ErrUnsure
+			return "", ErrUnsure{data}
 		}
 
 		tweet, err := t.api.PostTweet(content, url.Values{})
@@ -89,5 +89,5 @@ func (t *twitterSyndicator) Create(data map[string][]interface{}) (location stri
 		return "https://twitter.com/" + tweet.User.ScreenName + "/status/" + tweet.IdStr, nil
 	}
 
-	return "", ErrUnsure
+	return "", ErrUnsure{data}
 }
