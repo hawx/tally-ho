@@ -1,4 +1,4 @@
-package blog
+package htmlutil
 
 import (
 	"strings"
@@ -6,14 +6,14 @@ import (
 	"golang.org/x/net/html"
 )
 
-func searchAll(node *html.Node, pred func(*html.Node) bool) (results []*html.Node) {
+func SearchAll(node *html.Node, pred func(*html.Node) bool) (results []*html.Node) {
 	if pred(node) {
 		results = append(results, node)
 		return
 	}
 
 	for child := node.FirstChild; child != nil; child = child.NextSibling {
-		result := searchAll(child, pred)
+		result := SearchAll(child, pred)
 		if len(result) > 0 {
 			results = append(results, result...)
 		}
@@ -22,8 +22,8 @@ func searchAll(node *html.Node, pred func(*html.Node) bool) (results []*html.Nod
 	return
 }
 
-func hasAttr(node *html.Node, attrName, attrValue string) bool {
-	values := strings.Fields(getAttr(node, attrName))
+func HasAttr(node *html.Node, attrName, attrValue string) bool {
+	values := strings.Fields(Attr(node, attrName))
 
 	for _, v := range values {
 		if v == attrValue {
@@ -34,7 +34,17 @@ func hasAttr(node *html.Node, attrName, attrValue string) bool {
 	return false
 }
 
-func getAttr(node *html.Node, attrName string) string {
+func Has(node *html.Node, attrName string) bool {
+	for _, attr := range node.Attr {
+		if attr.Key == attrName {
+			return true
+		}
+	}
+
+	return false
+}
+
+func Attr(node *html.Node, attrName string) string {
 	for _, attr := range node.Attr {
 		if attr.Key == attrName {
 			return attr.Val
@@ -44,7 +54,7 @@ func getAttr(node *html.Node, attrName string) string {
 	return ""
 }
 
-func textOf(node *html.Node) string {
+func TextOf(node *html.Node) string {
 	if node.Type == html.TextNode {
 		return node.Data
 	}
@@ -52,7 +62,7 @@ func textOf(node *html.Node) string {
 	var parts []string
 
 	for c := node.FirstChild; c != nil; c = c.NextSibling {
-		parts = append(parts, textOf(c))
+		parts = append(parts, TextOf(c))
 	}
 
 	return strings.Join(parts, " ")

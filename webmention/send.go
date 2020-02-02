@@ -9,6 +9,7 @@ import (
 	"github.com/tomnomnom/linkheader"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
+	"hawx.me/code/tally-ho/internal/htmlutil"
 )
 
 func Send(source, target string) error {
@@ -59,15 +60,15 @@ func discoverEndpoint(target string) (string, error) {
 		return "", err
 	}
 
-	links := searchAll(root, func(node *html.Node) bool {
+	links := htmlutil.SearchAll(root, func(node *html.Node) bool {
 		return node.Type == html.ElementNode &&
 			(node.DataAtom == atom.Link || node.DataAtom == atom.A) &&
-			hasAttr(node, "rel", "webmention") &&
-			has(node, "href")
+			htmlutil.HasAttr(node, "rel", "webmention") &&
+			htmlutil.Has(node, "href")
 	})
 
 	if len(links) > 0 {
-		webmentionLinkURL, err := url.Parse(getAttr(links[0], "href"))
+		webmentionLinkURL, err := url.Parse(htmlutil.Attr(links[0], "href"))
 		if err != nil {
 			return "", err
 		}
@@ -75,54 +76,6 @@ func discoverEndpoint(target string) (string, error) {
 	}
 
 	return "", errors.New("nope")
-}
-
-func searchAll(node *html.Node, pred func(*html.Node) bool) (results []*html.Node) {
-	if pred(node) {
-		results = append(results, node)
-		return
-	}
-
-	for child := node.FirstChild; child != nil; child = child.NextSibling {
-		result := searchAll(child, pred)
-		if len(result) > 0 {
-			results = append(results, result...)
-		}
-	}
-
-	return
-}
-
-func hasAttr(node *html.Node, attrName, attrValue string) bool {
-	values := strings.Fields(getAttr(node, attrName))
-
-	for _, v := range values {
-		if v == attrValue {
-			return true
-		}
-	}
-
-	return false
-}
-
-func has(node *html.Node, attrName string) bool {
-	for _, attr := range node.Attr {
-		if attr.Key == attrName {
-			return true
-		}
-	}
-
-	return false
-}
-
-func getAttr(node *html.Node, attrName string) string {
-	for _, attr := range node.Attr {
-		if attr.Key == attrName {
-			return attr.Val
-		}
-	}
-
-	return ""
 }
 
 func hrefByRel(rel string, links linkheader.Links) string {

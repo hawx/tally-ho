@@ -16,6 +16,7 @@ import (
 	"golang.org/x/net/html/atom"
 	"hawx.me/code/numbersix"
 	"hawx.me/code/route"
+	"hawx.me/code/tally-ho/internal/htmlutil"
 	"hawx.me/code/tally-ho/syndicate"
 )
 
@@ -373,27 +374,27 @@ func getCite(u string) (cite Microformat, err error) {
 		return
 	}
 
-	hentries := searchAll(root, func(node *html.Node) bool {
-		return node.Type == html.ElementNode && hasAttr(node, "class", "h-entry")
+	hentries := htmlutil.SearchAll(root, func(node *html.Node) bool {
+		return node.Type == html.ElementNode && htmlutil.HasAttr(node, "class", "h-entry")
 	})
 
 	for _, hentry := range hentries {
-		names := searchAll(hentry, func(node *html.Node) bool {
-			return node.Type == html.ElementNode && hasAttr(node, "class", "p-name")
+		names := htmlutil.SearchAll(hentry, func(node *html.Node) bool {
+			return node.Type == html.ElementNode && htmlutil.HasAttr(node, "class", "p-name")
 		})
 
 		if len(names) > 0 {
-			cite.Properties["name"] = []interface{}{textOf(names[0])}
+			cite.Properties["name"] = []interface{}{htmlutil.TextOf(names[0])}
 			return
 		}
 	}
 
-	titles := searchAll(root, func(node *html.Node) bool {
+	titles := htmlutil.SearchAll(root, func(node *html.Node) bool {
 		return node.Type == html.ElementNode && node.DataAtom == atom.Title
 	})
 
 	if len(titles) > 0 {
-		cite.Properties["name"] = []interface{}{textOf(titles[0])}
+		cite.Properties["name"] = []interface{}{htmlutil.TextOf(titles[0])}
 		return
 	}
 

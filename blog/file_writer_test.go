@@ -23,7 +23,7 @@ func TestExtension(t *testing.T) {
 		"from content-type": {
 			ContentType: "image/jpeg",
 			Filename:    "a-photo",
-			Expected:    ".jpg",
+			Expected:    ".jpeg",
 		},
 		"from nothing": {
 			ContentType: "",
