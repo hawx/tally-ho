@@ -47,8 +47,8 @@ func (b *Blog) Create(data map[string][]interface{}) (location string, err error
 	relativeURL, _ := url.Parse(relativeLocation)
 	location = b.Config.BaseURL.ResolveReference(relativeURL).String()
 
-	b.syndicate(location, data)
-	b.sendWebmentions(location, data)
+	go b.syndicate(location, data)
+	go b.sendWebmentions(location, data)
 
 	return
 }
