@@ -3,7 +3,12 @@ package blog
 import (
 	"log"
 	"net/url"
+	"strings"
 
+	"golang.org/x/net/html"
+	"golang.org/x/net/html/atom"
+	"hawx.me/code/tally-ho/internal/htmlutil"
+	"hawx.me/code/tally-ho/webmention"
 	"mvdan.cc/xurls/v2"
 )
 
@@ -42,6 +47,13 @@ func (b *Blog) Create(data map[string][]interface{}) (location string, err error
 	relativeURL, _ := url.Parse(relativeLocation)
 	location = b.Config.BaseURL.ResolveReference(relativeURL).String()
 
+	b.syndicate(location, data)
+	b.sendWebmentions(location, data)
+
+	return
+}
+
+func (b *Blog) syndicate(location string, data map[string][]interface{}) {
 	if syndicateTos, ok := data["mp-syndicate-to"]; ok && len(syndicateTos) > 0 {
 		for _, syndicateTo := range syndicateTos {
 			if syndicator, ok := b.Syndicators[syndicateTo.(string)]; ok {
@@ -59,8 +71,50 @@ func (b *Blog) Create(data map[string][]interface{}) (location string, err error
 			}
 		}
 	}
+}
 
-	return
+func (b *Blog) sendWebmentions(location string, data map[string][]interface{}) {
+	var links []string
+
+	links = append(links, findAs(data)...)
+	// and like-of
+	// etc.
+
+	for _, link := range links {
+		if err := webmention.Send(location, link); err != nil {
+			log.Printf("ERR send-webmention source=%s target=%s; %v\n", location, link, err)
+		}
+	}
+}
+
+func findAs(data map[string][]interface{}) []string {
+	if content, ok := data["content"]; ok && len(content) > 0 {
+		if contents, ok := content[0].(map[string]string); ok {
+			if htmlContent, ok := contents["html"]; ok && len(htmlContent) > 0 {
+				root, err := html.Parse(strings.NewReader(htmlContent))
+				if err != nil {
+					log.Println("ERR send-webmentions;", err)
+					return []string{}
+				}
+
+				as := htmlutil.SearchAll(root, func(node *html.Node) bool {
+					return node.Type == html.ElementNode &&
+						node.DataAtom == atom.A &&
+						htmlutil.Has(node, "href")
+				})
+
+				var links []string
+				for _, a := range as {
+					if val := htmlutil.Attr(a, "href"); val != "" {
+						links = append(links, val)
+					}
+				}
+				return links
+			}
+		}
+	}
+
+	return []string{}
 }
 
 func postTypeDiscovery(data map[string][]interface{}) string {
