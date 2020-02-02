@@ -50,25 +50,11 @@ func templateGet(m map[string][]interface{}, key string) interface{} {
 }
 
 func templateContent(m map[string][]interface{}) interface{} {
-	contents, ok := m["content"]
-
-	if ok && len(contents) > 0 {
-		if content, ok := contents[0].(string); ok {
-			return content
-		}
-
-		if content, ok := contents[0].(map[string]interface{}); ok {
-			if html, ok := content["html"]; ok {
-				return template.HTML(html.(string))
-			}
-
-			if text, ok := content["text"]; ok {
-				return text
-			}
-		}
+	if mfutil.Has(m, "content.html") {
+		return template.HTML(mfutil.Get(m, "content.html").(string))
 	}
 
-	return ""
+	return mfutil.Get(m, "content.text", "content").(string)
 }
 
 func templateHumanDate(m map[string][]interface{}, key string) string {
@@ -155,28 +141,27 @@ func templateWithEnd(l []interface{}) []endEl {
 }
 
 func templateTitle(m map[string][]interface{}) string {
-	switch templateGet(m, "hx-kind").(string) {
+	switch mfutil.Get(m, "hx-kind").(string) {
 	case "like":
-		if templateHas(m, "like-of.properties.name") {
-			return "liked " + templateGet(m, "like-of.properties.name").(string)
-		} else {
-			return "liked " + templateGet(m, "like-of.properties.url").(string)
-		}
+		return "liked " + mfutil.Get(m,
+			"like-of.properties.name",
+			"like-of.properties.url",
+			"like-of").(string)
 	case "rsvp":
 		return templateHumanRSVP(m) + " to " + templateGetOr(m, "name", "an event").(string)
 	case "read":
-		return templateHumanReadStatus(m) + " " + templateGet(m, "read-of.properties.name").(string) + " by " + templateGet(m, "read-of.properties.author").(string)
+		return templateHumanReadStatus(m) + " " + mfutil.Get(m, "read-of.properties.name").(string) + " by " + mfutil.Get(m, "read-of.properties.author").(string)
 	case "drank":
-		return "drank " + templateGet(m, "drank.properties.name").(string)
+		return "drank " + mfutil.Get(m, "drank.properties.name").(string)
 	case "checkin":
-		return "checked in to " + templateGet(m, "checkin.properties.name").(string)
+		return "checked in to " + mfutil.Get(m, "checkin.properties.name").(string)
 	}
 
-	if templateHas(m, "name") {
-		return templateGet(m, "name").(string)
+	if mfutil.Has(m, "name") {
+		return mfutil.Get(m, "name").(string)
 	}
 
-	if templateHas(m, "content") {
+	if mfutil.Has(m, "content") {
 		if content, ok := templateContent(m).(string); ok {
 			return templateTruncate(content, 140)
 		}

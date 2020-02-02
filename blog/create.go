@@ -8,6 +8,7 @@ import (
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 	"hawx.me/code/tally-ho/internal/htmlutil"
+	"hawx.me/code/tally-ho/internal/mfutil"
 	"hawx.me/code/tally-ho/webmention"
 	"mvdan.cc/xurls/v2"
 )
@@ -86,11 +87,7 @@ func (b *Blog) sendWebmentions(location string, data map[string][]interface{}) {
 			continue
 		}
 
-		if v, ok := value[0].(string); ok {
-			if u, err := url.Parse(v); err == nil && u.IsAbs() {
-				links = append(links, v)
-			}
-		} else if v, ok := templateGet(data, key+".properties.url").(string); ok {
+		if v, ok := mfutil.Get(data, key+".properties.url", key).(string); ok {
 			if u, err := url.Parse(v); err == nil && u.IsAbs() {
 				links = append(links, v)
 			}
@@ -107,33 +104,36 @@ func (b *Blog) sendWebmentions(location string, data map[string][]interface{}) {
 }
 
 func findAs(data map[string][]interface{}) []string {
-	if content, ok := data["content"]; ok && len(content) > 0 {
-		if contents, ok := content[0].(map[string]string); ok {
-			if htmlContent, ok := contents["html"]; ok && len(htmlContent) > 0 {
-				root, err := html.Parse(strings.NewReader(htmlContent))
-				if err != nil {
-					log.Println("ERR send-webmentions;", err)
-					return []string{}
-				}
+	content, ok := mfutil.SafeGet(data, "content.html")
+	if !ok {
+		return []string{}
+	}
 
-				as := htmlutil.SearchAll(root, func(node *html.Node) bool {
-					return node.Type == html.ElementNode &&
-						node.DataAtom == atom.A &&
-						htmlutil.Has(node, "href")
-				})
+	htmlContent, ok := content.(string)
+	if !ok {
+		return []string{}
+	}
 
-				var links []string
-				for _, a := range as {
-					if val := htmlutil.Attr(a, "href"); val != "" {
-						links = append(links, val)
-					}
-				}
-				return links
-			}
+	root, err := html.Parse(strings.NewReader(htmlContent))
+	if err != nil {
+		log.Println("ERR find-as;", err)
+		return []string{}
+	}
+
+	as := htmlutil.SearchAll(root, func(node *html.Node) bool {
+		return node.Type == html.ElementNode &&
+			node.DataAtom == atom.A &&
+			htmlutil.Has(node, "href")
+	})
+
+	var links []string
+	for _, a := range as {
+		if val := htmlutil.Attr(a, "href"); val != "" {
+			links = append(links, val)
 		}
 	}
 
-	return []string{}
+	return links
 }
 
 func postTypeDiscovery(data map[string][]interface{}) string {
