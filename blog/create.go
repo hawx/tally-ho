@@ -32,7 +32,7 @@ func (b *Blog) Create(data map[string][]interface{}) (location string, err error
 				return `<a href="` + u + `">` + u + `</a>`
 			})
 
-			data["content"] = []interface{}{map[string]string{
+			data["content"] = []interface{}{map[string]interface{}{
 				"text": s,
 				"html": html,
 			}}
