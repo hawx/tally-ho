@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"hawx.me/code/tally-ho/internal/mfutil"
 )
 
 func ParseTemplates(webPath string) (*template.Template, error) {
@@ -32,12 +34,12 @@ func templateHas(v interface{}, key string) bool {
 		return false
 	}
 
-	_, ok = get(m, key)
+	_, ok = mfutil.Get(m, key)
 	return ok
 }
 
 func templateGetOr(m map[string][]interface{}, key string, or interface{}) interface{} {
-	if value, ok := get(m, key); ok {
+	if value, ok := mfutil.Get(m, key); ok {
 		return value
 	}
 
@@ -45,7 +47,7 @@ func templateGetOr(m map[string][]interface{}, key string, or interface{}) inter
 }
 
 func templateGet(m map[string][]interface{}, key string) interface{} {
-	value, _ := get(m, key)
+	value, _ := mfutil.Get(m, key)
 
 	return value
 }
@@ -72,56 +74,8 @@ func templateContent(m map[string][]interface{}) interface{} {
 	return ""
 }
 
-func get(value interface{}, key string) (interface{}, bool) {
-	// if an array get the first value
-	if typed, ok := value.([]interface{}); ok {
-		if len(typed) > 0 {
-			return get(typed[0], key)
-		}
-
-		return nil, false
-	}
-
-	// if no key then this must be what we were looking for
-	if key == "" {
-		return value, true
-	}
-
-	parts := strings.SplitN(key, ".", 2)
-
-	if typed, ok := value.(map[string][]interface{}); ok {
-		next, ok := typed[parts[0]]
-
-		if !ok || len(next) == 0 {
-			return nil, false
-		}
-
-		if len(parts) == 2 {
-			return get(next[0], parts[1])
-		}
-
-		return get(next[0], "")
-	}
-
-	if typed, ok := value.(map[string]interface{}); ok {
-		next, ok := typed[parts[0]]
-
-		if !ok {
-			return nil, ok
-		}
-
-		if len(parts) == 2 {
-			return get(next, parts[1])
-		}
-
-		return get(next, "")
-	}
-
-	return nil, false
-}
-
 func templateHumanDate(m map[string][]interface{}, key string) string {
-	v, _ := get(m, key)
+	v, _ := mfutil.Get(m, key)
 	s, ok := v.(string)
 
 	if !ok {
@@ -137,7 +91,7 @@ func templateHumanDate(m map[string][]interface{}, key string) string {
 }
 
 func templateHumanRSVP(m map[string][]interface{}) string {
-	v, _ := get(m, "rsvp")
+	v, _ := mfutil.Get(m, "rsvp")
 	s, ok := v.(string)
 
 	if !ok {
@@ -155,7 +109,7 @@ func templateHumanRSVP(m map[string][]interface{}) string {
 }
 
 func templateHumanReadStatus(m map[string][]interface{}) string {
-	v, _ := get(m, "read-status")
+	v, _ := mfutil.Get(m, "read-status")
 	s, ok := v.(string)
 
 	if !ok {
@@ -173,7 +127,7 @@ func templateHumanReadStatus(m map[string][]interface{}) string {
 }
 
 func templateTime(m map[string][]interface{}, key string) string {
-	v, _ := get(m, key)
+	v, _ := mfutil.Get(m, key)
 	s, ok := v.(string)
 
 	if !ok {

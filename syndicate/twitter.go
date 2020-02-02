@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/ChimeraCoder/anaconda"
+	"hawx.me/code/tally-ho/internal/mfutil"
 )
 
 const TwitterUID = "https://twitter.com/"
@@ -55,8 +56,9 @@ func (t *twitterSyndicator) Name() string {
 var twitterStatusRegexp = regexp.MustCompile(`^https?://twitter\.com/(?:\#!/)?\w+/status(es)?/(\d+)$`)
 
 func (t *twitterSyndicator) Create(data map[string][]interface{}) (location string, err error) {
-	if len(data["like-of"]) > 0 {
-		likeOf, ok := data["like-of"][0].(string)
+	switch data["hx-kind"][0].(string) {
+	case "like":
+		likeOf, ok := mfutil.Get(data, "like-of.properties.url", "like-of").(string)
 		if !ok {
 			return "", ErrUnsure
 		}
@@ -73,22 +75,19 @@ func (t *twitterSyndicator) Create(data map[string][]interface{}) (location stri
 				return likeOf, nil
 			}
 		}
+	case "note":
+		content, ok := mfutil.Get(data, "content.text", "content").(string)
+		if !ok {
+			return "", ErrUnsure
+		}
+
+		tweet, err := t.api.PostTweet(content, url.Values{})
+		if err != nil {
+			return "", err
+		}
+
+		return "https://twitter.com/" + tweet.User.ScreenName + "/status/" + tweet.IdStr, nil
 	}
 
-	contents := data["content"]
-	if len(contents) < 1 {
-		return "", ErrUnsure
-	}
-
-	content, ok := contents[0].(string)
-	if !ok {
-		return "", ErrUnsure
-	}
-
-	tweet, err := t.api.PostTweet(content, url.Values{})
-	if err != nil {
-		return "", err
-	}
-
-	return "https://twitter.com/" + tweet.User.ScreenName + "/status/" + tweet.IdStr, nil
+	return "", ErrUnsure
 }
