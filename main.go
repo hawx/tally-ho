@@ -58,13 +58,6 @@ func main() {
 		return
 	}
 
-	db, err := blog.Open(*dbPath)
-	if err != nil {
-		log.Println("ERR open-blog;", err)
-		return
-	}
-	defer db.Close()
-
 	templates, err := blog.ParseTemplates(*webPath)
 	if err != nil {
 		log.Println("ERR parse-templates;", err)
@@ -97,20 +90,21 @@ func main() {
 		return
 	}
 
-	b := &blog.Blog{
-		Config: blog.Config{
-			Me:          conf.Me,
-			Name:        conf.Name,
-			Title:       conf.Title,
-			Description: conf.Description,
-			BaseURL:     baseURL,
-			MediaURL:    mediaURL,
-		},
-		DB:          db,
+	b, err := blog.New(blog.Config{
+		Me:          conf.Me,
+		Name:        conf.Name,
+		Title:       conf.Title,
+		Description: conf.Description,
+		BaseURL:     baseURL,
+		MediaURL:    mediaURL,
+		DbPath:      *dbPath,
 		MediaDir:    *mediaDir,
-		Templates:   templates,
-		Syndicators: syndicators,
+	}, templates, syndicators)
+	if err != nil {
+		log.Println("ERR new-blog;", err)
+		return
 	}
+	defer b.Close()
 
 	mediaEndpointURL, _ := url.Parse("/-/media")
 

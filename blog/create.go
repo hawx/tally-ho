@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"golang.org/x/net/html"
@@ -24,6 +25,10 @@ func (b *Blog) Create(data map[string][]interface{}) (string, error) {
 
 	data["uid"] = []interface{}{uid}
 	data["url"] = []interface{}{location}
+
+	if len(data["published"]) == 0 {
+		data["published"] = []interface{}{time.Now().UTC().Format(time.RFC3339)}
+	}
 
 	kind := postTypeDiscovery(data)
 
@@ -51,7 +56,7 @@ func (b *Blog) Create(data map[string][]interface{}) (string, error) {
 		}
 	}
 
-	if err := b.DB.Create(uid, data); err != nil {
+	if err := b.entries.SetProperties(uid, data); err != nil {
 		return location, err
 	}
 

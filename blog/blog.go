@@ -1,6 +1,7 @@
 package blog
 
 import (
+	"database/sql"
 	"fmt"
 	"html/template"
 	"io"
@@ -22,14 +23,52 @@ type Config struct {
 	Description string
 	BaseURL     *url.URL
 	MediaURL    *url.URL
+	DbPath      string
+	MediaDir    string
 }
 
 type Blog struct {
+	closer   io.Closer
+	entries  *numbersix.DB
+	mentions *numbersix.DB
+
 	Config      Config
-	MediaDir    string
-	DB          *DB
-	Templates   *template.Template
 	Syndicators map[string]syndicate.Syndicator
+	Templates   *template.Template
+}
+
+func New(
+	config Config,
+	templates *template.Template,
+	syndicators map[string]syndicate.Syndicator,
+) (*Blog, error) {
+	db, err := sql.Open("sqlite3", config.DbPath)
+	if err != nil {
+		return nil, err
+	}
+
+	entries, err := numbersix.For(db, "entries")
+	if err != nil {
+		return nil, err
+	}
+
+	mentions, err := numbersix.For(db, "mentions")
+	if err != nil {
+		return nil, err
+	}
+
+	return &Blog{
+		closer:      db,
+		entries:     entries,
+		mentions:    mentions,
+		Config:      config,
+		Syndicators: syndicators,
+		Templates:   templates,
+	}, nil
+}
+
+func (b *Blog) Close() error {
+	return b.closer.Close()
 }
 
 func (b *Blog) BaseURL() string {
@@ -48,7 +87,7 @@ func (b *Blog) Handler() http.Handler {
 			before = time.Now().UTC()
 		}
 
-		posts, err := b.DB.Before(before)
+		posts, err := b.Before(before)
 		if err != nil {
 			log.Println("ERR get-all;", err)
 			return
@@ -87,7 +126,7 @@ func (b *Blog) Handler() http.Handler {
 			before = time.Now().UTC()
 		}
 
-		posts, err := b.DB.KindBefore(vars["kind"], before)
+		posts, err := b.KindBefore(vars["kind"], before)
 		if err != nil {
 			log.Println("ERR get-all;", err)
 			return
@@ -126,7 +165,7 @@ func (b *Blog) Handler() http.Handler {
 			before = time.Now().UTC()
 		}
 
-		posts, err := b.DB.CategoryBefore(vars["category"], before)
+		posts, err := b.CategoryBefore(vars["category"], before)
 		if err != nil {
 			log.Println("ERR get-all;", err)
 			return
@@ -159,7 +198,7 @@ func (b *Blog) Handler() http.Handler {
 	route.HandleFunc("/entry/:id", func(w http.ResponseWriter, r *http.Request) {
 		vars := route.Vars(r)
 
-		entry, err := b.Entry(vars["id"])
+		entry, err := b.EntryByUID(vars["id"])
 		if err != nil {
 			log.Printf("ERR get-entry id=%s; %v\n", vars["id"], err)
 			return
@@ -170,7 +209,7 @@ func (b *Blog) Handler() http.Handler {
 			return
 		}
 
-		mentions, err := b.DB.MentionsForEntry(baseURL.ResolveReference(r.URL).String())
+		mentions, err := b.MentionsForEntry(baseURL.ResolveReference(r.URL).String())
 		if err != nil {
 			log.Printf("ERR get-entry-mentions url=%s; %v\n", r.URL.Path, err)
 			return
@@ -195,7 +234,7 @@ func (b *Blog) Handler() http.Handler {
 	route.HandleFunc("/likes/:ymd", func(w http.ResponseWriter, r *http.Request) {
 		ymd := route.Vars(r)["ymd"]
 
-		likes, err := b.DB.LikesOn(ymd)
+		likes, err := b.LikesOn(ymd)
 		if err != nil {
 			log.Printf("ERR likes-on ymd=%s; %v\n", ymd, err)
 			return
@@ -270,7 +309,7 @@ func (b *Blog) feed() (*feeds.Feed, error) {
 		Created: time.Now(),
 	}
 
-	posts, err := b.DB.Before(time.Now().UTC())
+	posts, err := b.Before(time.Now().UTC())
 	if err != nil {
 		return nil, err
 	}
@@ -290,28 +329,4 @@ func (b *Blog) feed() (*feeds.Feed, error) {
 	}
 
 	return feed, nil
-}
-
-func (b *Blog) Entry(uid string) (data map[string][]interface{}, err error) {
-	return b.DB.EntryByUID(uid)
-}
-
-func (b *Blog) Update(
-	url string,
-	replace, add, delete map[string][]interface{},
-	deleteAll []string,
-) error {
-	return b.DB.Update(url, replace, add, delete, deleteAll)
-}
-
-func (b *Blog) Delete(url string) error {
-	return b.DB.Delete(url)
-}
-
-func (b *Blog) Undelete(url string) error {
-	return b.DB.Undelete(url)
-}
-
-func (b *Blog) Mention(source string, data map[string][]interface{}) error {
-	return b.DB.Mention(source, data)
 }

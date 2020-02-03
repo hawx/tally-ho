@@ -19,7 +19,7 @@ func (b *Blog) WriteFile(name, contentType string, r io.Reader) (location string
 	}
 
 	name = uid.String() + extension(contentType, name)
-	p := path.Join(b.MediaDir, name)
+	p := path.Join(b.Config.MediaDir, name)
 
 	file, err := os.Create(p)
 	if err != nil {

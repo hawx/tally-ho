@@ -1,9 +1,7 @@
 package blog
 
 import (
-	"database/sql"
 	"errors"
-	"io"
 	"time"
 
 	"hawx.me/code/numbersix"
@@ -11,122 +9,8 @@ import (
 
 var empty = map[string][]interface{}{}
 
-func Open(path string) (*DB, error) {
-	db, err := sql.Open("sqlite3", path)
-	if err != nil {
-		return nil, err
-	}
-
-	entries, err := numbersix.For(db, "entries")
-	if err != nil {
-		return nil, err
-	}
-
-	mentions, err := numbersix.For(db, "mentions")
-	if err != nil {
-		return nil, err
-	}
-
-	return &DB{
-		closer:   db,
-		entries:  entries,
-		mentions: mentions,
-	}, nil
-}
-
-type DB struct {
-	closer   io.Closer
-	entries  *numbersix.DB
-	mentions *numbersix.DB
-}
-
-func (db *DB) Close() error {
-	return db.closer.Close()
-}
-
-func (db *DB) Create(id string, data map[string][]interface{}) error {
-	if len(data["published"]) == 0 {
-		data["published"] = []interface{}{time.Now().UTC().Format(time.RFC3339)}
-	}
-
-	return db.entries.SetProperties(id, data)
-}
-
-func (db *DB) Update(
-	url string,
-	replace, add, delete map[string][]interface{},
-	deleteAll []string,
-) error {
-	replace["updated"] = []interface{}{time.Now().UTC().Format(time.RFC3339)}
-
-	triples, err := db.entries.List(numbersix.Where("url", url))
-	if err != nil {
-		return err
-	}
-	if len(triples) == 0 {
-		return errors.New("post to update not found")
-	}
-	id := triples[0].Subject
-
-	for predicate, values := range replace {
-		db.entries.DeletePredicate(id, predicate)
-		db.entries.SetMany(id, predicate, values)
-	}
-
-	for predicate, values := range add {
-		db.entries.SetMany(id, predicate, values)
-	}
-
-	for predicate, values := range delete {
-		for _, value := range values {
-			db.entries.DeleteValue(id, predicate, value)
-		}
-	}
-
-	for _, predicate := range deleteAll {
-		db.entries.DeletePredicate(id, predicate)
-	}
-
-	return nil
-}
-
-func (db *DB) Delete(url string) error {
-	triples, err := db.entries.List(numbersix.Where("url", url))
-	if err != nil {
-		return err
-	}
-	if len(triples) == 0 {
-		return errors.New("post to delete not found")
-	}
-	id := triples[0].Subject
-
-	return db.entries.Set(id, "hx-deleted", true)
-}
-
-func (db *DB) Undelete(url string) error {
-	triples, err := db.entries.List(numbersix.Where("url", url))
-	if err != nil {
-		return err
-	}
-	if len(triples) == 0 {
-		return errors.New("post to undelete not found")
-	}
-	id := triples[0].Subject
-
-	return db.entries.DeletePredicate(id, "hx-deleted")
-}
-
-func (db *DB) Mention(source string, data map[string][]interface{}) error {
-	// TODO: add ability to block by host or url
-	if err := db.mentions.DeleteSubject(source); err != nil {
-		return err
-	}
-
-	return db.mentions.SetProperties(source, data)
-}
-
-func (db *DB) Entry(url string) (data map[string][]interface{}, err error) {
-	triples, err := db.entries.List(numbersix.Where("url", url))
+func (b *Blog) Entry(url string) (data map[string][]interface{}, err error) {
+	triples, err := b.entries.List(numbersix.Where("url", url))
 	if err != nil {
 		return
 	}
@@ -138,8 +22,8 @@ func (db *DB) Entry(url string) (data map[string][]interface{}, err error) {
 	return groups[0].Properties, nil
 }
 
-func (db *DB) EntryByUID(uid string) (data map[string][]interface{}, err error) {
-	triples, err := db.entries.List(numbersix.Where("uid", uid))
+func (b *Blog) EntryByUID(uid string) (data map[string][]interface{}, err error) {
+	triples, err := b.entries.List(numbersix.Where("uid", uid))
 	if err != nil {
 		return
 	}
@@ -151,8 +35,81 @@ func (db *DB) EntryByUID(uid string) (data map[string][]interface{}, err error) 
 	return groups[0].Properties, nil
 }
 
-func (db *DB) MentionsForEntry(url string) (list []numbersix.Group, err error) {
-	triples, err := db.mentions.List(numbersix.Where("hx-target", url))
+func (b *Blog) Update(
+	url string,
+	replace, add, delete map[string][]interface{},
+	deleteAll []string,
+) error {
+	replace["updated"] = []interface{}{time.Now().UTC().Format(time.RFC3339)}
+
+	triples, err := b.entries.List(numbersix.Where("url", url))
+	if err != nil {
+		return err
+	}
+	if len(triples) == 0 {
+		return errors.New("post to update not found")
+	}
+	id := triples[0].Subject
+
+	for predicate, values := range replace {
+		b.entries.DeletePredicate(id, predicate)
+		b.entries.SetMany(id, predicate, values)
+	}
+
+	for predicate, values := range add {
+		b.entries.SetMany(id, predicate, values)
+	}
+
+	for predicate, values := range delete {
+		for _, value := range values {
+			b.entries.DeleteValue(id, predicate, value)
+		}
+	}
+
+	for _, predicate := range deleteAll {
+		b.entries.DeletePredicate(id, predicate)
+	}
+
+	return nil
+}
+
+func (b *Blog) Delete(url string) error {
+	triples, err := b.entries.List(numbersix.Where("url", url))
+	if err != nil {
+		return err
+	}
+	if len(triples) == 0 {
+		return errors.New("post to delete not found")
+	}
+	id := triples[0].Subject
+
+	return b.entries.Set(id, "hx-deleted", true)
+}
+
+func (b *Blog) Undelete(url string) error {
+	triples, err := b.entries.List(numbersix.Where("url", url))
+	if err != nil {
+		return err
+	}
+	if len(triples) == 0 {
+		return errors.New("post to undelete not found")
+	}
+	id := triples[0].Subject
+
+	return b.entries.DeletePredicate(id, "hx-deleted")
+}
+
+func (b *Blog) Mention(source string, data map[string][]interface{}) error {
+	// TODO: add ability to block by host or url
+	if err := b.mentions.DeleteSubject(source); err != nil {
+		return err
+	}
+
+	return b.mentions.SetProperties(source, data)
+}
+
+func (b *Blog) MentionsForEntry(url string) (list []numbersix.Group, err error) {
+	triples, err := b.mentions.List(numbersix.Where("hx-target", url))
 	if err != nil {
 		return
 	}
@@ -161,8 +118,8 @@ func (db *DB) MentionsForEntry(url string) (list []numbersix.Group, err error) {
 	return
 }
 
-func (db *DB) Before(published time.Time) (groups []numbersix.Group, err error) {
-	triples, err := db.entries.List(
+func (b *Blog) Before(published time.Time) (groups []numbersix.Group, err error) {
+	triples, err := b.entries.List(
 		numbersix.
 			Before("published", published.Format(time.RFC3339)).
 			Without("hx-deleted").
@@ -175,8 +132,8 @@ func (db *DB) Before(published time.Time) (groups []numbersix.Group, err error) 
 	return numbersix.Grouped(triples), nil
 }
 
-func (db *DB) KindBefore(kind string, published time.Time) (groups []numbersix.Group, err error) {
-	triples, err := db.entries.List(
+func (b *Blog) KindBefore(kind string, published time.Time) (groups []numbersix.Group, err error) {
+	triples, err := b.entries.List(
 		numbersix.
 			Before("published", published.Format(time.RFC3339)).
 			Where("hx-kind", kind).
@@ -190,8 +147,8 @@ func (db *DB) KindBefore(kind string, published time.Time) (groups []numbersix.G
 	return numbersix.Grouped(triples), nil
 }
 
-func (db *DB) CategoryBefore(category string, published time.Time) (groups []numbersix.Group, err error) {
-	triples, err := db.entries.List(
+func (b *Blog) CategoryBefore(category string, published time.Time) (groups []numbersix.Group, err error) {
+	triples, err := b.entries.List(
 		numbersix.
 			Before("published", published.Format(time.RFC3339)).
 			Where("category", category).
@@ -205,8 +162,8 @@ func (db *DB) CategoryBefore(category string, published time.Time) (groups []num
 	return numbersix.Grouped(triples), nil
 }
 
-func (db *DB) LikesOn(ymd string) (groups []numbersix.Group, err error) {
-	triples, err := db.entries.List(
+func (b *Blog) LikesOn(ymd string) (groups []numbersix.Group, err error) {
+	triples, err := b.entries.List(
 		numbersix.
 			Begins("published", ymd).
 			Without("hx-deleted").
