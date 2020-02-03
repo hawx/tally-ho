@@ -9,14 +9,19 @@ import (
 	"hawx.me/code/tally-ho/internal/mfutil"
 )
 
+// TwitterUID is the unique identifier for this syndicator.
 const TwitterUID = "https://twitter.com/"
 
+// TwitterOptions is the configuration required to connect to the Twitter API.
 type TwitterOptions struct {
 	BaseURL                        string
 	ConsumerKey, ConsumerSecret    string
 	AccessToken, AccessTokenSecret string
 }
 
+// Twitter creates a syndicator for Twitter. On creation it makes a call to the
+// API to verify the credentials are correct and the screen name of the
+// authenticated user.
 func Twitter(options TwitterOptions) (*twitterSyndicator, error) {
 	api := anaconda.NewTwitterApiWithCredentials(
 		options.AccessToken,
