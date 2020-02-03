@@ -13,8 +13,11 @@ import (
 )
 
 type DB interface {
-	getDB
-	postDB
+	Entry(url string) (data map[string][]interface{}, err error)
+	Create(data map[string][]interface{}) (string, error)
+	Update(url string, replace, add, delete map[string][]interface{}, deleteAlls []string) error
+	Delete(url string) error
+	Undelete(url string) error
 }
 
 // Endpoint returns a http.Handler exposing micropub. Only tokens issued for
