@@ -1,22 +1,17 @@
 package blog
 
 import (
-	"errors"
 	"fmt"
 	"html/template"
 	"io"
 	"log"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/gorilla/feeds"
-	"golang.org/x/net/html"
-	"golang.org/x/net/html/atom"
 	"hawx.me/code/numbersix"
 	"hawx.me/code/route"
-	"hawx.me/code/tally-ho/internal/htmlutil"
 	"hawx.me/code/tally-ho/syndicate"
 )
 
@@ -162,9 +157,11 @@ func (b *Blog) Handler() http.Handler {
 	})
 
 	route.HandleFunc("/entry/:id", func(w http.ResponseWriter, r *http.Request) {
-		entry, err := b.DB.Entry(r.URL.Path)
+		vars := route.Vars(r)
+
+		entry, err := b.Entry(vars["id"])
 		if err != nil {
-			log.Printf("ERR get-entry url=%s; %v\n", r.URL.Path, err)
+			log.Printf("ERR get-entry id=%s; %v\n", vars["id"], err)
 			return
 		}
 
@@ -295,15 +292,8 @@ func (b *Blog) feed() (*feeds.Feed, error) {
 	return feed, nil
 }
 
-func (b *Blog) Entry(url string) (data map[string][]interface{}, err error) {
-	if strings.HasPrefix(url, b.BaseURL()) {
-		url = url[len(b.BaseURL()):]
-		if url[0] != '/' {
-			url = "/" + url
-		}
-	}
-
-	return b.DB.Entry(url)
+func (b *Blog) Entry(uid string) (data map[string][]interface{}, err error) {
+	return b.DB.EntryByUID(uid)
 }
 
 func (b *Blog) Update(
@@ -311,99 +301,17 @@ func (b *Blog) Update(
 	replace, add, delete map[string][]interface{},
 	deleteAll []string,
 ) error {
-	if !strings.HasPrefix(url, b.BaseURL()) {
-		return errors.New("expected url to be for this blog")
-	}
-	url = url[len(b.BaseURL()):]
-	if url[0] != '/' {
-		url = "/" + url
-	}
-
 	return b.DB.Update(url, replace, add, delete, deleteAll)
 }
 
 func (b *Blog) Delete(url string) error {
-	if !strings.HasPrefix(url, b.BaseURL()) {
-		return errors.New("expected url to be for this blog")
-	}
-	url = url[len(b.BaseURL()):]
-	if url[0] != '/' {
-		url = "/" + url
-	}
-
 	return b.DB.Delete(url)
 }
 
 func (b *Blog) Undelete(url string) error {
-	if !strings.HasPrefix(url, b.BaseURL()) {
-		return errors.New("expected url to be for this blog")
-	}
-	url = url[len(b.BaseURL()):]
-	if url[0] != '/' {
-		url = "/" + url
-	}
-
 	return b.DB.Undelete(url)
 }
 
 func (b *Blog) Mention(source string, data map[string][]interface{}) error {
 	return b.DB.Mention(source, data)
-}
-
-func getCite(u string) (cite map[string]interface{}, err error) {
-	cite = map[string]interface{}{
-		"type": []string{"h-cite"},
-		"properties": map[string][]interface{}{
-			"url": {u},
-		},
-	}
-
-	resp, err := http.Get(u)
-	if err != nil {
-		return
-	}
-	defer resp.Body.Close()
-
-	root, err := html.Parse(resp.Body)
-	if err != nil {
-		return
-	}
-
-	hentries := htmlutil.SearchAll(root, func(node *html.Node) bool {
-		return node.Type == html.ElementNode && htmlutil.HasAttr(node, "class", "h-entry")
-	})
-
-	for _, hentry := range hentries {
-		names := htmlutil.SearchAll(hentry, func(node *html.Node) bool {
-			return node.Type == html.ElementNode && htmlutil.HasAttr(node, "class", "p-name")
-		})
-
-		if len(names) > 0 {
-			cite = map[string]interface{}{
-				"type": []string{"h-cite"},
-				"properties": map[string][]interface{}{
-					"url":  {u},
-					"name": {htmlutil.TextOf(names[0])},
-				},
-			}
-			return
-		}
-	}
-
-	titles := htmlutil.SearchAll(root, func(node *html.Node) bool {
-		return node.Type == html.ElementNode && node.DataAtom == atom.Title
-	})
-
-	if len(titles) > 0 {
-		cite = map[string]interface{}{
-			"type": []string{"h-cite"},
-			"properties": map[string][]interface{}{
-				"url":  {u},
-				"name": {htmlutil.TextOf(titles[0])},
-			},
-		}
-		return
-	}
-
-	return cite, errors.New("no name to find")
 }

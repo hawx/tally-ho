@@ -6,7 +6,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/google/uuid"
 	"hawx.me/code/numbersix"
 )
 
@@ -45,27 +44,12 @@ func (db *DB) Close() error {
 	return db.closer.Close()
 }
 
-func (db *DB) Create(data map[string][]interface{}) (location string, err error) {
-	id := uuid.New().String()
-
-	data["uid"] = []interface{}{id}
-	// Use /entry/UID as canonical url so I don't have to change it in the future
-	// if I decide on a nicer scheme. This will always be accessible and other
-	// things can be layers on top of this.
-	data["url"] = []interface{}{"/entry/" + id}
-
-	if len(data["mp-slug"]) == 0 && len(data["name"]) > 0 {
-		name := data["name"][0].(string)
-		if len(name) > 0 {
-			data["mp-slug"] = []interface{}{slugify(name)}
-		}
-	}
-
+func (db *DB) Create(id string, data map[string][]interface{}) error {
 	if len(data["published"]) == 0 {
 		data["published"] = []interface{}{time.Now().UTC().Format(time.RFC3339)}
 	}
 
-	return data["url"][0].(string), db.entries.SetProperties(id, data)
+	return db.entries.SetProperties(id, data)
 }
 
 func (db *DB) Update(
@@ -149,6 +133,19 @@ func (db *DB) Entry(url string) (data map[string][]interface{}, err error) {
 	groups := numbersix.Grouped(triples)
 	if len(groups) == 0 {
 		return data, errors.New("no data for url: " + url)
+	}
+
+	return groups[0].Properties, nil
+}
+
+func (db *DB) EntryByUID(uid string) (data map[string][]interface{}, err error) {
+	triples, err := db.entries.List(numbersix.Where("uid", uid))
+	if err != nil {
+		return
+	}
+	groups := numbersix.Grouped(triples)
+	if len(groups) == 0 {
+		return data, errors.New("no data for uid: " + uid)
 	}
 
 	return groups[0].Properties, nil

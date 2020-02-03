@@ -1,10 +1,13 @@
 package blog
 
 import (
+	"errors"
 	"log"
+	"net/http"
 	"net/url"
 	"strings"
 
+	"github.com/google/uuid"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 	"hawx.me/code/tally-ho/internal/htmlutil"
@@ -13,7 +16,15 @@ import (
 	"mvdan.cc/xurls/v2"
 )
 
-func (b *Blog) Create(data map[string][]interface{}) (location string, err error) {
+func (b *Blog) Create(data map[string][]interface{}) (string, error) {
+	uid := uuid.New().String()
+
+	relativeURL, _ := url.Parse("/entry/" + uid)
+	location := b.Config.BaseURL.ResolveReference(relativeURL).String()
+
+	data["uid"] = []interface{}{uid}
+	data["url"] = []interface{}{location}
+
 	kind := postTypeDiscovery(data)
 
 	if kind == "like" {
@@ -40,18 +51,14 @@ func (b *Blog) Create(data map[string][]interface{}) (location string, err error
 		}
 	}
 
-	relativeLocation, err := b.DB.Create(data)
-	if err != nil {
-		return
+	if err := b.DB.Create(uid, data); err != nil {
+		return location, err
 	}
-
-	relativeURL, _ := url.Parse(relativeLocation)
-	location = b.Config.BaseURL.ResolveReference(relativeURL).String()
 
 	go b.syndicate(location, data)
 	go b.sendWebmentions(location, data)
 
-	return
+	return location, nil
 }
 
 func (b *Blog) syndicate(location string, data map[string][]interface{}) {
@@ -180,4 +187,62 @@ func postTypeDiscovery(data map[string][]interface{}) string {
 	}
 
 	return "note"
+}
+
+func getCite(u string) (cite map[string]interface{}, err error) {
+	cite = map[string]interface{}{
+		"type": []string{"h-cite"},
+		"properties": map[string][]interface{}{
+			"url": {u},
+		},
+	}
+
+	resp, err := http.Get(u)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	root, err := html.Parse(resp.Body)
+	if err != nil {
+		return
+	}
+
+	hentries := htmlutil.SearchAll(root, func(node *html.Node) bool {
+		return node.Type == html.ElementNode && htmlutil.HasAttr(node, "class", "h-entry")
+	})
+
+	for _, hentry := range hentries {
+		names := htmlutil.SearchAll(hentry, func(node *html.Node) bool {
+			return node.Type == html.ElementNode && htmlutil.HasAttr(node, "class", "p-name")
+		})
+
+		if len(names) > 0 {
+			cite = map[string]interface{}{
+				"type": []string{"h-cite"},
+				"properties": map[string][]interface{}{
+					"url":  {u},
+					"name": {htmlutil.TextOf(names[0])},
+				},
+			}
+			return
+		}
+	}
+
+	titles := htmlutil.SearchAll(root, func(node *html.Node) bool {
+		return node.Type == html.ElementNode && node.DataAtom == atom.Title
+	})
+
+	if len(titles) > 0 {
+		cite = map[string]interface{}{
+			"type": []string{"h-cite"},
+			"properties": map[string][]interface{}{
+				"url":  {u},
+				"name": {htmlutil.TextOf(titles[0])},
+			},
+		}
+		return
+	}
+
+	return cite, errors.New("no name to find")
 }
