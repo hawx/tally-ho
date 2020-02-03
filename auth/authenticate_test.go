@@ -38,6 +38,14 @@ func (h *scopedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.OK = HasScope(w, r, "create")
 }
 
+type clientHandler struct {
+	client string
+}
+
+func (h *clientHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	h.client = ClientID(r)
+}
+
 type meHandler struct {
 	Token string
 	Me    string
@@ -224,6 +232,28 @@ func TestScopedAuthenticateMissingScope(t *testing.T) {
 			assert.Equal(http.StatusUnauthorized, resp.StatusCode)
 
 			assert.False(good.OK)
+		})
+	}
+}
+
+func TestAuthenticateClientID(t *testing.T) {
+	for name, f := range testCases("?access_token=abcde", "abcde") {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			good := &clientHandler{}
+			me := &meHandler{Token: "abcde"}
+
+			meServer := httptest.NewServer(me)
+			defer meServer.Close()
+			me.Me = meServer.URL
+
+			s := httptest.NewServer(Only(meServer.URL, good))
+			defer s.Close()
+
+			_, err := f(s.URL)
+			assert.Nil(err)
+
+			assert.Equal("http://client.example.com/", good.client)
 		})
 	}
 }

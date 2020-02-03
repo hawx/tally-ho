@@ -1,3 +1,6 @@
+// Package auth implements a middleware providing indieauth.
+//
+// See the specification https://www.w3.org/TR/indieauth/.
 package auth
 
 import (
@@ -10,6 +13,12 @@ import (
 	"hawx.me/code/indieauth"
 )
 
+// Only delegates handling the request to next only if the user specified by me
+// has provided authentication as expected by IndieAuth, either:
+//
+//   - passing a valid token as the 'access_token' form parameter, or
+//   - including a valid token in the Authorization header with a prefix of
+//     'Bearer'.
 func Only(me string, next http.Handler) http.HandlerFunc {
 	endpoints, err := indieauth.FindEndpoints(me)
 	if err != nil {
@@ -75,6 +84,8 @@ func Only(me string, next http.Handler) http.HandlerFunc {
 const scopesKey = "__hawx.me/code/tally-ho:Scopes__"
 const clientKey = "__hawx.me/code/tally-ho:ClientID__"
 
+// HasScope checks that a request, authenticated with Only, contains one of the
+// listed valid scopes.
 func HasScope(w http.ResponseWriter, r *http.Request, valid ...string) bool {
 	rv := r.Context().Value(scopesKey)
 	if rv == nil {
@@ -95,6 +106,8 @@ func HasScope(w http.ResponseWriter, r *http.Request, valid ...string) bool {
 	return true
 }
 
+// ClientID returns the clientId that was issued for the token in a request that
+// has been authenticated with Only.
 func ClientID(r *http.Request) string {
 	rv := r.Context().Value(clientKey)
 	if rv == nil {
