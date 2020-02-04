@@ -74,7 +74,7 @@ Possibly up-to-date feature list:
     * [x] Photos
     * [ ] Videos
     * [x] Likes
-    * [ ] Replies
+    * [x] Replies
     * [x] RSVP
     * [x] Checkin (kinda)
 
