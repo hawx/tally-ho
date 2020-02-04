@@ -178,16 +178,16 @@ details.meta .inner {
 
 /* small posts */
 
-.reply, .like, .rsvp, .read, .drank, .checkin {
+.reply, .like, .rsvp, .read, .drank, .checkin, .bookmark {
     padding: var(--top-gutter) 0 0 var(--left-gutter);
 }
 
-.reply h1, .like h1, .rsvp h1, .read h1, .drank h1, .checkin h1 {
+.reply h1, .like h1, .rsvp h1, .read h1, .drank h1, .checkin h1, .bookmark h1 {
     font-size: 1rem;
     position: relative;
 }
 
-.reply h1:before, .like h1:before, .rsvp h1:before, .read h1:before, .drank h1:before, .checkin h1:before {
+.reply h1:before, .like h1:before, .rsvp h1:before, .read h1:before, .drank h1:before, .checkin h1:before, .bookmark h1:before {
     position: absolute;
     margin-left: -1.5rem;
 }
@@ -238,6 +238,12 @@ div.h-cite .u-url {
 
 .like h1:before {
     content: '❤️  ';
+}
+
+/* bookmark */
+
+.bookmark h1:before {
+    content: '🔖 ';
 }
 
 /* rsvp */

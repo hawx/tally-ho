@@ -48,6 +48,14 @@ func (b *Blog) Create(data map[string][]interface{}) (string, error) {
 		data["in-reply-to"] = []interface{}{cite}
 		log.Printf("WARN get-cite; setting to '%s'\n", cite)
 	}
+	if kind == "bookmark" {
+		cite, err := getCite(data["bookmark-of"][0].(string))
+		if err != nil {
+			log.Printf("WARN get-cite; %v\n", err)
+		}
+		data["bookmark-of"] = []interface{}{cite}
+		log.Printf("WARN get-cite; setting to '%s'\n", cite)
+	}
 
 	data["hx-kind"] = []interface{}{kind}
 
@@ -171,6 +179,10 @@ func postTypeDiscovery(data map[string][]interface{}) string {
 
 	if u, ok := data["like-of"]; ok && len(u) > 0 {
 		return "like"
+	}
+
+	if u, ok := data["bookmark-of"]; ok && len(u) > 0 {
+		return "bookmark"
 	}
 
 	if u, ok := data["video"]; ok && len(u) > 0 {
