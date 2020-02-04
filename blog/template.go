@@ -18,6 +18,7 @@ func ParseTemplates(webPath string) (*template.Template, error) {
 		"get":             templateGet,
 		"content":         templateContent,
 		"humanDate":       templateHumanDate,
+		"humanDateTime":   templateHumanDateTime,
 		"humanRSVP":       templateHumanRSVP,
 		"humanReadStatus": templateHumanReadStatus,
 		"time":            templateTime,
@@ -69,6 +70,20 @@ func templateHumanDate(m map[string][]interface{}, key string) string {
 	}
 
 	return t.Format("January 02, 2006")
+}
+
+func templateHumanDateTime(m map[string][]interface{}, key string) string {
+	s, ok := mfutil.Get(m, key).(string)
+	if !ok {
+		return ""
+	}
+
+	t, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		return s
+	}
+
+	return t.Format("January 02, 2006 at 15:04")
 }
 
 func templateHumanRSVP(m map[string][]interface{}) string {

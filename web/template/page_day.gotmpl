@@ -11,7 +11,12 @@
     </nav>
 
     {{ range . }}
-      {{ template "entry.gotmpl" .Properties }}
+      {{ with .Properties }}
+        <article class="h-entry {{ get . "hx-kind" }}">
+          {{ template "entry.gotmpl" . }}
+          {{ template "entry_meta.gotmpl" . }}
+        </article>
+      {{ end }}
     {{ end }}
     
     {{ template "footer.gotmpl" }}

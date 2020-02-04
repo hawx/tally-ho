@@ -10,17 +10,25 @@
       <a href="/">&uarr; Back to the feed</a>
     </nav>
 
-    {{ template "entry_grouping.gotmpl" .Posts }}
+    <article class="h-entry {{ get .Posts.Meta "hx-kind" }}">
+      {{ template "entry.gotmpl" .Posts.Meta }}
 
-    <details open class="meta">
-      <summary>Metadata</summary>
-
-      <div class="inner">
+      <div class="expanded meta">
         {{ with .Posts.Meta }}
+          <div>
+            <a href="/kind/{{ get . "hx-kind" }}">{{ get . "hx-kind" }}</a>
+            {{ if has . "updated" }}
+            <del>published <a class="u-url" href="{{ get . "url" }}" title="{{ get . "published" }}">
+              <time class="dt-published" datetime="{{ get . "published" }}">{{ humanDateTime . "published" }}</time></a></del> updated <time class="dt-updated" datetime="{{ get . "updated" }}">{{ humanDateTime . "updated" }}</time>
+            {{ else }}
+            published <a class="u-url" href="{{ get . "url" }}" title="{{ get . "published" }}">
+              <time class="dt-published" datetime="{{ get . "published" }}">{{ humanDateTime . "published" }}</time></a>
+            {{ end }}
+          </div>
+          <a class="u-author h-card hidden" href="https://hawx.me/">Joshua Hawxwell</a>
           {{ if has . "hx-client-id" }}
             <div>
-              <a href="/kind/{{ get . "hx-kind" }}">{{ get . "hx-kind" }}</a>
-              posted by
+              using
               <a href="{{ get . "hx-client-id" }}">{{ get . "hx-client-id" }}</a>
             </div>
           {{ end }}
@@ -28,7 +36,7 @@
             <div>
               syndicated to
               {{ range withEnd .syndication }}
-                <a href="{{ .El }}">{{ syndicationName .El }}</a>{{ if not .End }}, {{ end }}
+                <a class="u-syndication" href="{{ .El }}">{{ syndicationName .El }}</a>{{ if not .End }}, {{ end }}
               {{ end }}
             </div>
           {{ end }}
@@ -36,26 +44,26 @@
             <div>
               filed under
               {{ range withEnd .category }}
-                <a href="/category/{{ .El }}">{{ .El }}</a>{{ if not .End }}, {{ end }}
+                <a class="p-category" href="/category/{{ .El }}">{{ .El }}</a>{{ if not .End }}, {{ end }}
               {{ end }}
             </div>
           {{ end }}
         {{ end }}
       </div>
-    </details>
-
-    <details class="meta">
-      <summary>Interactions</summary>
       
-      <ol class="inner">
-        {{ range .Mentions }}
-          <li>
-            {{ if has .Properties "in-reply-to" }}reply from{{ else if has .Properties "repost-of" }}reposted by{{ else if has .Properties "like-of" }}liked by{{ else }}mentioned by{{ end }}
-            <a href="{{ .Subject }}">{{ if has .Properties "author" }}{{ if has .Properties "author.properties.name" }}{{ get .Properties "author.properties.name" }}{{ else }}{{ get .Properties "author.properties.url" }}{{ end }}{{ else }}{{ .Subject }}{{ end }}</a>
-          </li>
-        {{ end }}
-      </ol>
-    </details>    
+      <details class="meta">
+        <summary>Interactions ({{ len .Mentions }})</summary>
+        
+        <ol class="inner">
+          {{ range .Mentions }}
+            <li>
+              {{ if has .Properties "in-reply-to" }}reply from{{ else if has .Properties "repost-of" }}reposted by{{ else if has .Properties "like-of" }}liked by{{ else }}mentioned by{{ end }}
+              <a href="{{ .Subject }}">{{ if has .Properties "author" }}{{ if has .Properties "author.properties.name" }}{{ get .Properties "author.properties.name" }}{{ else }}{{ get .Properties "author.properties.url" }}{{ end }}{{ else }}{{ .Subject }}{{ end }}</a>
+            </li>
+          {{ end }}
+        </ol>
+      </details>    
+    </article>
 
     {{ template "footer.gotmpl" }}
   </body>

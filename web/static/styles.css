@@ -159,6 +159,10 @@ p + p {
     text-decoration: underline;
 }
 
+.meta.expanded {
+    margin-top: 1.5rem;
+}
+
 details.meta {
     margin-bottom: 1rem;
 }
