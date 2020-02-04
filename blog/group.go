@@ -19,8 +19,12 @@ func groupLikes(posts []numbersix.Group) []GroupedPosts {
 	var today string
 	var todaysLikes []map[string][]interface{}
 
+	sort.Slice(posts, func(i, j int) bool {
+		return posts[i].Properties["published"][0].(string) < posts[j].Properties["published"][0].(string)
+	})
+
 	for _, post := range posts {
-		if len(post.Properties["like-of"]) > 0 {
+		if kind, ok := post.Properties["hx-kind"]; ok && len(kind) > 0 && kind[0] == "like" {
 			likeDate := strings.Split(post.Properties["published"][0].(string), "T")[0]
 			if likeDate == today {
 				todaysLikes = append(todaysLikes, post.Properties)
