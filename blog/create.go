@@ -40,6 +40,14 @@ func (b *Blog) Create(data map[string][]interface{}) (string, error) {
 		data["like-of"] = []interface{}{cite}
 		log.Printf("WARN get-cite; setting to '%s'\n", cite)
 	}
+	if kind == "reply" {
+		cite, err := getCite(data["in-reply-to"][0].(string))
+		if err != nil {
+			log.Printf("WARN get-cite; %v\n", err)
+		}
+		data["in-reply-to"] = []interface{}{cite}
+		log.Printf("WARN get-cite; setting to '%s'\n", cite)
+	}
 
 	data["hx-kind"] = []interface{}{kind}
 
