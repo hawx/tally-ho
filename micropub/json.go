@@ -24,7 +24,7 @@ func jsonToForm(v jsonMicroformat) map[string][]interface{} {
 	}
 
 	for key, value := range v.Properties {
-		if reservedKey(key) {
+		if reservedKey(key) || len(value) == 0 {
 			continue
 		}
 

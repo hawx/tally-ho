@@ -387,6 +387,81 @@ func TestPostEntryMultipartFormWithMultiplePhotos(t *testing.T) {
 	}
 }
 
+func TestPostEntryWithEmptyValues(t *testing.T) {
+	testCases := map[string]func(string) (*http.Response, error){
+		"url-encoded-form": func(u string) (*http.Response, error) {
+			return http.PostForm(u, url.Values{
+				"h":          {"entry"},
+				"content":    {"This is a test"},
+				"category[]": {""},
+			})
+		},
+		"json": func(u string) (*http.Response, error) {
+			return http.Post(u, "application/json", strings.NewReader(`{
+  "type": ["h-entry"],
+  "properties": {
+    "content": ["This is a test"],
+    "category": []
+  }
+}`))
+		},
+		"multipart-form": func(u string) (*http.Response, error) {
+			var buf bytes.Buffer
+			writer := multipart.NewWriter(&buf)
+
+			var werr error
+			writeField := func(key, value string) {
+				part, err := writer.CreateFormField(key)
+				if err != nil {
+					werr = err
+				}
+				io.WriteString(part, value)
+			}
+
+			writeField("h", "entry")
+			writeField("content", "This is a test")
+			writeField("category[]", "")
+			if err := writer.Close(); err != nil {
+				return nil, err
+			}
+			if werr != nil {
+				return nil, werr
+			}
+
+			req, err := http.NewRequest("POST", u, &buf)
+			if err != nil {
+				return nil, err
+			}
+			req.Header.Set("Content-Type", writer.FormDataContentType())
+
+			return http.DefaultClient.Do(req)
+		},
+	}
+
+	for name, f := range testCases {
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			blog := &fakePostDB{}
+
+			s := httptest.NewServer(withScope("create", postHandler(blog, nil)))
+			defer s.Close()
+
+			resp, err := f(s.URL)
+
+			assert.Nil(err)
+			assert.Equal(http.StatusCreated, resp.StatusCode)
+			assert.Equal("http://example.com/blog/p/1", resp.Header.Get("Location"))
+
+			if assert.Len(blog.datas, 1) {
+				data := blog.datas[0]
+
+				_, ok := data["category"]
+				assert.False(ok)
+			}
+		})
+	}
+}
+
 func TestUpdateEntry(t *testing.T) {
 	assert := assert.New(t)
 	db := &fakePostDB{

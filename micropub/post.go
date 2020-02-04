@@ -137,10 +137,14 @@ func (h *micropubPostHandler) handleForm(w http.ResponseWriter, r *http.Request)
 		if strings.HasSuffix(key, "[]") {
 			key := key[:len(key)-2]
 			for _, value := range values {
-				data[key] = append(data[key], value)
+				if value != "" {
+					data[key] = append(data[key], value)
+				}
 			}
 		} else {
-			data[key] = []interface{}{values[0]}
+			if values[0] != "" {
+				data[key] = []interface{}{values[0]}
+			}
 		}
 	}
 
@@ -220,6 +224,9 @@ func (h *micropubPostHandler) handleMultiPart(w http.ResponseWriter, r *http.Req
 			}
 
 			value := string(slurp)
+			if value == "" {
+				continue
+			}
 
 			if strings.HasSuffix(key, "[]") {
 				key := key[:len(key)-2]
