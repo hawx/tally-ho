@@ -214,6 +214,39 @@ func TestPublish(t *testing.T) {
 	}
 }
 
+func TestPublishReturnsRedirect(t *testing.T) {
+	assert := assert.New(t)
+
+	store := &fakeHubStore{}
+	hub := New("http://hub.example.com/", store)
+
+	type request struct {
+		body    string
+		headers http.Header
+	}
+
+	s2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Fail("should not be called")
+	}))
+	defer s2.Close()
+
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, s2.URL, http.StatusFound)
+	}))
+	defer s.Close()
+
+	c := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plainest")
+		w.Write([]byte("i-am-content"))
+	}))
+	defer c.Close()
+
+	store.Subscribe(s.URL, c.URL, time.Now().Add(time.Second))
+
+	err := hub.Publish(c.URL)
+	assert.Nil(err)
+}
+
 func TestPublishReturnsGone(t *testing.T) {
 	assert := assert.New(t)
 

@@ -19,19 +19,28 @@ type HubStore interface {
 }
 
 func New(baseURL string, store HubStore) *Hub {
+	noRedirectClient := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+		Timeout: 10 * time.Second,
+	}
+
 	hub := &Hub{
-		BaseURL:   baseURL,
-		Store:     store,
-		generator: challengeGenerator(30),
+		BaseURL:          baseURL,
+		Store:            store,
+		generator:        challengeGenerator(30),
+		noRedirectClient: noRedirectClient,
 	}
 
 	return hub
 }
 
 type Hub struct {
-	BaseURL   string
-	Store     HubStore
-	generator func() ([]byte, error)
+	BaseURL          string
+	Store            HubStore
+	generator        func() ([]byte, error)
+	noRedirectClient *http.Client
 }
 
 func (h *Hub) Handler() http.Handler {
@@ -124,8 +133,7 @@ func (h *Hub) Publish(topic string) error {
 		// todo
 	}
 
-	// todo: no redirect client
-	client := http.DefaultClient
+	client := h.noRedirectClient
 	link := `<` + h.BaseURL + `>; rel="hub", <` + topic + `>; rel="self"`
 
 	for _, subscriber := range subscribers {
