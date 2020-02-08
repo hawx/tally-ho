@@ -47,7 +47,7 @@ func TestSubscribe(t *testing.T) {
 	challenge := []byte{1, 2, 3, 4}
 
 	store := &fakeHubStore{}
-	hub := New(store)
+	hub := New("http://hub.example.com/", store)
 	hub.generator = func() ([]byte, error) {
 		return challenge, nil
 	}
@@ -95,7 +95,7 @@ func TestSubscribe(t *testing.T) {
 func TestSubscribeWhenRespondingWithWrongChallenge(t *testing.T) {
 	assert := assert.New(t)
 
-	h := httptest.NewServer(New(nil).Handler())
+	h := httptest.NewServer(New("", nil).Handler())
 	defer h.Close()
 
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -117,7 +117,7 @@ func TestSubscribeWhenRespondingWithWrongChallenge(t *testing.T) {
 func TestSubscribeNotPostRequest(t *testing.T) {
 	assert := assert.New(t)
 
-	h := httptest.NewServer(New(nil).Handler())
+	h := httptest.NewServer(New("", nil).Handler())
 	defer h.Close()
 
 	resp, err := http.Get(h.URL)
@@ -128,7 +128,7 @@ func TestSubscribeNotPostRequest(t *testing.T) {
 func TestSubscribeBadCallback(t *testing.T) {
 	assert := assert.New(t)
 
-	h := httptest.NewServer(New(nil).Handler())
+	h := httptest.NewServer(New("", nil).Handler())
 	defer h.Close()
 
 	resp, err := http.PostForm(h.URL, url.Values{
@@ -143,7 +143,7 @@ func TestSubscribeBadCallback(t *testing.T) {
 func TestSubscribeBadMode(t *testing.T) {
 	assert := assert.New(t)
 
-	h := httptest.NewServer(New(nil).Handler())
+	h := httptest.NewServer(New("", nil).Handler())
 	defer h.Close()
 
 	resp, err := http.PostForm(h.URL, url.Values{
@@ -158,7 +158,7 @@ func TestSubscribeBadMode(t *testing.T) {
 func TestSubscribeBadVerificationResponse(t *testing.T) {
 	assert := assert.New(t)
 
-	h := httptest.NewServer(New(nil).Handler())
+	h := httptest.NewServer(New("", nil).Handler())
 	defer h.Close()
 
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -179,7 +179,7 @@ func TestPublish(t *testing.T) {
 	assert := assert.New(t)
 
 	store := &fakeHubStore{}
-	hub := New(store)
+	hub := New("http://hub.example.com/", store)
 
 	type request struct {
 		body    string
@@ -208,7 +208,7 @@ func TestPublish(t *testing.T) {
 	case r := <-req:
 		assert.Equal("i-am-content", r.body)
 		assert.Equal("text/plainest", r.headers.Get("Content-Type"))
-		assert.Equal(`<the-hub-url>; rel="hub", <`+c.URL+`>; rel="self"`, r.headers.Get("Link"))
+		assert.Equal(`<http://hub.example.com/>; rel="hub", <`+c.URL+`>; rel="self"`, r.headers.Get("Link"))
 	case <-time.After(time.Millisecond):
 		assert.Fail("timed out")
 	}
@@ -218,7 +218,7 @@ func TestPublishReturnsGone(t *testing.T) {
 	assert := assert.New(t)
 
 	store := &fakeHubStore{}
-	hub := New(store)
+	hub := New("http://hub.example.com/", store)
 
 	type request struct {
 		body    string

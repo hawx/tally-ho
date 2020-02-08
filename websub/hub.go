@@ -18,13 +18,18 @@ type HubStore interface {
 	Unsubscribe(callback, topic string) error
 }
 
-func New(store HubStore) *Hub {
-	hub := &Hub{Store: store, generator: challengeGenerator(30)}
+func New(baseURL string, store HubStore) *Hub {
+	hub := &Hub{
+		BaseURL:   baseURL,
+		Store:     store,
+		generator: challengeGenerator(30),
+	}
 
 	return hub
 }
 
 type Hub struct {
+	BaseURL   string
 	Store     HubStore
 	generator func() ([]byte, error)
 }
@@ -121,7 +126,7 @@ func (h *Hub) Publish(topic string) error {
 
 	// todo: no redirect client
 	client := http.DefaultClient
-	link := `<the-hub-url>; rel="hub", <` + topic + `>; rel="self"`
+	link := `<` + h.BaseURL + `>; rel="hub", <` + topic + `>; rel="self"`
 
 	for _, subscriber := range subscribers {
 		req, err := http.NewRequest("POST", subscriber, bytes.NewReader(body))
