@@ -2,6 +2,7 @@ package websub
 
 import (
 	"bytes"
+	"crypto/rand"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -18,13 +19,14 @@ type HubStore interface {
 }
 
 func New(store HubStore) *Hub {
-	hub := &Hub{Store: store}
+	hub := &Hub{Store: store, generator: challengeGenerator(30)}
 
 	return hub
 }
 
 type Hub struct {
-	Store HubStore
+	Store     HubStore
+	generator func() ([]byte, error)
 }
 
 func (h *Hub) Handler() http.Handler {
@@ -53,10 +55,16 @@ func (h *Hub) Handler() http.Handler {
 			return
 		}
 
+		challenge, err := h.generator()
+		if err != nil {
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+
 		query := callbackURL.Query()
 		query.Add("hub.mode", mode)
 		query.Add("hub.topic", topic)
-		query.Add("hub.challenge", "this-is-a-challenge")
+		query.Add("hub.challenge", string(challenge))
 		query.Add("hub.lease_seconds", strconv.Itoa(int(defaultLease.Seconds())))
 		callbackURL.RawQuery = query.Encode()
 
@@ -77,7 +85,7 @@ func (h *Hub) Handler() http.Handler {
 			http.Error(w, "", http.StatusInternalServerError)
 		}
 
-		if string(data) != "this-is-a-challenge" {
+		if !bytes.Equal(data, challenge) {
 			http.Error(w, "hub.challenge must match", http.StatusBadRequest)
 			return
 		}
@@ -135,4 +143,20 @@ func (h *Hub) Publish(topic string) error {
 	}
 
 	return nil
+}
+
+const letters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-"
+
+func challengeGenerator(n int) func() ([]byte, error) {
+	return func() ([]byte, error) {
+		bytes := make([]byte, n)
+		_, err := rand.Read(bytes)
+		if err != nil {
+			return []byte{}, err
+		}
+		for i, b := range bytes {
+			bytes[i] = letters[b%byte(len(letters))]
+		}
+		return bytes, nil
+	}
 }

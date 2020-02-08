@@ -44,9 +44,15 @@ func (s *fakeHubStore) Unsubscribe(callback, topic string) error {
 
 func TestSubscribe(t *testing.T) {
 	assert := assert.New(t)
-	store := &fakeHubStore{}
+	challenge := []byte{1, 2, 3, 4}
 
-	h := httptest.NewServer(New(store).Handler())
+	store := &fakeHubStore{}
+	hub := New(store)
+	hub.generator = func() ([]byte, error) {
+		return challenge, nil
+	}
+
+	h := httptest.NewServer(hub.Handler())
 	defer h.Close()
 
 	verification := make(chan url.Values, 1)
@@ -54,7 +60,7 @@ func TestSubscribe(t *testing.T) {
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet && r.URL.Path == "/unguessable-path-unique-per-subscription" {
 			verification <- r.URL.Query()
-			w.Write([]byte("this-is-a-challenge"))
+			w.Write(challenge)
 		}
 	}))
 	defer s.Close()
@@ -72,7 +78,7 @@ func TestSubscribe(t *testing.T) {
 		assert.Equal("me", v.Get("keep"))
 		assert.Equal("subscribe", v.Get("hub.mode"))
 		assert.Equal("http://example.com/category/cats", v.Get("hub.topic"))
-		assert.Equal("this-is-a-challenge", v.Get("hub.challenge"))
+		assert.Equal(string(challenge), v.Get("hub.challenge"))
 		assert.Equal("2419200", v.Get("hub.lease_seconds"))
 	case <-time.After(time.Millisecond):
 		assert.Fail("timed out")
