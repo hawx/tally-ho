@@ -16,6 +16,7 @@ type fakeSub struct {
 	callback  string
 	topic     string
 	expiresAt time.Time
+	secret    string
 }
 
 type fakeHubStore struct {
@@ -23,8 +24,8 @@ type fakeHubStore struct {
 	unsubs []fakeSub
 }
 
-func (s *fakeHubStore) Subscribe(callback, topic string, expiresAt time.Time) error {
-	s.subs = append(s.subs, fakeSub{callback, topic, expiresAt})
+func (s *fakeHubStore) Subscribe(callback, topic string, expiresAt time.Time, secret string) error {
+	s.subs = append(s.subs, fakeSub{callback, topic, expiresAt, secret})
 	return nil
 }
 
@@ -39,7 +40,7 @@ func (s *fakeHubStore) Subscribers(topic string) ([]string, error) {
 }
 
 func (s *fakeHubStore) Unsubscribe(callback, topic string) error {
-	s.unsubs = append(s.unsubs, fakeSub{callback, topic, time.Now()})
+	s.unsubs = append(s.unsubs, fakeSub{callback, topic, time.Now(), ""})
 	return nil
 }
 
@@ -90,7 +91,93 @@ func TestSubscribe(t *testing.T) {
 		assert.Equal(s.URL+"/unguessable-path-unique-per-subscription?keep=me", sub.callback)
 		assert.Equal("http://example.com/category/cats", sub.topic)
 		assert.WithinDuration(time.Now().Add(864000*time.Second), sub.expiresAt, time.Second)
+		assert.Equal("", sub.secret)
 	}
+}
+
+func TestSubscribeWithSecret(t *testing.T) {
+	assert := assert.New(t)
+	challenge := []byte{1, 2, 3, 4}
+
+	store := &fakeHubStore{}
+	hub := New("http://hub.example.com/", store)
+	hub.generator = func() ([]byte, error) {
+		return challenge, nil
+	}
+
+	h := httptest.NewServer(hub.Handler())
+	defer h.Close()
+
+	verification := make(chan url.Values, 1)
+
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/unguessable-path-unique-per-subscription" {
+			verification <- r.URL.Query()
+			w.Write(challenge)
+		}
+	}))
+	defer s.Close()
+
+	resp, err := http.PostForm(h.URL, url.Values{
+		"hub.callback": {s.URL + "/unguessable-path-unique-per-subscription?keep=me"},
+		"hub.mode":     {"subscribe"},
+		"hub.topic":    {"http://example.com/category/cats"},
+		"hub.secret":   {"catgifs"},
+	})
+	assert.Nil(err)
+	assert.Equal(http.StatusAccepted, resp.StatusCode)
+
+	select {
+	case v := <-verification:
+		assert.Equal("me", v.Get("keep"))
+		assert.Equal("subscribe", v.Get("hub.mode"))
+		assert.Equal("http://example.com/category/cats", v.Get("hub.topic"))
+		assert.Equal(string(challenge), v.Get("hub.challenge"))
+		assert.Equal("864000", v.Get("hub.lease_seconds"))
+	case <-time.After(time.Millisecond):
+		assert.Fail("timed out")
+	}
+
+	if assert.Len(store.subs, 1) {
+		sub := store.subs[0]
+		assert.Equal(s.URL+"/unguessable-path-unique-per-subscription?keep=me", sub.callback)
+		assert.Equal("http://example.com/category/cats", sub.topic)
+		assert.WithinDuration(time.Now().Add(864000*time.Second), sub.expiresAt, time.Second)
+		assert.Equal("catgifs", sub.secret)
+	}
+}
+
+func TestSubscribeWithLongSecret(t *testing.T) {
+	assert := assert.New(t)
+	challenge := []byte{1, 2, 3, 4}
+
+	store := &fakeHubStore{}
+	hub := New("http://hub.example.com/", store)
+	hub.generator = func() ([]byte, error) {
+		return challenge, nil
+	}
+
+	h := httptest.NewServer(hub.Handler())
+	defer h.Close()
+
+	verification := make(chan url.Values, 1)
+
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/unguessable-path-unique-per-subscription" {
+			verification <- r.URL.Query()
+			w.Write(challenge)
+		}
+	}))
+	defer s.Close()
+
+	resp, err := http.PostForm(h.URL, url.Values{
+		"hub.callback": {s.URL + "/unguessable-path-unique-per-subscription?keep=me"},
+		"hub.mode":     {"subscribe"},
+		"hub.topic":    {"http://example.com/category/cats"},
+		"hub.secret":   {"12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890X"},
+	})
+	assert.Nil(err)
+	assert.Equal(http.StatusBadRequest, resp.StatusCode)
 }
 
 func TestSubscribeWithSpecificLease(t *testing.T) {
@@ -302,7 +389,7 @@ func TestPublish(t *testing.T) {
 	}))
 	defer c.Close()
 
-	store.Subscribe(s.URL, c.URL, time.Now().Add(time.Second))
+	store.Subscribe(s.URL, c.URL, time.Now().Add(time.Second), "")
 
 	err := hub.Publish(c.URL)
 	assert.Nil(err)
@@ -344,7 +431,7 @@ func TestPublishReturnsRedirect(t *testing.T) {
 	}))
 	defer c.Close()
 
-	store.Subscribe(s.URL, c.URL, time.Now().Add(time.Second))
+	store.Subscribe(s.URL, c.URL, time.Now().Add(time.Second), "")
 
 	err := hub.Publish(c.URL)
 	assert.Nil(err)
@@ -372,7 +459,7 @@ func TestPublishReturnsGone(t *testing.T) {
 	}))
 	defer c.Close()
 
-	store.Subscribe(s.URL, c.URL, time.Now().Add(time.Second))
+	store.Subscribe(s.URL, c.URL, time.Now().Add(time.Second), "")
 
 	err := hub.Publish(c.URL)
 	assert.Nil(err)

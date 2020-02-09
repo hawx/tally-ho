@@ -16,7 +16,7 @@ const (
 )
 
 type HubStore interface {
-	Subscribe(callback, topic string, expiresAt time.Time) error
+	Subscribe(callback, topic string, expiresAt time.Time, secret string) error
 	Subscribers(topic string) ([]string, error)
 	Unsubscribe(callback, topic string) error
 }
@@ -60,6 +60,7 @@ func (h *Hub) Handler() http.Handler {
 			mode         = r.FormValue("hub.mode")
 			topic        = r.FormValue("hub.topic")
 			leaseSeconds = r.FormValue("hub.lease_seconds")
+			secret       = r.FormValue("hub.secret")
 		)
 
 		callbackURL, err := url.Parse(callback)
@@ -70,6 +71,11 @@ func (h *Hub) Handler() http.Handler {
 
 		if mode != "subscribe" && mode != "unsubscribe" {
 			http.Error(w, "hub.mode must be subscribe or unsubscribe", http.StatusBadRequest)
+			return
+		}
+
+		if len(secret) > 200 {
+			http.Error(w, "hub.secret must be less than 200 bytes in length", http.StatusBadRequest)
 			return
 		}
 
@@ -119,7 +125,7 @@ func (h *Hub) Handler() http.Handler {
 			return
 		}
 
-		h.Store.Subscribe(callback, topic, time.Now().Add(lease))
+		h.Store.Subscribe(callback, topic, time.Now().Add(lease), secret)
 		w.WriteHeader(http.StatusAccepted)
 	})
 
