@@ -29,11 +29,14 @@ func (s *fakeHubStore) Subscribe(callback, topic string, expiresAt time.Time, se
 	return nil
 }
 
-func (s *fakeHubStore) Subscribers(topic string) ([]string, error) {
-	var subs []string
+func (s *fakeHubStore) Subscribers(topic string) ([]Subscriber, error) {
+	var subs []Subscriber
 	for _, sub := range s.subs {
 		if sub.topic == topic {
-			subs = append(subs, sub.callback)
+			subs = append(subs, Subscriber{
+				Callback: sub.callback,
+				Secret:   sub.secret,
+			})
 		}
 	}
 	return subs, nil
@@ -398,6 +401,46 @@ func TestPublish(t *testing.T) {
 	case r := <-req:
 		assert.Equal("i-am-content", r.body)
 		assert.Equal("text/plainest", r.headers.Get("Content-Type"))
+		assert.Equal(`<http://hub.example.com/>; rel="hub", <`+c.URL+`>; rel="self"`, r.headers.Get("Link"))
+	case <-time.After(time.Millisecond):
+		assert.Fail("timed out")
+	}
+}
+
+func TestPublishWithSignature(t *testing.T) {
+	assert := assert.New(t)
+
+	store := &fakeHubStore{}
+	hub := New("http://hub.example.com/", store)
+
+	type request struct {
+		body    string
+		headers http.Header
+	}
+
+	req := make(chan request, 1)
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		data, _ := ioutil.ReadAll(r.Body)
+		req <- request{string(data), r.Header}
+	}))
+	defer s.Close()
+
+	c := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plainest")
+		w.Write([]byte("i-am-content"))
+	}))
+	defer c.Close()
+
+	store.Subscribe(s.URL, c.URL, time.Now().Add(time.Second), "catgifs")
+
+	err := hub.Publish(c.URL)
+	assert.Nil(err)
+
+	select {
+	case r := <-req:
+		assert.Equal("i-am-content", r.body)
+		assert.Equal("text/plainest", r.headers.Get("Content-Type"))
+		assert.Equal("sha512=1c02e2bb4ac82bee90b65021299a87c2c8691f2b4fd5e72f2f8c169ee6732ec6baa4276bfe22fd9da1f4ea07e05c64229878a45256884fd507234dfafd3f6c81", r.headers.Get("X-Hub-Signature"))
 		assert.Equal(`<http://hub.example.com/>; rel="hub", <`+c.URL+`>; rel="self"`, r.headers.Get("Link"))
 	case <-time.After(time.Millisecond):
 		assert.Fail("timed out")

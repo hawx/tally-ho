@@ -2,7 +2,10 @@ package websub
 
 import (
 	"bytes"
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha512"
+	"encoding/hex"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -15,9 +18,14 @@ const (
 	maxLease     = 28 * 24 * time.Hour
 )
 
+type Subscriber struct {
+	Callback string
+	Secret   string
+}
+
 type HubStore interface {
 	Subscribe(callback, topic string, expiresAt time.Time, secret string) error
-	Subscribers(topic string) ([]string, error)
+	Subscribers(topic string) ([]Subscriber, error)
 	Unsubscribe(callback, topic string) error
 }
 
@@ -75,7 +83,7 @@ func (h *Hub) Handler() http.Handler {
 		}
 
 		if len(secret) > 200 {
-			http.Error(w, "hub.secret must be less than 200 bytes in length", http.StatusBadRequest)
+			http.Error(w, "hub.secret must be less than 200i bytes in length", http.StatusBadRequest)
 			return
 		}
 
@@ -158,13 +166,22 @@ func (h *Hub) Publish(topic string) error {
 	link := `<` + h.BaseURL + `>; rel="hub", <` + topic + `>; rel="self"`
 
 	for _, subscriber := range subscribers {
-		req, err := http.NewRequest("POST", subscriber, bytes.NewReader(body))
+		req, err := http.NewRequest("POST", subscriber.Callback, bytes.NewReader(body))
 		if err != nil {
 			continue
 		}
 
 		req.Header.Add("Content-Type", contentType)
 		req.Header.Add("Link", link)
+
+		if subscriber.Secret != "" {
+			mac := hmac.New(sha512.New, []byte(subscriber.Secret))
+			if _, err := mac.Write(body); err != nil {
+				continue
+			}
+			req.Header.Add("X-Hub-Signature", "sha512="+hex.EncodeToString(mac.Sum(nil)))
+		}
+
 		resp, err := client.Do(req)
 		if err != nil {
 			continue
@@ -172,7 +189,7 @@ func (h *Hub) Publish(topic string) error {
 		defer resp.Body.Close()
 
 		if resp.StatusCode == http.StatusGone {
-			h.Store.Unsubscribe(subscriber, topic)
+			h.Store.Unsubscribe(subscriber.Callback, topic)
 		}
 	}
 
