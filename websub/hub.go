@@ -10,7 +10,10 @@ import (
 	"time"
 )
 
-const defaultLease = 28 * 24 * time.Hour
+const (
+	defaultLease = 10 * 24 * time.Hour
+	maxLease     = 28 * 24 * time.Hour
+)
 
 type HubStore interface {
 	Subscribe(callback, topic string, expiresAt time.Time) error
@@ -53,9 +56,10 @@ func (h *Hub) Handler() http.Handler {
 		}
 
 		var (
-			callback = r.FormValue("hub.callback")
-			mode     = r.FormValue("hub.mode")
-			topic    = r.FormValue("hub.topic")
+			callback     = r.FormValue("hub.callback")
+			mode         = r.FormValue("hub.mode")
+			topic        = r.FormValue("hub.topic")
+			leaseSeconds = r.FormValue("hub.lease_seconds")
 		)
 
 		callbackURL, err := url.Parse(callback)
@@ -75,11 +79,22 @@ func (h *Hub) Handler() http.Handler {
 			return
 		}
 
+		lease := defaultLease
+		if leaseSeconds != "" {
+			if l, err := strconv.Atoi(leaseSeconds); err == nil {
+				lease = time.Duration(l) * time.Second
+			}
+
+			if lease > maxLease {
+				lease = maxLease
+			}
+		}
+
 		query := callbackURL.Query()
 		query.Add("hub.mode", mode)
 		query.Add("hub.topic", topic)
 		query.Add("hub.challenge", string(challenge))
-		query.Add("hub.lease_seconds", strconv.Itoa(int(defaultLease.Seconds())))
+		query.Add("hub.lease_seconds", strconv.Itoa(int(lease.Seconds())))
 		callbackURL.RawQuery = query.Encode()
 
 		resp, err := http.Get(callbackURL.String())
@@ -104,7 +119,7 @@ func (h *Hub) Handler() http.Handler {
 			return
 		}
 
-		h.Store.Subscribe(callback, topic, time.Now().Add(defaultLease))
+		h.Store.Subscribe(callback, topic, time.Now().Add(lease))
 		w.WriteHeader(http.StatusAccepted)
 	})
 

@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strconv"
 	"testing"
 	"time"
 
@@ -69,6 +70,108 @@ func TestSubscribe(t *testing.T) {
 		"hub.callback": {s.URL + "/unguessable-path-unique-per-subscription?keep=me"},
 		"hub.mode":     {"subscribe"},
 		"hub.topic":    {"http://example.com/category/cats"},
+	})
+	assert.Nil(err)
+	assert.Equal(http.StatusAccepted, resp.StatusCode)
+
+	select {
+	case v := <-verification:
+		assert.Equal("me", v.Get("keep"))
+		assert.Equal("subscribe", v.Get("hub.mode"))
+		assert.Equal("http://example.com/category/cats", v.Get("hub.topic"))
+		assert.Equal(string(challenge), v.Get("hub.challenge"))
+		assert.Equal("864000", v.Get("hub.lease_seconds"))
+	case <-time.After(time.Millisecond):
+		assert.Fail("timed out")
+	}
+
+	if assert.Len(store.subs, 1) {
+		sub := store.subs[0]
+		assert.Equal(s.URL+"/unguessable-path-unique-per-subscription?keep=me", sub.callback)
+		assert.Equal("http://example.com/category/cats", sub.topic)
+		assert.WithinDuration(time.Now().Add(864000*time.Second), sub.expiresAt, time.Second)
+	}
+}
+
+func TestSubscribeWithSpecificLease(t *testing.T) {
+	assert := assert.New(t)
+	challenge := []byte{1, 2, 3, 4}
+
+	store := &fakeHubStore{}
+	hub := New("http://hub.example.com/", store)
+	hub.generator = func() ([]byte, error) {
+		return challenge, nil
+	}
+
+	h := httptest.NewServer(hub.Handler())
+	defer h.Close()
+
+	verification := make(chan url.Values, 1)
+
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/unguessable-path-unique-per-subscription" {
+			verification <- r.URL.Query()
+			w.Write(challenge)
+		}
+	}))
+	defer s.Close()
+
+	resp, err := http.PostForm(h.URL, url.Values{
+		"hub.callback":      {s.URL + "/unguessable-path-unique-per-subscription?keep=me"},
+		"hub.mode":          {"subscribe"},
+		"hub.topic":         {"http://example.com/category/cats"},
+		"hub.lease_seconds": {strconv.Itoa(int((24 * time.Hour).Seconds()))},
+	})
+	assert.Nil(err)
+	assert.Equal(http.StatusAccepted, resp.StatusCode)
+
+	select {
+	case v := <-verification:
+		assert.Equal("me", v.Get("keep"))
+		assert.Equal("subscribe", v.Get("hub.mode"))
+		assert.Equal("http://example.com/category/cats", v.Get("hub.topic"))
+		assert.Equal(string(challenge), v.Get("hub.challenge"))
+		assert.Equal("86400", v.Get("hub.lease_seconds"))
+	case <-time.After(time.Millisecond):
+		assert.Fail("timed out")
+	}
+
+	if assert.Len(store.subs, 1) {
+		sub := store.subs[0]
+		assert.Equal(s.URL+"/unguessable-path-unique-per-subscription?keep=me", sub.callback)
+		assert.Equal("http://example.com/category/cats", sub.topic)
+		assert.WithinDuration(time.Now().Add(86400*time.Second), sub.expiresAt, time.Second)
+	}
+}
+
+func TestSubscribeWithTooLongLease(t *testing.T) {
+	assert := assert.New(t)
+	challenge := []byte{1, 2, 3, 4}
+
+	store := &fakeHubStore{}
+	hub := New("http://hub.example.com/", store)
+	hub.generator = func() ([]byte, error) {
+		return challenge, nil
+	}
+
+	h := httptest.NewServer(hub.Handler())
+	defer h.Close()
+
+	verification := make(chan url.Values, 1)
+
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == "/unguessable-path-unique-per-subscription" {
+			verification <- r.URL.Query()
+			w.Write(challenge)
+		}
+	}))
+	defer s.Close()
+
+	resp, err := http.PostForm(h.URL, url.Values{
+		"hub.callback":      {s.URL + "/unguessable-path-unique-per-subscription?keep=me"},
+		"hub.mode":          {"subscribe"},
+		"hub.topic":         {"http://example.com/category/cats"},
+		"hub.lease_seconds": {strconv.Itoa(int((29 * 24 * time.Hour).Seconds()))},
 	})
 	assert.Nil(err)
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
