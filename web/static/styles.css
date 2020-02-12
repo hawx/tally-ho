@@ -29,6 +29,7 @@ body {
     background: var(--background);
     color: var(--foreground);
     text-shadow: 1px 1px 2px black;
+    hyphens: auto;
 }
 
 .hidden {
@@ -85,6 +86,7 @@ blockquote {
     text-align: left;
     margin: 1rem 5rem 1rem var(--left-gutter);
     padding: 0;
+    hypens: none;
 }
 
 blockquote:before {
@@ -102,6 +104,7 @@ article {
 
 article h1 {
     text-align: left;
+    hypens: manual;
 }
 
 article h1 {
