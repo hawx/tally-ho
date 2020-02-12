@@ -24,15 +24,11 @@ html {
 body {
     font: 1rem/1.35 var(--sans);
     margin: 3rem auto;
+    padding: 0 1rem;
     max-width: 35rem;
     background: var(--background);
     color: var(--foreground);
     text-shadow: 1px 1px 2px black;
-
-    -webkit-hyphens: auto;
-    -moz-hyphens: auto;
-    -ms-hyphens: auto;
-    hyphens: auto;
 }
 
 .hidden {
@@ -87,7 +83,6 @@ ol {
 
 blockquote {
     text-align: left;
-    hyphens: none;
     margin: 1rem 5rem 1rem var(--left-gutter);
     padding: 0;
 }
@@ -107,11 +102,6 @@ article {
 
 article h1 {
     text-align: left;
-
-    -webkit-hyphens: manual;
-    -moz-hyphens: manual;
-    -ms-hyphens: manual;
-    hyphens: manual;
 }
 
 article h1 {
