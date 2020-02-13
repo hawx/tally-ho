@@ -169,6 +169,12 @@ details.meta .inner {
     list-style: none;
 }
 
+/* note */
+
+.note .e-content {
+    white-space: pre-wrap;
+}
+
 /* small posts */
 
 .reply, .like, .rsvp, .read, .drank, .checkin, .bookmark {
