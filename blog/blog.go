@@ -240,7 +240,13 @@ func (b *Blog) Handler() http.Handler {
 			return
 		}
 
-		if err := b.Templates.ExecuteTemplate(w, "page_day.gotmpl", likes); err != nil {
+		if err := b.Templates.ExecuteTemplate(w, "page_day.gotmpl", struct {
+			Title string
+			Items []numbersix.Group
+		}{
+			Title: "likes for " + ymd,
+			Items: likes,
+		}); err != nil {
 			log.Printf("ERR likes-on-render ymd=%s; %v\n", ymd, err)
 		}
 	})

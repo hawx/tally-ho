@@ -156,16 +156,42 @@ func templateWithEnd(l []interface{}) []endEl {
 }
 
 func templateTitle(m map[string][]interface{}) string {
+	prefix := ""
+	defalt := "a post"
+
 	switch mfutil.Get(m, "hx-kind").(string) {
+	case "rsvp":
+		return templateHumanRSVP(m) + " to " + templateGetOr(m, "name", "an event").(string)
+	case "reply":
+		return "replied to " + mfutil.Get(m,
+			"in-reply-to.properties.name",
+			"in-reply-to.properties.url",
+			"in-reply-to").(string)
+	case "repost":
+		return "reposted " + mfutil.Get(m,
+			"repost-of.properties.name",
+			"repost-of.properties.url",
+			"repost-of").(string)
 	case "like":
 		return "liked " + mfutil.Get(m,
 			"like-of.properties.name",
 			"like-of.properties.url",
 			"like-of").(string)
-	case "rsvp":
-		return templateHumanRSVP(m) + " to " + templateGetOr(m, "name", "an event").(string)
+	case "bookmark":
+		return "bookmarked " + mfutil.Get(m,
+			"bookmark-of.properties.name",
+			"bookmark-of.properties.url",
+			"bookmark-of").(string)
+	case "video":
+		prefix = "video: "
+		defalt = "a video"
+	case "photo":
+		prefix = "photo: "
+		defalt = "a photo"
 	case "read":
-		return templateHumanReadStatus(m) + " " + mfutil.Get(m, "read-of.properties.name").(string) + " by " + mfutil.Get(m, "read-of.properties.author").(string)
+		return templateHumanReadStatus(m) + " " +
+			mfutil.Get(m, "read-of.properties.name").(string) + " by " +
+			mfutil.Get(m, "read-of.properties.author").(string)
 	case "drank":
 		return "drank " + mfutil.Get(m, "drank.properties.name").(string)
 	case "checkin":
@@ -173,16 +199,14 @@ func templateTitle(m map[string][]interface{}) string {
 	}
 
 	if mfutil.Has(m, "name") {
-		return mfutil.Get(m, "name").(string)
+		return prefix + mfutil.Get(m, "name").(string)
 	}
 
-	if mfutil.Has(m, "content") {
-		if content, ok := templateContent(m).(string); ok {
-			return templateTruncate(content, 140)
-		}
+	if content, ok := mfutil.Get(m, "content.text", "content").(string); ok {
+		return prefix + templateTruncate(content, 140)
 	}
 
-	return "a post"
+	return defalt
 }
 
 func templateTruncate(s string, length int) string {
