@@ -58,7 +58,7 @@ func (t *twitterSyndicator) Name() string {
 	return "@" + t.screenName + " on twitter"
 }
 
-var twitterStatusRegexp = regexp.MustCompile(`^https?://twitter\.com/(?:\#!/)?\w+/status(es)?/(\d+)`)
+var twitterStatusRegexp = regexp.MustCompile(`^https?://twitter\.com/(?:\#!/)?(\w+)/status(es)?/(\d+)`)
 
 func (t *twitterSyndicator) Create(data map[string][]interface{}) (location string, err error) {
 	switch data["hx-kind"][0].(string) {
@@ -69,8 +69,8 @@ func (t *twitterSyndicator) Create(data map[string][]interface{}) (location stri
 		}
 
 		matches := twitterStatusRegexp.FindStringSubmatch(likeOf)
-		if len(matches) == 3 {
-			tweetID, err := strconv.ParseInt(matches[2], 10, 0)
+		if len(matches) == 4 {
+			tweetID, err := strconv.ParseInt(matches[3], 10, 0)
 			if err == nil {
 				_, err := t.api.Favorite(tweetID)
 				if err != nil {
@@ -80,6 +80,30 @@ func (t *twitterSyndicator) Create(data map[string][]interface{}) (location stri
 				return likeOf, nil
 			}
 		}
+
+	case "reply":
+		replyTo, ok := mfutil.Get(data, "in-reply-to.properties.url", "in-reply-to").(string)
+		if !ok {
+			return "", ErrUnsure{data}
+		}
+
+		content, ok := mfutil.Get(data, "content.text", "content").(string)
+		if !ok {
+			return "", ErrUnsure{data}
+		}
+
+		matches := twitterStatusRegexp.FindStringSubmatch(replyTo)
+		if len(matches) == 4 {
+			tweet, err := t.api.PostTweet("@"+matches[1]+" "+content, url.Values{
+				"in_reply_to_status_id": {matches[3]},
+			})
+			if err != nil {
+				return "", err
+			}
+
+			return "https://twitter.com/" + tweet.User.ScreenName + "/status/" + tweet.IdStr, nil
+		}
+
 	case "note":
 		content, ok := mfutil.Get(data, "content.text", "content").(string)
 		if !ok {

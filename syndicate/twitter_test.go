@@ -181,4 +181,61 @@ func TestTwitter(t *testing.T) {
 			t.Fatal("expected request to be made within 1s")
 		}
 	})
+
+	t.Run("reply-string", func(t *testing.T) {
+		assert := assert.New(t)
+
+		location, err := twitter.Create(map[string][]interface{}{
+			"hx-kind":     {"reply"},
+			"in-reply-to": {"https://twitter.com/SomePerson/status/1234"},
+			"content":     {"This is my tweet"},
+		})
+
+		assert.Nil(err)
+		assert.Equal("https://twitter.com/testing/status/1050118621198921728", location)
+
+		select {
+		case req := <-rs:
+			r, body := req.r, req.body
+
+			assert.Equal("POST", r.Method)
+			assert.Equal("/statuses/update.json", r.URL.Path)
+			assert.Equal("in_reply_to_status_id=1234&status=%40SomePerson+This+is+my+tweet", string(body))
+		case <-time.After(time.Second):
+			t.Fatal("expected request to be made within 1s")
+		}
+	})
+
+	t.Run("reply-cite", func(t *testing.T) {
+		assert := assert.New(t)
+
+		location, err := twitter.Create(map[string][]interface{}{
+			"hx-kind": {"reply"},
+			"in-reply-to": {map[string]interface{}{
+				"type": []string{"h-cite"},
+				"properties": map[string][]interface{}{
+					"url": {"https://twitter.com/SomePerson/status/1234"},
+				},
+			}},
+			"content": {map[string]interface{}{
+				"text": "This is my tweet",
+				"html": "wot",
+			}},
+		})
+
+		assert.Nil(err)
+		assert.Equal("https://twitter.com/testing/status/1050118621198921728", location)
+
+		select {
+		case req := <-rs:
+			r, body := req.r, req.body
+
+			assert.Equal("POST", r.Method)
+			assert.Equal("/statuses/update.json", r.URL.Path)
+			assert.Equal("in_reply_to_status_id=1234&status=%40SomePerson+This+is+my+tweet", string(body))
+		case <-time.After(time.Second):
+			t.Fatal("expected request to be made within 1s")
+		}
+	})
+
 }
