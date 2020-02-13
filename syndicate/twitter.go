@@ -58,7 +58,7 @@ func (t *twitterSyndicator) Name() string {
 	return "@" + t.screenName + " on twitter"
 }
 
-var twitterStatusRegexp = regexp.MustCompile(`^https?://twitter\.com/(?:\#!/)?\w+/status(es)?/(\d+)$`)
+var twitterStatusRegexp = regexp.MustCompile(`^https?://twitter\.com/(?:\#!/)?\w+/status(es)?/(\d+)`)
 
 func (t *twitterSyndicator) Create(data map[string][]interface{}) (location string, err error) {
 	switch data["hx-kind"][0].(string) {

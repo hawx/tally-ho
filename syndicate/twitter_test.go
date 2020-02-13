@@ -105,6 +105,34 @@ func TestTwitter(t *testing.T) {
 		}
 	})
 
+	t.Run("like-cite-query", func(t *testing.T) {
+		assert := assert.New(t)
+
+		location, err := twitter.Create(map[string][]interface{}{
+			"hx-kind": {"like"},
+			"like-of": {map[string]interface{}{
+				"type": []string{"h-cite"},
+				"properties": map[string][]interface{}{
+					"url": {"https://twitter.com/SomePerson/status/1234?s=09"},
+				},
+			}},
+		})
+
+		assert.Nil(err)
+		assert.Equal("https://twitter.com/SomePerson/status/1234?s=09", location)
+
+		select {
+		case req := <-rs:
+			r, body := req.r, req.body
+
+			assert.Equal("POST", r.Method)
+			assert.Equal("/favorites/create.json", r.URL.Path)
+			assert.Equal("id=1234", string(body))
+		case <-time.After(time.Second):
+			t.Fatal("expected request to be made within 1s")
+		}
+	})
+
 	t.Run("note-string", func(t *testing.T) {
 		assert := assert.New(t)
 
