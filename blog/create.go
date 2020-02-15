@@ -15,6 +15,7 @@ import (
 	"hawx.me/code/tally-ho/internal/mfutil"
 	"hawx.me/code/tally-ho/webmention"
 	"mvdan.cc/xurls/v2"
+	"willnorris.com/go/microformats"
 )
 
 func (b *Blog) Create(data map[string][]interface{}) (string, error) {
@@ -233,24 +234,22 @@ func getCite(u string) (cite map[string]interface{}, err error) {
 		return
 	}
 
-	hentries := htmlutil.SearchAll(root, func(node *html.Node) bool {
-		return node.Type == html.ElementNode && htmlutil.HasAttr(node, "class", "h-entry")
-	})
+	uURL, _ := url.Parse(u)
+	data := microformats.ParseNode(root, uURL)
 
-	for _, hentry := range hentries {
-		names := htmlutil.SearchAll(hentry, func(node *html.Node) bool {
-			return node.Type == html.ElementNode && htmlutil.HasAttr(node, "class", "p-name")
-		})
-
-		if len(names) > 0 {
-			cite = map[string]interface{}{
-				"type": []string{"h-cite"},
-				"properties": map[string][]interface{}{
-					"url":  {u},
-					"name": {htmlutil.TextOf(names[0])},
-				},
+	for _, item := range data.Items {
+		if contains("h-entry", item.Type) {
+			names := item.Properties["name"]
+			if len(names) > 0 {
+				cite = map[string]interface{}{
+					"type": []string{"h-cite"},
+					"properties": map[string][]interface{}{
+						"url":  {u},
+						"name": {names[0]},
+					},
+				}
+				return
 			}
-			return
 		}
 	}
 
@@ -270,4 +269,13 @@ func getCite(u string) (cite map[string]interface{}, err error) {
 	}
 
 	return cite, errors.New("no name to find")
+}
+
+func contains(needle string, list []string) bool {
+	for _, x := range list {
+		if x == needle {
+			return true
+		}
+	}
+	return false
 }
