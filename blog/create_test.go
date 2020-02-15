@@ -19,7 +19,7 @@ func TestGetCite(t *testing.T) {
 	cite, err := getCite(s.URL)
 	assert.NotNil(err)
 	assert.Equal(map[string]interface{}{
-		"type": []string{"h-cite"},
+		"type": []interface{}{"h-cite"},
 		"properties": map[string][]interface{}{
 			"url": {s.URL},
 		},
@@ -45,10 +45,18 @@ func TestGetCiteHEntry(t *testing.T) {
 	}
 
 	assert.Equal(map[string]interface{}{
-		"type": []string{"h-cite"},
+		"type": []interface{}{"h-cite"},
 		"properties": map[string][]interface{}{
 			"url":  {s.URL},
 			"name": {"A post"},
+			"author": {
+				map[string]interface{}{
+					"type": []interface{}{"h-card"},
+					"properties": map[string][]interface{}{
+						"name": {"John Doe"},
+					},
+				},
+			},
 		},
 	}, cite)
 }
@@ -67,7 +75,7 @@ func TestGetCiteTitle(t *testing.T) {
 	}
 
 	assert.Equal(map[string]interface{}{
-		"type": []string{"h-cite"},
+		"type": []interface{}{"h-cite"},
 		"properties": map[string][]interface{}{
 			"url":  {s.URL},
 			"name": {"A post"},

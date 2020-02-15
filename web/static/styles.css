@@ -177,16 +177,16 @@ details.meta .inner {
 
 /* small posts */
 
-.reply, .like, .rsvp, .read, .drank, .checkin, .bookmark {
+.reply, .like, .rsvp, .read, .drank, .checkin, .bookmark, .repost {
     padding: var(--top-gutter) 0 0 var(--left-gutter);
 }
 
-.reply h1, .like h1, .rsvp h1, .read h1, .drank h1, .checkin h1, .bookmark h1 {
+.reply h1, .like h1, .rsvp h1, .read h1, .drank h1, .checkin h1, .bookmark h1, .repost h1 {
     font-size: 1rem;
     position: relative;
 }
 
-.reply h1:before, .like h1:before, .rsvp h1:before, .read h1:before, .drank h1:before, .checkin h1:before, .bookmark h1:before {
+.reply h1:before, .like h1:before, .rsvp h1:before, .read h1:before, .drank h1:before, .checkin h1:before, .bookmark h1:before, .repost h1:before {
     position: absolute;
     margin-left: -1.5rem;
 }
@@ -205,8 +205,8 @@ div.h-cite {
     box-shadow: .3rem .3rem 0 var(--fainter);
 }
 
-div.h-cite .u-url {
-    display: none; /* already show link at the top, this just exists so it can be parsed */
+div.h-cite .h-card {
+    margin-bottom: .5rem;
 }
 
 /* like */
@@ -273,6 +273,16 @@ div.h-cite .u-url {
 
 .drank h1:before {
     content: '🍼 ';
+}
+
+/* repost */
+
+.repost h1 {
+    font-weight: normal;
+}
+
+.repost h1:before {
+    content: '♺ ';
 }
 
 /* checkin */

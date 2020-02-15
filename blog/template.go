@@ -30,12 +30,7 @@ func ParseTemplates(webPath string) (*template.Template, error) {
 }
 
 func templateHas(v interface{}, key string) bool {
-	m, ok := v.(map[string][]interface{})
-	if !ok {
-		return false
-	}
-
-	return mfutil.Has(m, key)
+	return mfutil.Has(v, key)
 }
 
 func templateGetOr(m map[string][]interface{}, key string, or interface{}) interface{} {
@@ -46,11 +41,11 @@ func templateGetOr(m map[string][]interface{}, key string, or interface{}) inter
 	return or
 }
 
-func templateGet(m map[string][]interface{}, key string) interface{} {
+func templateGet(m interface{}, key string) interface{} {
 	return mfutil.Get(m, key)
 }
 
-func templateContent(m map[string][]interface{}) interface{} {
+func templateContent(m interface{}) interface{} {
 	if mfutil.Has(m, "content.html") {
 		return template.HTML(mfutil.Get(m, "content.html").(string))
 	}
@@ -58,7 +53,7 @@ func templateContent(m map[string][]interface{}) interface{} {
 	return mfutil.Get(m, "content.text", "content").(string)
 }
 
-func templateHumanDate(m map[string][]interface{}, key string) string {
+func templateHumanDate(m interface{}, key string) string {
 	s, ok := mfutil.Get(m, key).(string)
 	if !ok {
 		return ""

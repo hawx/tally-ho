@@ -1,0 +1,16 @@
+<div class="h-cite">
+  {{ if has . "author.properties.name" }}
+  <p class="p-author h-card">
+      <a class="p-name u-url" href="{{ get . "author.properties.url" }}">{{ get . "author.properties.name" }}</a>
+    :
+  </p>
+  {{ end }}
+  <div class="e-content">{{ content . }}</div>
+  {{ if has . "published" }}
+  <div class="meta">
+    <a class="u-url" href="{{ get . "url" }}">
+      <time class="dt-published" datetime="{{ get . "published" }}">{{ humanDate . "published" }}</time>
+    </a>
+  </div>
+  {{ end }}
+</div>

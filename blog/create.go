@@ -217,7 +217,7 @@ func postTypeDiscovery(data map[string][]interface{}) string {
 
 func getCite(u string) (cite map[string]interface{}, err error) {
 	cite = map[string]interface{}{
-		"type": []string{"h-cite"},
+		"type": []interface{}{"h-cite"},
 		"properties": map[string][]interface{}{
 			"url": {u},
 		},
@@ -239,14 +239,27 @@ func getCite(u string) (cite map[string]interface{}, err error) {
 
 	for _, item := range data.Items {
 		if contains("h-entry", item.Type) {
-			names := item.Properties["name"]
-			if len(names) > 0 {
+			props := map[string][]interface{}{
+				"url": {u},
+			}
+
+			if names := item.Properties["name"]; len(names) > 0 {
+				props["name"] = []interface{}{names[0]}
+			}
+
+			if authors := item.Properties["author"]; len(authors) > 0 {
+				if author, ok := authors[0].(*microformats.Microformat); ok && contains("h-card", author.Type) {
+					props["author"] = []interface{}{
+						map[string]interface{}{
+							"type":       []interface{}{"h-card"},
+							"properties": author.Properties,
+						},
+					}
+				}
+
 				cite = map[string]interface{}{
-					"type": []string{"h-cite"},
-					"properties": map[string][]interface{}{
-						"url":  {u},
-						"name": {names[0]},
-					},
+					"type":       []interface{}{"h-cite"},
+					"properties": props,
 				}
 				return
 			}
@@ -259,7 +272,7 @@ func getCite(u string) (cite map[string]interface{}, err error) {
 
 	if len(titles) > 0 {
 		cite = map[string]interface{}{
-			"type": []string{"h-cite"},
+			"type": []interface{}{"h-cite"},
 			"properties": map[string][]interface{}{
 				"url":  {u},
 				"name": {htmlutil.TextOf(titles[0])},

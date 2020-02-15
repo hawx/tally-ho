@@ -15,6 +15,10 @@
   <h1 class="p-summary">
     replied to <a class="u-in-reply-to" href="{{ get . "in-reply-to.properties.url" }}">{{ if has . "in-reply-to.properties.name" }}{{ get . "in-reply-to.properties.name" }}{{ else }}{{ get . "in-reply-to.properties.url" }}{{ end }}</a>
   </h1>
+{{ else if has . "repost-of" }}
+  <h1 class="p-summary">
+    reposted <a class="u-repost-of" href="{{ get . "repost-of.properties.url" }}">{{ if has . "repost-of.properties.name" }}{{ get . "repost-of.properties.name" }}{{ else }}{{ get . "repost-of.properties.url" }}{{ end }}</a>
+  </h1>
 {{ else if has . "read-of" }}
   <h1 class="p-summary">
     {{ humanReadStatus . }} <span class="h-cite"><strong class="p-name">{{ get . "read-of.properties.name" }}</strong> by <strong class="p-author">{{ get . "read-of.properties.author" }}</strong></span>
@@ -31,6 +35,10 @@
       <span class="p-country-name">{{ get . "checkin.properties.country-name" }}</span>)</span>
     </h1>
   </p>
+{{ end }}
+
+{{ if has . "repost-of.properties.content" }}
+  {{ template "h_cite.gotmpl" (get . "repost-of.properties") }}
 {{ end }}
 
 {{ if has . "name" }}

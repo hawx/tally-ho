@@ -37,8 +37,6 @@ Possibly up-to-date feature list:
   * [x] Undelete
   * [ ] `mp-slug`
   * [ ] `post-status`
-  * [x] [indiebookclub](https://indiebookclub.biz/)
-  * [x] [teacup](https://teacup.p3k.io/)
 
 - Syndication:
   * Twitter:
@@ -75,9 +73,12 @@ Possibly up-to-date feature list:
     * [ ] Videos
     * [x] Likes
     * [x] Replies
-    * [x] Bookmark
-    * [x] RSVP
-    * [x] Checkin (kinda)
+    * [x] Bookmarks
+    * [x] RSVPs
+    * [x] Checkins (kinda)
+    * [x] Reposts
+    * [x] [indiebookclub](https://indiebookclub.biz/)
+    * [x] [teacup](https://teacup.p3k.io/)
 
 - Feeds:
   * [x] RSS
