@@ -266,6 +266,57 @@ func getCite(u string) (cite map[string]interface{}, err error) {
 		}
 	}
 
+	metas := htmlutil.SearchAll(root, func(node *html.Node) bool {
+		return node.Type == html.ElementNode && node.DataAtom == atom.Meta
+	})
+
+	var ogMeta struct {
+		ok                    bool
+		site_name, title, url string
+	}
+	ogMeta.url = u
+
+	for _, meta := range metas {
+		if htmlutil.Has(meta, "property") {
+			switch htmlutil.Attr(meta, "property") {
+			case "og:type":
+				if content := htmlutil.Attr(meta, "content"); content == "article" {
+					ogMeta.ok = true
+				}
+			case "og:site_name":
+				ogMeta.site_name = htmlutil.Attr(meta, "content")
+			case "og:title":
+				ogMeta.title = htmlutil.Attr(meta, "content")
+			case "og:url":
+				ogMeta.url = htmlutil.Attr(meta, "content")
+			}
+		}
+	}
+
+	if ogMeta.ok && ogMeta.title != "" {
+		props := map[string][]interface{}{
+			"name": {ogMeta.title},
+			"url":  {ogMeta.url},
+		}
+
+		if ogMeta.site_name != "" {
+			props["author"] = []interface{}{
+				map[string]interface{}{
+					"type": []interface{}{"h-card"},
+					"properties": map[string][]interface{}{
+						"name": {ogMeta.site_name},
+					},
+				},
+			}
+		}
+
+		cite = map[string]interface{}{
+			"type":       []interface{}{"h-cite"},
+			"properties": props,
+		}
+		return
+	}
+
 	titles := htmlutil.SearchAll(root, func(node *html.Node) bool {
 		return node.Type == html.ElementNode && node.DataAtom == atom.Title
 	})
@@ -281,8 +332,10 @@ func getCite(u string) (cite map[string]interface{}, err error) {
 		return
 	}
 
-	return cite, errors.New("no name to find")
+	return cite, ErrNoName
 }
+
+var ErrNoName = errors.New("no name to find")
 
 func contains(needle string, list []string) bool {
 	for _, x := range list {
