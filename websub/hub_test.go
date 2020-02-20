@@ -57,7 +57,7 @@ func TestSubscribe(t *testing.T) {
 		return challenge, nil
 	}
 
-	h := httptest.NewServer(hub.Handler())
+	h := httptest.NewServer(hub)
 	defer h.Close()
 
 	verification := make(chan url.Values, 1)
@@ -108,7 +108,7 @@ func TestSubscribeWithSecret(t *testing.T) {
 		return challenge, nil
 	}
 
-	h := httptest.NewServer(hub.Handler())
+	h := httptest.NewServer(hub)
 	defer h.Close()
 
 	verification := make(chan url.Values, 1)
@@ -160,7 +160,7 @@ func TestSubscribeWithLongSecret(t *testing.T) {
 		return challenge, nil
 	}
 
-	h := httptest.NewServer(hub.Handler())
+	h := httptest.NewServer(hub)
 	defer h.Close()
 
 	verification := make(chan url.Values, 1)
@@ -193,7 +193,7 @@ func TestSubscribeWithSpecificLease(t *testing.T) {
 		return challenge, nil
 	}
 
-	h := httptest.NewServer(hub.Handler())
+	h := httptest.NewServer(hub)
 	defer h.Close()
 
 	verification := make(chan url.Values, 1)
@@ -244,7 +244,7 @@ func TestSubscribeWithTooLongLease(t *testing.T) {
 		return challenge, nil
 	}
 
-	h := httptest.NewServer(hub.Handler())
+	h := httptest.NewServer(hub)
 	defer h.Close()
 
 	verification := make(chan url.Values, 1)
@@ -288,7 +288,7 @@ func TestSubscribeWithTooLongLease(t *testing.T) {
 func TestSubscribeWhenRespondingWithWrongChallenge(t *testing.T) {
 	assert := assert.New(t)
 
-	h := httptest.NewServer(New("", nil).Handler())
+	h := httptest.NewServer(New("", nil))
 	defer h.Close()
 
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -310,7 +310,7 @@ func TestSubscribeWhenRespondingWithWrongChallenge(t *testing.T) {
 func TestSubscribeNotPostRequest(t *testing.T) {
 	assert := assert.New(t)
 
-	h := httptest.NewServer(New("", nil).Handler())
+	h := httptest.NewServer(New("", nil))
 	defer h.Close()
 
 	resp, err := http.Get(h.URL)
@@ -321,7 +321,7 @@ func TestSubscribeNotPostRequest(t *testing.T) {
 func TestSubscribeBadCallback(t *testing.T) {
 	assert := assert.New(t)
 
-	h := httptest.NewServer(New("", nil).Handler())
+	h := httptest.NewServer(New("", nil))
 	defer h.Close()
 
 	resp, err := http.PostForm(h.URL, url.Values{
@@ -336,7 +336,7 @@ func TestSubscribeBadCallback(t *testing.T) {
 func TestSubscribeBadMode(t *testing.T) {
 	assert := assert.New(t)
 
-	h := httptest.NewServer(New("", nil).Handler())
+	h := httptest.NewServer(New("", nil))
 	defer h.Close()
 
 	resp, err := http.PostForm(h.URL, url.Values{
@@ -351,7 +351,7 @@ func TestSubscribeBadMode(t *testing.T) {
 func TestSubscribeBadVerificationResponse(t *testing.T) {
 	assert := assert.New(t)
 
-	h := httptest.NewServer(New("", nil).Handler())
+	h := httptest.NewServer(New("", nil))
 	defer h.Close()
 
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

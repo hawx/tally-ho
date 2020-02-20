@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/sha512"
 	"encoding/hex"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -54,90 +55,89 @@ type Hub struct {
 	noRedirectClient *http.Client
 }
 
-func (h *Hub) Handler() http.Handler {
-	mux := http.NewServeMux()
+func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "only POST is allowed", http.StatusMethodNotAllowed)
+		return
+	}
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "only POST is allowed", http.StatusMethodNotAllowed)
-			return
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+
+	var (
+		callback     = r.FormValue("hub.callback")
+		mode         = r.FormValue("hub.mode")
+		topic        = r.FormValue("hub.topic")
+		leaseSeconds = r.FormValue("hub.lease_seconds")
+		secret       = r.FormValue("hub.secret")
+	)
+
+	callbackURL, err := url.Parse(callback)
+	if err != nil || !callbackURL.IsAbs() {
+		http.Error(w, "hub.callback must be a url", http.StatusBadRequest)
+		return
+	}
+
+	if mode != "subscribe" && mode != "unsubscribe" {
+		http.Error(w, "hub.mode must be subscribe or unsubscribe", http.StatusBadRequest)
+		return
+	}
+
+	if len(secret) > 200 {
+		http.Error(w, "hub.secret must be less than 200i bytes in length", http.StatusBadRequest)
+		return
+	}
+
+	challenge, err := h.generator()
+	if err != nil {
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	lease := defaultLease
+	if leaseSeconds != "" {
+		if l, err := strconv.Atoi(leaseSeconds); err == nil {
+			lease = time.Duration(l) * time.Second
 		}
 
-		var (
-			callback     = r.FormValue("hub.callback")
-			mode         = r.FormValue("hub.mode")
-			topic        = r.FormValue("hub.topic")
-			leaseSeconds = r.FormValue("hub.lease_seconds")
-			secret       = r.FormValue("hub.secret")
-		)
-
-		callbackURL, err := url.Parse(callback)
-		if err != nil || !callbackURL.IsAbs() {
-			http.Error(w, "hub.callback must be a url", http.StatusBadRequest)
-			return
+		if lease > maxLease {
+			lease = maxLease
 		}
+	}
 
-		if mode != "subscribe" && mode != "unsubscribe" {
-			http.Error(w, "hub.mode must be subscribe or unsubscribe", http.StatusBadRequest)
-			return
-		}
+	query := callbackURL.Query()
+	query.Add("hub.mode", mode)
+	query.Add("hub.topic", topic)
+	query.Add("hub.challenge", string(challenge))
+	query.Add("hub.lease_seconds", strconv.Itoa(int(lease.Seconds())))
+	callbackURL.RawQuery = query.Encode()
 
-		if len(secret) > 200 {
-			http.Error(w, "hub.secret must be less than 200i bytes in length", http.StatusBadRequest)
-			return
-		}
+	resp, err := http.Get(callbackURL.String())
+	if err != nil {
+		http.Error(w, "problem requesting hub.callback", http.StatusBadRequest)
+		return
+	}
+	defer resp.Body.Close()
 
-		challenge, err := h.generator()
-		if err != nil {
-			http.Error(w, "", http.StatusInternalServerError)
-			return
-		}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		http.Error(w, "hub.callback returned a non-200 response", http.StatusBadRequest)
+		return
+	}
 
-		lease := defaultLease
-		if leaseSeconds != "" {
-			if l, err := strconv.Atoi(leaseSeconds); err == nil {
-				lease = time.Duration(l) * time.Second
-			}
+	data, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		http.Error(w, "", http.StatusInternalServerError)
+	}
 
-			if lease > maxLease {
-				lease = maxLease
-			}
-		}
+	if !bytes.Equal(data, challenge) {
+		http.Error(w, "hub.challenge must match", http.StatusBadRequest)
+		return
+	}
 
-		query := callbackURL.Query()
-		query.Add("hub.mode", mode)
-		query.Add("hub.topic", topic)
-		query.Add("hub.challenge", string(challenge))
-		query.Add("hub.lease_seconds", strconv.Itoa(int(lease.Seconds())))
-		callbackURL.RawQuery = query.Encode()
-
-		resp, err := http.Get(callbackURL.String())
-		if err != nil {
-			http.Error(w, "problem requesting hub.callback", http.StatusBadRequest)
-			return
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			http.Error(w, "hub.callback returned a non-200 response", http.StatusBadRequest)
-			return
-		}
-
-		data, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			http.Error(w, "", http.StatusInternalServerError)
-		}
-
-		if !bytes.Equal(data, challenge) {
-			http.Error(w, "hub.challenge must match", http.StatusBadRequest)
-			return
-		}
-
-		h.Store.Subscribe(callback, topic, time.Now().Add(lease), secret)
-		w.WriteHeader(http.StatusAccepted)
-	})
-
-	return mux
+	h.Store.Subscribe(callback, topic, time.Now().Add(lease), secret)
+	w.WriteHeader(http.StatusAccepted)
 }
 
 func (h *Hub) Publish(topic string) error {
@@ -148,7 +148,7 @@ func (h *Hub) Publish(topic string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		// todo
+		return errors.New("could not retrieve topic: " + topic)
 	}
 
 	contentType := resp.Header.Get("Content-Type")
@@ -159,7 +159,7 @@ func (h *Hub) Publish(topic string) error {
 
 	subscribers, err := h.Store.Subscribers(topic)
 	if err != nil {
-		// todo
+		return err
 	}
 
 	client := h.noRedirectClient
