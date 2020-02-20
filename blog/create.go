@@ -13,7 +13,6 @@ import (
 	"golang.org/x/net/html/atom"
 	"hawx.me/code/tally-ho/internal/htmlutil"
 	"hawx.me/code/tally-ho/internal/mfutil"
-	"hawx.me/code/tally-ho/webmention"
 	"mvdan.cc/xurls/v2"
 	"willnorris.com/go/microformats"
 )
@@ -99,35 +98,6 @@ func (b *Blog) syndicate(location string, data map[string][]interface{}) {
 					log.Printf("ERR confirming-syndication to=%s uid=%s; %v\n", syndicator.Name(), data["uid"][0], err)
 				}
 			}
-		}
-	}
-}
-
-func (b *Blog) sendWebmentions(location string, data map[string][]interface{}) {
-	var links []string
-
-	links = append(links, findAs(data)...)
-
-	for key, value := range data {
-		if strings.HasPrefix(key, "hx-") ||
-			strings.HasPrefix(key, "mp-") ||
-			key == "url" ||
-			len(value) == 0 {
-			continue
-		}
-
-		if v, ok := mfutil.Get(data, key+".properties.url", key).(string); ok {
-			if u, err := url.Parse(v); err == nil && u.IsAbs() {
-				links = append(links, v)
-			}
-		}
-	}
-
-	log.Printf("INFO sending-webmentions; %v\n", links)
-
-	for _, link := range links {
-		if err := webmention.Send(location, link); err != nil {
-			log.Printf("ERR send-webmention source=%s target=%s; %v\n", location, link, err)
 		}
 	}
 }

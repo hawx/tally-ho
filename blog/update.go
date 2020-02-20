@@ -3,8 +3,6 @@ package blog
 import (
 	"errors"
 	"time"
-
-	"hawx.me/code/numbersix"
 )
 
 func (b *Blog) Update(
@@ -12,16 +10,17 @@ func (b *Blog) Update(
 	replace, add, delete map[string][]interface{},
 	deleteAll []string,
 ) error {
-	replace["updated"] = []interface{}{time.Now().UTC().Format(time.RFC3339)}
-
-	triples, err := b.entries.List(numbersix.Where("url", url))
+	oldData, err := b.Entry(url)
 	if err != nil {
 		return err
 	}
-	if len(triples) == 0 {
+
+	replace["updated"] = []interface{}{time.Now().UTC().Format(time.RFC3339)}
+
+	id, ok := oldData["uid"][0].(string)
+	if !ok {
 		return errors.New("post to update not found")
 	}
-	id := triples[0].Subject
 
 	for predicate, values := range replace {
 		b.entries.DeletePredicate(id, predicate)
@@ -41,6 +40,13 @@ func (b *Blog) Update(
 	for _, predicate := range deleteAll {
 		b.entries.DeletePredicate(id, predicate)
 	}
+
+	newData, err := b.Entry(url)
+	if err != nil {
+		return err
+	}
+
+	go b.sendUpdateWebmentions(url, oldData, newData)
 
 	return nil
 }

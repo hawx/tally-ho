@@ -89,7 +89,7 @@ func processMention(mention webmention, blog Blog) error {
 	if resp.StatusCode == http.StatusGone {
 		if err := blog.Mention(mention.source, map[string][]interface{}{
 			"hx-target": {mention.target},
-			"gone":      {true},
+			"hx-gone":   {true},
 		}); err != nil {
 			return errors.New("  could not tombstone webmention: " + err.Error())
 		}

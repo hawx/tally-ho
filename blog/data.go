@@ -36,28 +36,32 @@ func (b *Blog) EntryByUID(uid string) (data map[string][]interface{}, err error)
 }
 
 func (b *Blog) Delete(url string) error {
-	triples, err := b.entries.List(numbersix.Where("url", url))
+	data, err := b.Entry(url)
 	if err != nil {
 		return err
 	}
-	if len(triples) == 0 {
+
+	id, ok := data["uid"][0].(string)
+	if !ok {
 		return errors.New("post to delete not found")
 	}
-	id := triples[0].Subject
 
+	go b.sendWebmentions(url, data)
 	return b.entries.Set(id, "hx-deleted", true)
 }
 
 func (b *Blog) Undelete(url string) error {
-	triples, err := b.entries.List(numbersix.Where("url", url))
+	data, err := b.Entry(url)
 	if err != nil {
 		return err
 	}
-	if len(triples) == 0 {
+
+	id, ok := data["uid"][0].(string)
+	if !ok {
 		return errors.New("post to undelete not found")
 	}
-	id := triples[0].Subject
 
+	go b.sendWebmentions(url, data)
 	return b.entries.DeletePredicate(id, "hx-deleted")
 }
 
@@ -65,6 +69,10 @@ func (b *Blog) Mention(source string, data map[string][]interface{}) error {
 	// TODO: add ability to block by host or url
 	if err := b.mentions.DeleteSubject(source); err != nil {
 		return err
+	}
+
+	if _, ok := data["hx-gone"]; ok {
+		return nil
 	}
 
 	return b.mentions.SetProperties(source, data)
