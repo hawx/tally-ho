@@ -24,9 +24,16 @@ type Subscriber struct {
 	Secret   string
 }
 
+type SubscribersIter interface {
+	Close() error
+	Data() (callback, secret string)
+	Err() error
+	Next() bool
+}
+
 type HubStore interface {
 	Subscribe(callback, topic string, expiresAt time.Time, secret string) error
-	Subscribers(topic string) ([]Subscriber, error)
+	Subscribers(topic string) SubscribersIter
 	Unsubscribe(callback, topic string) error
 }
 
@@ -157,16 +164,16 @@ func (h *Hub) Publish(topic string) error {
 		return err
 	}
 
-	subscribers, err := h.Store.Subscribers(topic)
-	if err != nil {
-		return err
-	}
+	subscribers := h.Store.Subscribers(topic)
+	defer subscribers.Close()
 
 	client := h.noRedirectClient
 	link := `<` + h.BaseURL + `>; rel="hub", <` + topic + `>; rel="self"`
 
-	for _, subscriber := range subscribers {
-		req, err := http.NewRequest("POST", subscriber.Callback, bytes.NewReader(body))
+	for subscribers.Next() {
+		callback, secret := subscribers.Data()
+
+		req, err := http.NewRequest("POST", callback, bytes.NewReader(body))
 		if err != nil {
 			continue
 		}
@@ -174,8 +181,8 @@ func (h *Hub) Publish(topic string) error {
 		req.Header.Add("Content-Type", contentType)
 		req.Header.Add("Link", link)
 
-		if subscriber.Secret != "" {
-			mac := hmac.New(sha512.New, []byte(subscriber.Secret))
+		if secret != "" {
+			mac := hmac.New(sha512.New, []byte(secret))
 			if _, err := mac.Write(body); err != nil {
 				continue
 			}
@@ -189,11 +196,11 @@ func (h *Hub) Publish(topic string) error {
 		defer resp.Body.Close()
 
 		if resp.StatusCode == http.StatusGone {
-			h.Store.Unsubscribe(subscriber.Callback, topic)
+			h.Store.Unsubscribe(callback, topic)
 		}
 	}
 
-	return nil
+	return subscribers.Err()
 }
 
 const letters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-"

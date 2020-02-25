@@ -12,6 +12,27 @@ import (
 	"hawx.me/code/assert"
 )
 
+type fakeSubIter struct {
+	current int
+	subs    []fakeSub
+}
+
+func (i *fakeSubIter) Close() error { return nil }
+func (i *fakeSubIter) Data() (string, string) {
+	here := i.subs[i.current-1]
+
+	return here.callback, here.secret
+}
+func (i *fakeSubIter) Err() error { return nil }
+func (i *fakeSubIter) Next() bool {
+	if i.current < len(i.subs) {
+		i.current += 1
+		return true
+	}
+
+	return false
+}
+
 type fakeSub struct {
 	callback  string
 	topic     string
@@ -29,17 +50,8 @@ func (s *fakeHubStore) Subscribe(callback, topic string, expiresAt time.Time, se
 	return nil
 }
 
-func (s *fakeHubStore) Subscribers(topic string) ([]Subscriber, error) {
-	var subs []Subscriber
-	for _, sub := range s.subs {
-		if sub.topic == topic {
-			subs = append(subs, Subscriber{
-				Callback: sub.callback,
-				Secret:   sub.secret,
-			})
-		}
-	}
-	return subs, nil
+func (s *fakeHubStore) Subscribers(topic string) SubscribersIter {
+	return &fakeSubIter{current: 0, subs: s.subs}
 }
 
 func (s *fakeHubStore) Unsubscribe(callback, topic string) error {
