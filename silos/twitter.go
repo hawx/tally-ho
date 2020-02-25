@@ -60,6 +60,17 @@ func (t *twitterSyndicator) Name() string {
 
 var twitterStatusRegexp = regexp.MustCompile(`^https?://twitter\.com/(?:\#!/)?(\w+)/status(es)?/(\d+)`)
 
+func twitterParseURL(u string) (tweetID int64, username string, ok bool) {
+	matches := twitterStatusRegexp.FindStringSubmatch(u)
+	if len(matches) != 4 {
+		return 0, "", false
+	}
+
+	tweetID, err := strconv.ParseInt(matches[3], 10, 0)
+
+	return tweetID, matches[1], err == nil
+}
+
 func (t *twitterSyndicator) Create(data map[string][]interface{}) (location string, err error) {
 	switch data["hx-kind"][0].(string) {
 	case "like":
@@ -68,17 +79,13 @@ func (t *twitterSyndicator) Create(data map[string][]interface{}) (location stri
 			return "", ErrUnsure{data}
 		}
 
-		matches := twitterStatusRegexp.FindStringSubmatch(likeOf)
-		if len(matches) == 4 {
-			tweetID, err := strconv.ParseInt(matches[3], 10, 0)
-			if err == nil {
-				_, err := t.api.Favorite(tweetID)
-				if err != nil {
-					return "", err
-				}
-
-				return likeOf, nil
+		if tweetID, _, ok := twitterParseURL(likeOf); ok {
+			_, err := t.api.Favorite(tweetID)
+			if err != nil {
+				return "", err
 			}
+
+			return likeOf, nil
 		}
 
 	case "reply":
@@ -92,10 +99,9 @@ func (t *twitterSyndicator) Create(data map[string][]interface{}) (location stri
 			return "", ErrUnsure{data}
 		}
 
-		matches := twitterStatusRegexp.FindStringSubmatch(replyTo)
-		if len(matches) == 4 {
-			tweet, err := t.api.PostTweet("@"+matches[1]+" "+content, url.Values{
-				"in_reply_to_status_id": {matches[3]},
+		if tweetID, username, ok := twitterParseURL(replyTo); ok {
+			tweet, err := t.api.PostTweet("@"+username+" "+content, url.Values{
+				"in_reply_to_status_id": {strconv.FormatInt(tweetID, 10)},
 			})
 			if err != nil {
 				return "", err
@@ -119,4 +125,31 @@ func (t *twitterSyndicator) Create(data map[string][]interface{}) (location stri
 	}
 
 	return "", ErrUnsure{data}
+}
+
+func (t *twitterSyndicator) Cite(u string) (map[string]interface{}, error) {
+	tweetID, _, ok := twitterParseURL(u)
+	if !ok {
+		return nil, nil
+	}
+
+	tweet, err := t.api.GetTweet(tweetID, url.Values{})
+
+	return map[string]interface{}{
+		"type": []interface{}{"h-cite"},
+		"properties": map[string][]interface{}{
+			"name":    {"@" + tweet.User.ScreenName + "'s tweet"},
+			"content": {tweet.FullText},
+			"author": {
+				map[string]interface{}{
+					"type": []interface{}{"h-card"},
+					"properties": map[string][]interface{}{
+						"name":     {tweet.User.Name},
+						"url":      {tweet.User.URL},
+						"nickname": {"@" + tweet.User.ScreenName},
+					},
+				},
+			},
+		},
+	}, err
 }

@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -15,7 +16,7 @@ type Req struct {
 	body []byte
 }
 
-func TestTwitter(t *testing.T) {
+func TestTwitterCreate(t *testing.T) {
 	rs := make(chan Req, 1)
 
 	s := httptest.NewServer(
@@ -237,5 +238,76 @@ func TestTwitter(t *testing.T) {
 			t.Fatal("expected request to be made within 1s")
 		}
 	})
+}
 
+func TestTwitterCite(t *testing.T) {
+	qs := make(chan url.Values, 1)
+
+	s := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/account/verify_credentials.json" {
+					w.Write([]byte(`{"screen_name": "TwitterDev"}`))
+					return
+				}
+
+				if r.URL.Path == "/statuses/show.json" {
+					qs <- r.URL.Query()
+
+					w.Write([]byte(`{
+  "id": 1050118621198921700,
+  "id_str": "1050118621198921728",
+  "text": "Hey there",
+  "user": {
+    "url": "https://t.co/something",
+    "name": "Test Thing",
+    "screen_name": "testing"
+  }
+}`))
+				}
+			},
+		),
+	)
+	defer s.Close()
+
+	twitter, err := Twitter(TwitterOptions{
+		BaseURL:           s.URL,
+		ConsumerKey:       "consumer-key",
+		ConsumerSecret:    "consumer-secret",
+		AccessToken:       "access-token",
+		AccessTokenSecret: "access-token-secret",
+	})
+	if !assert.Nil(t, err) {
+		return
+	}
+
+	cite, err := twitter.Cite("https://twitter.com/johndoe/status/1432")
+	assert.Nil(t, err)
+	assert.Equal(t, map[string]interface{}{
+		"type": []interface{}{"h-cite"},
+		"properties": map[string][]interface{}{
+			"name":    {"@testing's tweet"},
+			"content": {"Hey there"},
+			"author": {
+				map[string]interface{}{
+					"type": []interface{}{"h-card"},
+					"properties": map[string][]interface{}{
+						"name":     {"Test Thing"},
+						"url":      {"https://t.co/something"},
+						"nickname": {"@testing"},
+					},
+				},
+			},
+		},
+	}, cite)
+
+	select {
+	case q := <-qs:
+		assert.Equal(t, url.Values{
+			"id":         {"1432"},
+			"tweet_mode": {"extended"},
+		}, q)
+	case <-time.After(time.Millisecond):
+		assert.Fail(t, "timed out")
+	}
 }
