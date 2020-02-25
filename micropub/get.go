@@ -3,9 +3,12 @@ package micropub
 import (
 	"encoding/json"
 	"net/http"
-
-	"hawx.me/code/tally-ho/syndicate"
 )
+
+type Syndicator interface {
+	Name() string
+	UID() string
+}
 
 type getDB interface {
 	Entry(url string) (data map[string][]interface{}, err error)
@@ -14,7 +17,7 @@ type getDB interface {
 func getHandler(
 	db getDB,
 	mediaURL string,
-	syndicators map[string]syndicate.Syndicator,
+	syndicators map[string]Syndicator,
 ) http.HandlerFunc {
 	configHandler := configHandler(mediaURL, syndicators)
 	sourceHandler := sourceHandler(db)
@@ -40,7 +43,7 @@ type syndicateTo struct {
 	Name string `json:"name"`
 }
 
-func configHandler(mediaURL string, syndicators map[string]syndicate.Syndicator) http.HandlerFunc {
+func configHandler(mediaURL string, syndicators map[string]Syndicator) http.HandlerFunc {
 	var configs []syndicateTo
 
 	for _, s := range syndicators {
@@ -115,7 +118,7 @@ type syndicationTarget struct {
 	Name string `json:"name"`
 }
 
-func syndicationHandler(syndicators map[string]syndicate.Syndicator) http.HandlerFunc {
+func syndicationHandler(syndicators map[string]Syndicator) http.HandlerFunc {
 	var configs []syndicateTo
 
 	for _, s := range syndicators {

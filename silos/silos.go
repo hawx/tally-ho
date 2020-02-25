@@ -1,5 +1,5 @@
-// Package syndicate provides methods to re-publish entries on other sites.
-package syndicate
+// Package silos provides methods to re-publish entries on other sites.
+package silos
 
 import "fmt"
 
@@ -11,10 +11,4 @@ type ErrUnsure struct {
 
 func (e ErrUnsure) Error() string {
 	return fmt.Sprintf("unsure what to create: %#v", e.data)
-}
-
-type Syndicator interface {
-	Create(data map[string][]interface{}) (location string, err error)
-	UID() string
-	Name() string
 }

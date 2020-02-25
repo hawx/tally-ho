@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"hawx.me/code/assert"
-	"hawx.me/code/tally-ho/syndicate"
 )
 
 type fakeGetDB struct {
@@ -36,8 +35,8 @@ func (fakeSyndicator) Create(data map[string][]interface{}) (string, error) {
 	return "", nil
 }
 
-func fakeSyndicators() map[string]syndicate.Syndicator {
-	return map[string]syndicate.Syndicator{
+func fakeSyndicators() map[string]Syndicator {
+	return map[string]Syndicator{
 		"https://fake/": fakeSyndicator{},
 	}
 }

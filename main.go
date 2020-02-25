@@ -16,7 +16,7 @@ import (
 	"hawx.me/code/tally-ho/blog"
 	"hawx.me/code/tally-ho/media"
 	"hawx.me/code/tally-ho/micropub"
-	"hawx.me/code/tally-ho/syndicate"
+	"hawx.me/code/tally-ho/silos"
 	"hawx.me/code/tally-ho/webmention"
 )
 
@@ -64,9 +64,10 @@ func main() {
 		return
 	}
 
-	syndicators := map[string]syndicate.Syndicator{}
+	blogSyndicators := map[string]blog.Syndicator{}
+	micropubSyndicators := map[string]micropub.Syndicator{}
 
-	twitter, err := syndicate.Twitter(syndicate.TwitterOptions{
+	twitter, err := silos.Twitter(silos.TwitterOptions{
 		ConsumerKey:       conf.Twitter.ConsumerKey,
 		ConsumerSecret:    conf.Twitter.ConsumerSecret,
 		AccessToken:       conf.Twitter.AccessToken,
@@ -75,7 +76,8 @@ func main() {
 	if err != nil {
 		log.Println("WARN twitter;", err)
 	} else {
-		syndicators[syndicate.TwitterUID] = twitter
+		blogSyndicators[silos.TwitterUID] = twitter
+		micropubSyndicators[silos.TwitterUID] = twitter
 	}
 
 	baseURL, err := url.Parse(conf.BaseURL)
@@ -99,7 +101,7 @@ func main() {
 		MediaURL:    mediaURL,
 		DbPath:      *dbPath,
 		MediaDir:    *mediaDir,
-	}, templates, syndicators)
+	}, templates, blogSyndicators)
 	if err != nil {
 		log.Println("ERR new-blog;", err)
 		return
@@ -119,7 +121,7 @@ func main() {
 		b,
 		conf.Me,
 		baseURL.ResolveReference(mediaEndpointURL).String(),
-		syndicators,
+		micropubSyndicators,
 		b))
 	http.Handle("/-/webmention", webmention.Endpoint(b))
 	http.Handle("/-/media", media.Endpoint(conf.Me, b))

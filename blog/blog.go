@@ -13,7 +13,6 @@ import (
 	"github.com/gorilla/feeds"
 	"hawx.me/code/numbersix"
 	"hawx.me/code/route"
-	"hawx.me/code/tally-ho/syndicate"
 )
 
 type Config struct {
@@ -33,14 +32,14 @@ type Blog struct {
 	mentions *numbersix.DB
 
 	Config      Config
-	Syndicators map[string]syndicate.Syndicator
+	Syndicators map[string]Syndicator
 	Templates   *template.Template
 }
 
 func New(
 	config Config,
 	templates *template.Template,
-	syndicators map[string]syndicate.Syndicator,
+	syndicators map[string]Syndicator,
 ) (*Blog, error) {
 	db, err := sql.Open("sqlite3", config.DbPath)
 	if err != nil {

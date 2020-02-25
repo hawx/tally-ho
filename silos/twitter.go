@@ -1,4 +1,4 @@
-package syndicate
+package silos
 
 import (
 	"net/url"

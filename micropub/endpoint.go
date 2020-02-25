@@ -9,7 +9,6 @@ import (
 	"hawx.me/code/mux"
 	"hawx.me/code/tally-ho/auth"
 	"hawx.me/code/tally-ho/media"
-	"hawx.me/code/tally-ho/syndicate"
 )
 
 type DB interface {
@@ -26,7 +25,7 @@ func Endpoint(
 	db DB,
 	me string,
 	mediaUploadURL string,
-	syndicators map[string]syndicate.Syndicator,
+	syndicators map[string]Syndicator,
 	fw media.FileWriter,
 ) http.Handler {
 	return auth.Only(me, mux.Method{
