@@ -140,12 +140,13 @@ func (t *twitterSyndicator) Cite(u string) (map[string]interface{}, error) {
 		"properties": map[string][]interface{}{
 			"name":    {"@" + tweet.User.ScreenName + "'s tweet"},
 			"content": {tweet.FullText},
+			"url":     {u},
 			"author": {
 				map[string]interface{}{
 					"type": []interface{}{"h-card"},
 					"properties": map[string][]interface{}{
 						"name":     {tweet.User.Name},
-						"url":      {tweet.User.URL},
+						"url":      {"https://twitter.com/" + tweet.User.ScreenName},
 						"nickname": {"@" + tweet.User.ScreenName},
 					},
 				},

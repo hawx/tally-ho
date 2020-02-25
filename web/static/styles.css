@@ -225,7 +225,7 @@ div.h-cite .h-card {
     margin-right: .1rem;
 }
 
-.like a.u-url {
+.like .h-entry > a.u-url {
     color: var(--faint);
     text-decoration: none;
 }

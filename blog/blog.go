@@ -30,6 +30,7 @@ type Blog struct {
 	closer   io.Closer
 	entries  *numbersix.DB
 	mentions *numbersix.DB
+	citers   []Citer
 
 	Config      Config
 	Syndicators map[string]Syndicator
@@ -40,6 +41,7 @@ func New(
 	config Config,
 	templates *template.Template,
 	syndicators map[string]Syndicator,
+	citers []Citer,
 ) (*Blog, error) {
 	db, err := sql.Open("sqlite3", config.DbPath)
 	if err != nil {
@@ -63,6 +65,7 @@ func New(
 		Config:      config,
 		Syndicators: syndicators,
 		Templates:   templates,
+		citers:      citers,
 	}, nil
 }
 

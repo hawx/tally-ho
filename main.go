@@ -64,6 +64,7 @@ func main() {
 		return
 	}
 
+	blogCiters := []blog.Citer{}
 	blogSyndicators := map[string]blog.Syndicator{}
 	micropubSyndicators := map[string]micropub.Syndicator{}
 
@@ -76,6 +77,7 @@ func main() {
 	if err != nil {
 		log.Println("WARN twitter;", err)
 	} else {
+		blogCiters = append(blogCiters, twitter)
 		blogSyndicators[silos.TwitterUID] = twitter
 		micropubSyndicators[silos.TwitterUID] = twitter
 	}
@@ -101,7 +103,7 @@ func main() {
 		MediaURL:    mediaURL,
 		DbPath:      *dbPath,
 		MediaDir:    *mediaDir,
-	}, templates, blogSyndicators)
+	}, templates, blogSyndicators, blogCiters)
 	if err != nil {
 		log.Println("ERR new-blog;", err)
 		return

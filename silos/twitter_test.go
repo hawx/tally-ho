@@ -288,12 +288,13 @@ func TestTwitterCite(t *testing.T) {
 		"properties": map[string][]interface{}{
 			"name":    {"@testing's tweet"},
 			"content": {"Hey there"},
+			"url":     {"https://twitter.com/johndoe/status/1432"},
 			"author": {
 				map[string]interface{}{
 					"type": []interface{}{"h-card"},
 					"properties": map[string][]interface{}{
 						"name":     {"Test Thing"},
-						"url":      {"https://t.co/something"},
+						"url":      {"https://twitter.com/testing"},
 						"nickname": {"@testing"},
 					},
 				},
