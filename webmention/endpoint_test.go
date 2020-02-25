@@ -276,7 +276,7 @@ func TestMentionOfDeletedPost(t *testing.T) {
 
 		assert.Equal(map[string][]interface{}{
 			"hx-target": {"http://example.com/weblog/post-id"},
-			"gone":      {true},
+			"hx-gone":   {true},
 		}, m.data)
 	case <-time.After(waitTime):
 		t.Fatal("failed to get notified")
