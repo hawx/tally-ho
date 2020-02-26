@@ -2,6 +2,7 @@ package blog
 
 import (
 	"database/sql"
+	"hawx.me/code/tally-ho/websub"
 	"time"
 )
 
@@ -45,7 +46,7 @@ func (h *HubStore) Subscribe(callback, topic string, expiresAt time.Time, secret
 	return err
 }
 
-func (h *HubStore) Subscribers(topic string) (*SubscribersIter, error) {
+func (h *HubStore) Subscribers(topic string) (websub.SubscribersIter, error) {
 	rows, err := h.db.Query(`SELECT Callback, Secret FROM subscriptions WHERE Topic = ? AND ExpiresAt > ?`,
 		topic,
 		time.Now())

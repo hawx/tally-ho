@@ -18,10 +18,10 @@ type fakeSubIter struct {
 }
 
 func (i *fakeSubIter) Close() error { return nil }
-func (i *fakeSubIter) Data() (string, string) {
+func (i *fakeSubIter) Data() (string, string, error) {
 	here := i.subs[i.current-1]
 
-	return here.callback, here.secret
+	return here.callback, here.secret, nil
 }
 func (i *fakeSubIter) Err() error { return nil }
 func (i *fakeSubIter) Next() bool {
@@ -50,8 +50,8 @@ func (s *fakeHubStore) Subscribe(callback, topic string, expiresAt time.Time, se
 	return nil
 }
 
-func (s *fakeHubStore) Subscribers(topic string) SubscribersIter {
-	return &fakeSubIter{current: 0, subs: s.subs}
+func (s *fakeHubStore) Subscribers(topic string) (SubscribersIter, error) {
+	return &fakeSubIter{current: 0, subs: s.subs}, nil
 }
 
 func (s *fakeHubStore) Unsubscribe(callback, topic string) error {

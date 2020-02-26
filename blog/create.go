@@ -76,6 +76,7 @@ func (b *Blog) Create(data map[string][]interface{}) (string, error) {
 
 	go b.syndicate(location, data)
 	go b.sendWebmentions(location, data)
+	go b.hubPublish()
 
 	return location, nil
 }

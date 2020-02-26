@@ -27,10 +27,11 @@ type Config struct {
 }
 
 type Blog struct {
-	closer   io.Closer
-	entries  *numbersix.DB
-	mentions *numbersix.DB
-	citers   []Citer
+	closer       io.Closer
+	entries      *numbersix.DB
+	mentions     *numbersix.DB
+	citers       []Citer
+	hubPublisher HubPublisher
 
 	Config      Config
 	Syndicators map[string]Syndicator
@@ -39,15 +40,12 @@ type Blog struct {
 
 func New(
 	config Config,
+	db *sql.DB,
 	templates *template.Template,
 	syndicators map[string]Syndicator,
 	citers []Citer,
+	hubPublisher HubPublisher,
 ) (*Blog, error) {
-	db, err := sql.Open("sqlite3", config.DbPath)
-	if err != nil {
-		return nil, err
-	}
-
 	entries, err := numbersix.For(db, "entries")
 	if err != nil {
 		return nil, err
@@ -59,13 +57,14 @@ func New(
 	}
 
 	return &Blog{
-		closer:      db,
-		entries:     entries,
-		mentions:    mentions,
-		Config:      config,
-		Syndicators: syndicators,
-		Templates:   templates,
-		citers:      citers,
+		closer:       db,
+		entries:      entries,
+		mentions:     mentions,
+		Config:       config,
+		Syndicators:  syndicators,
+		Templates:    templates,
+		citers:       citers,
+		hubPublisher: hubPublisher,
 	}, nil
 }
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"fmt"
 	"log"
@@ -18,6 +19,7 @@ import (
 	"hawx.me/code/tally-ho/micropub"
 	"hawx.me/code/tally-ho/silos"
 	"hawx.me/code/tally-ho/webmention"
+	"hawx.me/code/tally-ho/websub"
 )
 
 func usage() {
@@ -64,6 +66,12 @@ func main() {
 		return
 	}
 
+	db, err := sql.Open("sqlite3", *dbPath)
+	if err != nil {
+		log.Printf("ERR sql-open path=%s; %v\n", *dbPath, err)
+		return
+	}
+
 	blogCiters := []blog.Citer{}
 	blogSyndicators := map[string]blog.Syndicator{}
 	micropubSyndicators := map[string]micropub.Syndicator{}
@@ -94,6 +102,14 @@ func main() {
 		return
 	}
 
+	hubStore, err := blog.NewHubStore(db)
+	if err != nil {
+		log.Println("ERR blog-hub-store;", err)
+		return
+	}
+
+	websubhub := websub.New(baseURL.String(), hubStore)
+
 	b, err := blog.New(blog.Config{
 		Me:          conf.Me,
 		Name:        conf.Name,
@@ -101,9 +117,8 @@ func main() {
 		Description: conf.Description,
 		BaseURL:     baseURL,
 		MediaURL:    mediaURL,
-		DbPath:      *dbPath,
 		MediaDir:    *mediaDir,
-	}, templates, blogSyndicators, blogCiters)
+	}, db, templates, blogSyndicators, blogCiters, websubhub)
 	if err != nil {
 		log.Println("ERR new-blog;", err)
 		return

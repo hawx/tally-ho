@@ -26,14 +26,14 @@ type Subscriber struct {
 
 type SubscribersIter interface {
 	Close() error
-	Data() (callback, secret string)
+	Data() (callback, secret string, err error)
 	Err() error
 	Next() bool
 }
 
 type HubStore interface {
 	Subscribe(callback, topic string, expiresAt time.Time, secret string) error
-	Subscribers(topic string) SubscribersIter
+	Subscribers(topic string) (SubscribersIter, error)
 	Unsubscribe(callback, topic string) error
 }
 
@@ -164,14 +164,20 @@ func (h *Hub) Publish(topic string) error {
 		return err
 	}
 
-	subscribers := h.Store.Subscribers(topic)
+	subscribers, err := h.Store.Subscribers(topic)
+	if err != nil {
+		return err
+	}
 	defer subscribers.Close()
 
 	client := h.noRedirectClient
 	link := `<` + h.BaseURL + `>; rel="hub", <` + topic + `>; rel="self"`
 
 	for subscribers.Next() {
-		callback, secret := subscribers.Data()
+		callback, secret, err := subscribers.Data()
+		if err != nil {
+			continue
+		}
 
 		req, err := http.NewRequest("POST", callback, bytes.NewReader(body))
 		if err != nil {
