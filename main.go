@@ -142,6 +142,7 @@ func main() {
 		b))
 	http.Handle("/-/webmention", webmention.Endpoint(b))
 	http.Handle("/-/media", media.Endpoint(conf.Me, b))
+	http.Handle("/-/hub", websubhub)
 
 	serve.Serve(*port, *socket, http.DefaultServeMux)
 }

@@ -101,6 +101,9 @@ func (b *Blog) Handler() http.Handler {
 			olderThan = "NOMORE"
 		}
 
+		w.Header().Add("Link", `</>; rel="self"`)
+		w.Header().Add("Link", `</-/hub>; rel="hub"`)
+
 		if err := b.Templates.ExecuteTemplate(w, "page_list.gotmpl", struct {
 			GroupedPosts []GroupedPosts
 			OlderThan    string
@@ -265,6 +268,8 @@ func (b *Blog) Handler() http.Handler {
 			return
 		}
 
+		w.Header().Add("Link", `</feed/rss>; rel="self"`)
+		w.Header().Add("Link", `</-/hub>; rel="hub"`)
 		w.Header().Set("Content-Type", "application/rss+xml")
 		io.WriteString(w, rss)
 	})
@@ -282,6 +287,8 @@ func (b *Blog) Handler() http.Handler {
 			return
 		}
 
+		w.Header().Add("Link", `</feed/atom>; rel="self"`)
+		w.Header().Add("Link", `</-/hub>; rel="hub"`)
 		w.Header().Set("Content-Type", "application/atom+xml")
 		io.WriteString(w, atom)
 	})
@@ -299,6 +306,8 @@ func (b *Blog) Handler() http.Handler {
 			return
 		}
 
+		w.Header().Add("Link", `</feed/jsonfeed>; rel="self"`)
+		w.Header().Add("Link", `</-/hub>; rel="hub"`)
 		w.Header().Set("Content-Type", "application/json")
 		io.WriteString(w, json)
 	})

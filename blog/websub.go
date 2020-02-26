@@ -13,8 +13,9 @@ func (b *Blog) hubPublish() {
 	// for now just publish the main things that will always change
 	changed := []string{
 		"/",
-		"/feed/rss",
 		"/feed/atom",
+		"/feed/jsonfeed",
+		"/feed/rss",
 	}
 
 	for _, c := range changed {
