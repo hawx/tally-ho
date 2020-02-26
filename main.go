@@ -110,6 +110,9 @@ func main() {
 
 	websubhub := websub.New(baseURL.String(), hubStore)
 
+	mediaEndpointURL, _ := url.Parse("/-/media")
+	hubEndpointURL, _ := url.Parse("/-/hub")
+
 	b, err := blog.New(blog.Config{
 		Me:          conf.Me,
 		Name:        conf.Name,
@@ -118,14 +121,13 @@ func main() {
 		BaseURL:     baseURL,
 		MediaURL:    mediaURL,
 		MediaDir:    *mediaDir,
+		HubURL:      baseURL.ResolveReference(hubEndpointURL).String(),
 	}, db, templates, blogSyndicators, blogCiters, websubhub)
 	if err != nil {
 		log.Println("ERR new-blog;", err)
 		return
 	}
 	defer b.Close()
-
-	mediaEndpointURL, _ := url.Parse("/-/media")
 
 	http.Handle("/", b.Handler())
 
