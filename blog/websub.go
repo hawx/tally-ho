@@ -3,6 +3,7 @@ package blog
 import (
 	"log"
 	"net/url"
+	"time"
 )
 
 type HubPublisher interface {
@@ -17,6 +18,9 @@ func (b *Blog) hubPublish() {
 		"/feed/jsonfeed",
 		"/feed/rss",
 	}
+
+	// ensure that the entry exists
+	time.Sleep(time.Second)
 
 	for _, c := range changed {
 		u, err := url.Parse(c)

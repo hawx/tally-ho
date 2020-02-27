@@ -4,12 +4,16 @@ import (
 	"log"
 	"net/url"
 	"strings"
+	"time"
 
 	"hawx.me/code/tally-ho/internal/mfutil"
 	"hawx.me/code/tally-ho/webmention"
 )
 
 func (b *Blog) sendWebmentions(location string, data map[string][]interface{}) {
+	// ensure that the entry exists
+	time.Sleep(time.Second)
+
 	links := findMentionedLinks(data)
 	log.Printf("INFO sending-webmentions; %v\n", links)
 
