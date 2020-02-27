@@ -34,7 +34,7 @@ type config struct {
 	BaseURL     string
 	MediaURL    string
 
-	Twitter struct {
+	Flickr, Twitter struct {
 		ConsumerKey       string
 		ConsumerSecret    string
 		AccessToken       string
@@ -76,18 +76,36 @@ func main() {
 	blogSyndicators := map[string]blog.Syndicator{}
 	micropubSyndicators := map[string]micropub.Syndicator{}
 
-	twitter, err := silos.Twitter(silos.TwitterOptions{
-		ConsumerKey:       conf.Twitter.ConsumerKey,
-		ConsumerSecret:    conf.Twitter.ConsumerSecret,
-		AccessToken:       conf.Twitter.AccessToken,
-		AccessTokenSecret: conf.Twitter.AccessTokenSecret,
-	})
-	if err != nil {
-		log.Println("WARN twitter;", err)
-	} else {
-		blogCiters = append(blogCiters, twitter)
-		blogSyndicators[silos.TwitterUID] = twitter
-		micropubSyndicators[silos.TwitterUID] = twitter
+	if conf.Twitter.ConsumerKey != "" {
+		twitter, err := silos.Twitter(silos.TwitterOptions{
+			ConsumerKey:       conf.Twitter.ConsumerKey,
+			ConsumerSecret:    conf.Twitter.ConsumerSecret,
+			AccessToken:       conf.Twitter.AccessToken,
+			AccessTokenSecret: conf.Twitter.AccessTokenSecret,
+		})
+		if err != nil {
+			log.Println("WARN twitter;", err)
+		} else {
+			blogCiters = append(blogCiters, twitter)
+			blogSyndicators[silos.TwitterUID] = twitter
+			micropubSyndicators[silos.TwitterUID] = twitter
+		}
+	}
+
+	if conf.Flickr.ConsumerKey != "" {
+		flickr, err := silos.Flickr(silos.FlickrOptions{
+			ConsumerKey:       conf.Flickr.ConsumerKey,
+			ConsumerSecret:    conf.Flickr.ConsumerSecret,
+			AccessToken:       conf.Flickr.AccessToken,
+			AccessTokenSecret: conf.Flickr.AccessTokenSecret,
+		})
+		if err != nil {
+			log.Println("WARN flickr;", err)
+		} else {
+			blogCiters = append(blogCiters, flickr)
+			blogSyndicators[silos.FlickrUID] = flickr
+			micropubSyndicators[silos.FlickrUID] = flickr
+		}
 	}
 
 	baseURL, err := url.Parse(conf.BaseURL)

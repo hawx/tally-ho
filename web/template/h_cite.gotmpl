@@ -5,6 +5,9 @@
     :
   </p>
   {{ end }}
+  {{ if has . "photo" }}
+    <img src="{{ get . "photo" }}" />
+  {{ end }}
   <div class="e-content">{{ content . }}</div>
   {{ if has . "published" }}
   <div class="meta">
