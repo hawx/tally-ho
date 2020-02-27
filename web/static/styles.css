@@ -124,7 +124,7 @@ p {
     margin: 0;
 }
 
-.h-entry * + *, .e-content * + *, .h-cite * + * {
+.h-entry > * + *, .e-content > * + *, .h-cite > * + * {
     margin-top: 1rem;
 }
 
