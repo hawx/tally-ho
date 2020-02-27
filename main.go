@@ -108,10 +108,10 @@ func main() {
 		return
 	}
 
-	websubhub := websub.New(baseURL.String(), hubStore)
-
 	mediaEndpointURL, _ := url.Parse("/-/media")
 	hubEndpointURL, _ := url.Parse("/-/hub")
+
+	websubhub := websub.New(baseURL.ResolveReference(hubEndpointURL).String(), hubStore)
 
 	b, err := blog.New(blog.Config{
 		Me:          conf.Me,

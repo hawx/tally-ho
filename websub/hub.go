@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -68,11 +69,6 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.URL.Path != "/" {
-		http.NotFound(w, r)
-		return
-	}
-
 	var (
 		callback     = r.FormValue("hub.callback")
 		mode         = r.FormValue("hub.mode")
@@ -121,6 +117,8 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	query.Add("hub.lease_seconds", strconv.Itoa(int(lease.Seconds())))
 	callbackURL.RawQuery = query.Encode()
 
+	log.Printf("INFO confirm-subscription url=%s", callbackURL.String())
+
 	resp, err := http.Get(callbackURL.String())
 	if err != nil {
 		http.Error(w, "problem requesting hub.callback", http.StatusBadRequest)
@@ -143,7 +141,12 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.Store.Subscribe(callback, topic, time.Now().Add(lease), secret)
+	if err := h.Store.Subscribe(callback, topic, time.Now().Add(lease), secret); err != nil {
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("INFO confirmed-subscription callback=%s topic=%s lease=%v\n", callback, topic, lease)
 	w.WriteHeader(http.StatusAccepted)
 }
 

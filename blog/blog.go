@@ -77,8 +77,18 @@ func (b *Blog) BaseURL() string {
 	return b.Config.BaseURL.String()
 }
 
+func (b *Blog) absoluteURL(p string) string {
+	u, _ := url.Parse(p)
+
+	return b.Config.BaseURL.ResolveReference(u).String()
+}
+
 func (b *Blog) Handler() http.Handler {
 	baseURL := b.Config.BaseURL
+	indexURL := b.absoluteURL("/")
+	feedAtomURL := b.absoluteURL("/feed/atom")
+	feedJsonfeedURL := b.absoluteURL("/feed/jsonfeed")
+	feedRssURL := b.absoluteURL("/feed/rss")
 
 	route.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		showLatest := true
@@ -102,7 +112,7 @@ func (b *Blog) Handler() http.Handler {
 			olderThan = "NOMORE"
 		}
 
-		w.Header().Add("Link", `</>; rel="self"`)
+		w.Header().Add("Link", `<`+indexURL+`>; rel="self"`)
 		w.Header().Add("Link", `<`+b.Config.HubURL+`>; rel="hub"`)
 
 		if err := b.Templates.ExecuteTemplate(w, "page_list.gotmpl", struct {
@@ -269,7 +279,7 @@ func (b *Blog) Handler() http.Handler {
 			return
 		}
 
-		w.Header().Add("Link", `</feed/rss>; rel="self"`)
+		w.Header().Add("Link", `<`+feedRssURL+`>; rel="self"`)
 		w.Header().Add("Link", `<`+b.Config.HubURL+`>; rel="hub"`)
 		w.Header().Set("Content-Type", "application/rss+xml")
 		io.WriteString(w, rss)
@@ -288,7 +298,7 @@ func (b *Blog) Handler() http.Handler {
 			return
 		}
 
-		w.Header().Add("Link", `</feed/atom>; rel="self"`)
+		w.Header().Add("Link", `<`+feedAtomURL+`>; rel="self"`)
 		w.Header().Add("Link", `<`+b.Config.HubURL+`>; rel="hub"`)
 		w.Header().Set("Content-Type", "application/atom+xml")
 		io.WriteString(w, atom)
@@ -307,7 +317,7 @@ func (b *Blog) Handler() http.Handler {
 			return
 		}
 
-		w.Header().Add("Link", `</feed/jsonfeed>; rel="self"`)
+		w.Header().Add("Link", `<`+feedJsonfeedURL+`>; rel="self"`)
 		w.Header().Add("Link", `<`+b.Config.HubURL+`>; rel="hub"`)
 		w.Header().Set("Content-Type", "application/json")
 		io.WriteString(w, json)
