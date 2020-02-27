@@ -61,7 +61,6 @@ hr {
 }
 
 img {
-    margin: 1.35rem 0;
     max-width: 100%;
 }
 
@@ -125,8 +124,8 @@ p {
     margin: 0;
 }
 
-p + p {
-    margin: 1rem 0;
+.h-entry * + *, .e-content * + *, .h-cite * + * {
+    margin-top: 1rem;
 }
 
 /* meta */
@@ -200,7 +199,6 @@ details.meta .inner {
 div.h-cite {
     border: 1px solid var(--fainter);
     padding: 1rem;
-    margin: 1rem 0;
     border-radius: .3rem;
     box-shadow: .3rem .3rem 0 var(--fainter);
 }

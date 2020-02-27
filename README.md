@@ -48,7 +48,7 @@ Possibly up-to-date feature list:
   * Flickr
     * [ ] Upload photo
     * [x] Post comment
-    * [ ] Like photos
+    * [x] Like photos
     * [ ] Retreive likes
     * [ ] Retrieve comments
   * GitHub

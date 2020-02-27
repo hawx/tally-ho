@@ -1,9 +1,9 @@
 <div class="h-cite">
   {{ if has . "author.properties.name" }}
-  <p class="p-author h-card">
+    <p class="p-author h-card">
       <a class="p-name u-url" href="{{ get . "author.properties.url" }}">{{ get . "author.properties.name" }}</a>
-    :
-  </p>
+      :
+    </p>
   {{ end }}
   {{ if has . "photo" }}
     <img src="{{ get . "photo" }}" />

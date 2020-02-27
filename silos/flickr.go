@@ -117,6 +117,28 @@ func flickrParseURL(u string) (photoID string, ok bool) {
 
 func (c *flickrClient) Create(data map[string][]interface{}) (location string, err error) {
 	switch data["hx-kind"][0].(string) {
+	case "like":
+		likeOf, ok := mfutil.Get(data, "like-of.properties.url", "like-of").(string)
+		if !ok {
+			return "", ErrUnsure{data}
+		}
+
+		if photoID, ok := flickrParseURL(likeOf); ok {
+			resp, err := c.oauthClient.Post(c.client, c.credentials, c.baseURL, url.Values{
+				"method":   {"flickr.favorites.add"},
+				"photo_id": {photoID},
+			})
+			if err != nil {
+				return "", err
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+				return "", errors.New("flickr add new comment got: " + resp.Status)
+			}
+
+			return likeOf, nil
+		}
 	case "reply":
 		replyTo, ok := mfutil.Get(data, "in-reply-to.properties.url", "in-reply-to").(string)
 		if !ok {
@@ -229,36 +251,46 @@ func (c *flickrClient) Cite(u string) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	name := v.Photo.Owner.Username + "'s photo"
-	if v.Photo.Title.Content != "" {
-		name = v.Photo.Title.Content
+	authorProperties := map[string][]interface{}{
+		"url": {"https://www.flickr.com/" + v.Photo.Owner.NSID},
 	}
 
-	photo := ""
+	if v.Photo.Owner.Name != "" {
+		authorProperties["name"] = []interface{}{v.Photo.Owner.Name}
+	}
+
+	if v.Photo.Owner.Username != "" {
+		authorProperties["nickname"] = []interface{}{v.Photo.Owner.Username}
+	}
+
+	properties := map[string][]interface{}{
+		"url": {u},
+		"author": {
+			map[string]interface{}{
+				"type":       []interface{}{"h-card"},
+				"properties": authorProperties,
+			},
+		},
+	}
+
+	properties["name"] = []interface{}{v.Photo.Owner.Username + "'s photo"}
+	if v.Photo.Title.Content != "" {
+		properties["name"][0] = v.Photo.Title.Content
+	}
+
+	if v.Photo.Description.Content != "" {
+		properties["content"] = []interface{}{v.Photo.Description.Content}
+	}
+
 	for _, size := range vv.Sizes.Size {
-		photo = size.Source
+		properties["photo"] = []interface{}{size.Source}
 		if size.Width > 768 {
 			break
 		}
 	}
 
 	return map[string]interface{}{
-		"type": []interface{}{"h-cite"},
-		"properties": map[string][]interface{}{
-			"name":    {name},
-			"content": {v.Photo.Description.Content},
-			"url":     {u},
-			"photo":   {photo},
-			"author": {
-				map[string]interface{}{
-					"type": []interface{}{"h-card"},
-					"properties": map[string][]interface{}{
-						"name":     {v.Photo.Owner.Name},
-						"url":      {"https://www.flickr.com/" + v.Photo.Owner.NSID},
-						"nickname": {v.Photo.Owner.Username},
-					},
-				},
-			},
-		},
+		"type":       []interface{}{"h-cite"},
+		"properties": properties,
 	}, nil
 }

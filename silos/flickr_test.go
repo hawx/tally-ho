@@ -64,4 +64,24 @@ func TestFlickr(t *testing.T) {
 			t.Fatal("expected request to be made within 1s")
 		}
 	})
+
+	t.Run("like", func(t *testing.T) {
+		assert := assert.New(t)
+
+		location, err := flickr.Create(map[string][]interface{}{
+			"hx-kind": {"like"},
+			"like-of": {"https://www.flickr.com/photos/someone/43324322/"},
+		})
+
+		assert.Nil(err)
+		assert.Equal("https://www.flickr.com/photos/someone/43324322/", location)
+
+		select {
+		case q := <-qs:
+			assert.Equal("flickr.favorites.add", q.Get("method"))
+			assert.Equal("43324322", q.Get("photo_id"))
+		case <-time.After(time.Second):
+			t.Fatal("expected request to be made within 1s")
+		}
+	})
 }
