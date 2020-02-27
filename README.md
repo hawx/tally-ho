@@ -7,6 +7,7 @@ Relevant specs:
 - [Micropub](https://www.w3.org/TR/micropub/)
 - [Webmention](https://www.w3.org/TR/webmention/)
 - [IndieAuth](https://www.w3.org/TR/indieauth/)
+- [WebSub](https://www.w3.org/TR/websub/)
 
 Possibly up-to-date feature list:
 
@@ -85,4 +86,7 @@ Possibly up-to-date feature list:
   * [x] RSS
   * [x] Atom
   * [x] Jsonfeed (<https://jsonfeed.org/>)
-  * [ ] WebSub (<https://www.w3.org/TR/websub/>)
+  * [x] WebSub
+    * [x] On create
+    * [ ] On update
+    * [ ] On delete
