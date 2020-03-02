@@ -26,6 +26,7 @@ func ParseTemplates(webPath string) (*template.Template, error) {
 		"withEnd":         templateWithEnd,
 		"title":           templateTitle,
 		"truncate":        templateTruncate,
+		"cite":            templateCite,
 	}).ParseGlob(glob)
 }
 
@@ -214,4 +215,14 @@ func templateTruncate(s string, length int) string {
 	}
 
 	return s[:length] + "…"
+}
+
+func templateCite(m map[string][]interface{}) interface{} {
+	for _, value := range m {
+		if t, ok := mfutil.Get(value, "type").(string); ok && t == "h-cite" {
+			return mfutil.Get(value, "properties")
+		}
+	}
+
+	return nil
 }

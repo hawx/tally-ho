@@ -37,17 +37,8 @@
   </p>
 {{ end }}
 
-{{ if has . "repost-of.properties.content" }}
-  {{ template "h_cite.gotmpl" (get . "repost-of.properties") }}
-{{ end }}
-{{ if has . "like-of.properties.content" }}
-  {{ template "h_cite.gotmpl" (get . "like-of.properties") }}
-{{ end }}
-{{ if has . "bookmark-of.properties.content" }}
-  {{ template "h_cite.gotmpl" (get . "bookmark-of.properties") }}
-{{ end }}
-{{ if has . "in-reply-to.properties.content" }}
-  {{ template "h_cite.gotmpl" (get . "in-reply-to.properties") }}
+{{ if cite .  }}
+  {{ template "h_cite.gotmpl" (cite .) }}
 {{ end }}
 
 {{ if has . "name" }}

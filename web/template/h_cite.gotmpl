@@ -8,7 +8,9 @@
   {{ if has . "photo" }}
     <img src="{{ get . "photo" }}" />
   {{ end }}
-  <div class="e-content">{{ content . }}</div>
+  {{ if has . "content" }}
+    <div class="e-content">{{ content . }}</div>
+  {{ end }}
   {{ if has . "published" }}
   <div class="meta">
     <a class="u-url" href="{{ get . "url" }}">
