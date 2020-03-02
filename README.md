@@ -41,14 +41,23 @@ Possibly up-to-date feature list:
 
 - Syndication:
   * Twitter:
-    * [x] Create (only like: `like-of`, or post: `content`)
+    * Create
+        * [x] Notes
+        * [ ] Posts
+        * [ ] Photos
+        * [ ] Videos
+        * [x] Likes
+        * [x] Replies
+        * [ ] Reposts
     * [ ] Retrieve likes
     * [ ] Retrieve replies
     * [ ] Retrieve retweets
   * Flickr
-    * [ ] Upload photo
-    * [x] Post comment
-    * [x] Like photos
+    * Create
+      * [ ] Photos
+      * [ ] Videos
+      * [x] Likes
+      * [x] Replies
     * [ ] Retreive likes
     * [ ] Retrieve comments
   * GitHub

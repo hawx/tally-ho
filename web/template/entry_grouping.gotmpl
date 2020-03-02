@@ -4,7 +4,7 @@
       liked
       {{ range .Posts }}
         <span class="h-entry">
-          <a class="u-like-of" href="{{ get . "like-of.properties.url" }}">{{ if has . "like-of.properties.name" }}{{ get . "like-of.properties.name" }}{{ else }}{{ get . "like-of.properties.url" }}{{ end }}</a>
+          <span class="hidden">liked </span><a class="u-like-of" href="{{ get . "like-of.properties.url" }}">{{ if has . "like-of.properties.name" }}{{ get . "like-of.properties.name" }}{{ else }}{{ get . "like-of.properties.url" }}{{ end }}</a>
           <a class="u-url" href="{{ get . "url" }}">at
             <time class="dt-published" datetime="{{ get . "published" }}">
               {{ time . "published" }}
