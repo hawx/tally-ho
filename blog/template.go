@@ -62,7 +62,11 @@ func templateContent(m interface{}) interface{} {
 		return template.HTML(mfutil.Get(m, "content.html").(string))
 	}
 
-	return mfutil.Get(m, "content.text", "content").(string)
+	if s, ok := mfutil.Get(m, "content.text", "content").(string); ok {
+		return s
+	}
+
+	return nil
 }
 
 func templateHumanDate(m interface{}, key string) string {

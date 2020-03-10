@@ -19,7 +19,7 @@ func (b *Blog) Entry(url string) (data map[string][]interface{}, err error) {
 		return data, errors.New("no data for url: " + url)
 	}
 
-	return groups[0].Properties, nil
+	return b.withAuthor(groups[0].Properties), nil
 }
 
 func (b *Blog) EntryByUID(uid string) (data map[string][]interface{}, err error) {
@@ -32,7 +32,7 @@ func (b *Blog) EntryByUID(uid string) (data map[string][]interface{}, err error)
 		return data, errors.New("no data for uid: " + uid)
 	}
 
-	return groups[0].Properties, nil
+	return b.withAuthor(groups[0].Properties), nil
 }
 
 func (b *Blog) Delete(url string) error {
@@ -99,7 +99,7 @@ func (b *Blog) Before(published time.Time) (groups []numbersix.Group, err error)
 		return
 	}
 
-	return numbersix.Grouped(triples), nil
+	return b.groupedWithAuthors(numbersix.Grouped(triples)), nil
 }
 
 func (b *Blog) KindBefore(kind string, published time.Time) (groups []numbersix.Group, err error) {
@@ -114,7 +114,7 @@ func (b *Blog) KindBefore(kind string, published time.Time) (groups []numbersix.
 		return
 	}
 
-	return numbersix.Grouped(triples), nil
+	return b.groupedWithAuthors(numbersix.Grouped(triples)), nil
 }
 
 func (b *Blog) CategoryBefore(category string, published time.Time) (groups []numbersix.Group, err error) {
@@ -129,7 +129,7 @@ func (b *Blog) CategoryBefore(category string, published time.Time) (groups []nu
 		return
 	}
 
-	return numbersix.Grouped(triples), nil
+	return b.groupedWithAuthors(numbersix.Grouped(triples)), nil
 }
 
 func (b *Blog) LikesOn(ymd string) (groups []numbersix.Group, err error) {
@@ -143,5 +143,31 @@ func (b *Blog) LikesOn(ymd string) (groups []numbersix.Group, err error) {
 		return
 	}
 
-	return numbersix.Grouped(triples), nil
+	return b.groupedWithAuthors(numbersix.Grouped(triples)), nil
+}
+
+func (b *Blog) withAuthor(m map[string][]interface{}) map[string][]interface{} {
+	if _, ok := m["author"]; ok {
+		return m
+	}
+
+	m["author"] = []interface{}{
+		map[string]interface{}{
+			"types": []interface{}{"h-card"},
+			"properties": map[string][]interface{}{
+				"name": {b.Config.Name},
+				"url":  {b.Config.Me},
+			},
+		},
+	}
+
+	return m
+}
+
+func (b *Blog) groupedWithAuthors(gs []numbersix.Group) []numbersix.Group {
+	for _, g := range gs {
+		g.Properties = b.withAuthor(g.Properties)
+	}
+
+	return gs
 }

@@ -10,10 +10,15 @@
               {{ time . "published" }}
             </time>
           </a>
+          <a class="u-author h-card hidden" href="{{ get . "author.properties.url" }}">{{ get . "author.properties.name" }}</a>
         </span>
       {{ end }}
     </h1>
-    {{ template "entry_meta.gotmpl" .Meta }}
+    <div class="meta">
+      <a href="{{ get .Meta "url" }}" title="{{ get .Meta "published" }}">
+        <time datetime="{{ get .Meta "published" }}">{{ humanDate .Meta "published" }}</time>
+      </a>
+    </div>
   </article>
 {{ else }}
   {{ with .Meta }}
