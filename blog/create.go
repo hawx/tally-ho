@@ -15,6 +15,12 @@ import (
 	"mvdan.cc/xurls/v2"
 )
 
+var citeable = map[string]string{
+	"like":     "like-of",
+	"reply":    "in-reply-to",
+	"bookmark": "bookmark-of",
+}
+
 func (b *Blog) Create(data map[string][]interface{}) (string, error) {
 	uid := uuid.New().String()
 
@@ -30,29 +36,21 @@ func (b *Blog) Create(data map[string][]interface{}) (string, error) {
 
 	kind := postTypeDiscovery(data)
 
-	if kind == "like" {
-		cite, err := b.getCite(data["like-of"][0].(string))
-		if err != nil {
-			log.Printf("WARN get-cite; %v\n", err)
+	for k, v := range citeable {
+		if kind == k {
+			s, ok := data[v][0].(string)
+			if !ok {
+				continue
+			}
+
+			cite, err := b.getCite(s)
+			if err != nil {
+				log.Printf("WARN get-cite; %v\n", err)
+				continue
+			}
+
+			data[v] = []interface{}{cite}
 		}
-		data["like-of"] = []interface{}{cite}
-		log.Printf("WARN get-cite; setting to '%s'\n", cite)
-	}
-	if kind == "reply" {
-		cite, err := b.getCite(data["in-reply-to"][0].(string))
-		if err != nil {
-			log.Printf("WARN get-cite; %v\n", err)
-		}
-		data["in-reply-to"] = []interface{}{cite}
-		log.Printf("WARN get-cite; setting to '%s'\n", cite)
-	}
-	if kind == "bookmark" {
-		cite, err := b.getCite(data["bookmark-of"][0].(string))
-		if err != nil {
-			log.Printf("WARN get-cite; %v\n", err)
-		}
-		data["bookmark-of"] = []interface{}{cite}
-		log.Printf("WARN get-cite; setting to '%s'\n", cite)
 	}
 
 	data["hx-kind"] = []interface{}{kind}
