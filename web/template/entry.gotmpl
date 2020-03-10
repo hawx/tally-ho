@@ -37,9 +37,7 @@
   </p>
 {{ end }}
 
-{{ if cite .  }}
-  {{ template "h_cite.gotmpl" (cite .) }}
-{{ end }}
+{{ template "h_cite.gotmpl" (cite .) }}
 
 {{ if has . "name" }}
   <h1 class="p-name"><a href="{{ get . "url" }}">{{ get . "name" }}</a></h1>

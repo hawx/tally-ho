@@ -14,6 +14,7 @@ func ParseTemplates(webPath string) (*template.Template, error) {
 
 	return template.New("t").Funcs(template.FuncMap{
 		"has":             templateHas,
+		"hasAny":          templateHasAny,
 		"getOr":           templateGetOr,
 		"get":             templateGet,
 		"content":         templateContent,
@@ -32,6 +33,16 @@ func ParseTemplates(webPath string) (*template.Template, error) {
 
 func templateHas(v interface{}, key string) bool {
 	return mfutil.Has(v, key)
+}
+
+func templateHasAny(v interface{}, keys ...string) bool {
+	for _, key := range keys {
+		if mfutil.Has(v, key) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func templateGetOr(m map[string][]interface{}, key string, or interface{}) interface{} {

@@ -1,3 +1,4 @@
+{{ if hasAny . "content" "photo" }}
 <div class="h-cite">
   {{ if has . "author.properties.name" }}
     <p class="p-author h-card">
@@ -19,3 +20,4 @@
   </div>
   {{ end }}
 </div>
+{{ end }}
