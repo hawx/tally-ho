@@ -115,13 +115,8 @@ func (b *Blog) Handler() http.Handler {
 		w.Header().Add("Link", `<`+indexURL+`>; rel="self"`)
 		w.Header().Add("Link", `<`+b.Config.HubURL+`>; rel="hub"`)
 
-		if err := b.Templates.ExecuteTemplate(w, "page_list.gotmpl", struct {
-			GroupedPosts []GroupedPosts
-			OlderThan    string
-			ShowLatest   bool
-			Kind         string
-			Category     string
-		}{
+		if err := b.Templates.ExecuteTemplate(w, "page_list.gotmpl", pageListCtx{
+			Title:        b.Config.Title,
 			GroupedPosts: groupLikes(posts),
 			OlderThan:    olderThan,
 			ShowLatest:   showLatest,
@@ -154,12 +149,8 @@ func (b *Blog) Handler() http.Handler {
 			olderThan = "NOMORE"
 		}
 
-		if err := b.Templates.ExecuteTemplate(w, "page_list.gotmpl", struct {
-			GroupedPosts []GroupedPosts
-			OlderThan    string
-			ShowLatest   bool
-			Kind         string
-		}{
+		if err := b.Templates.ExecuteTemplate(w, "page_list.gotmpl", pageListCtx{
+			Title:        b.Config.Title,
 			GroupedPosts: groupLikes(posts),
 			OlderThan:    olderThan,
 			ShowLatest:   showLatest,
@@ -193,13 +184,8 @@ func (b *Blog) Handler() http.Handler {
 			olderThan = "NOMORE"
 		}
 
-		if err := b.Templates.ExecuteTemplate(w, "page_list.gotmpl", struct {
-			GroupedPosts []GroupedPosts
-			OlderThan    string
-			ShowLatest   bool
-			Kind         string
-			Category     string
-		}{
+		if err := b.Templates.ExecuteTemplate(w, "page_list.gotmpl", pageListCtx{
+			Title:        b.Config.Title,
 			GroupedPosts: groupLikes(posts),
 			OlderThan:    olderThan,
 			ShowLatest:   showLatest,
@@ -356,4 +342,13 @@ func (b *Blog) feed() (*feeds.Feed, error) {
 	}
 
 	return feed, nil
+}
+
+type pageListCtx struct {
+	Title        string
+	GroupedPosts []GroupedPosts
+	OlderThan    string
+	ShowLatest   bool
+	Kind         string
+	Category     string
 }
