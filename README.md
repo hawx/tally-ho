@@ -44,7 +44,7 @@ Possibly up-to-date feature list:
     * Create
         * [x] Notes
         * [ ] Posts
-        * [ ] Photos
+        * [x] Photos
         * [ ] Videos
         * [x] Likes
         * [x] Replies

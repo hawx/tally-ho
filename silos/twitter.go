@@ -1,9 +1,14 @@
 package silos
 
 import (
+	"bytes"
+	"encoding/base64"
+	"io"
+	"net/http"
 	"net/url"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/ChimeraCoder/anaconda"
 	"hawx.me/code/tally-ho/internal/mfutil"
@@ -109,6 +114,51 @@ func (t *twitterSyndicator) Create(data map[string][]interface{}) (location stri
 
 			return "https://twitter.com/" + tweet.User.ScreenName + "/status/" + tweet.IdStr, nil
 		}
+
+	case "photo":
+		photos, ok := data["photo"]
+		if !ok {
+			return "", ErrUnsure{data}
+		}
+
+		var mediaIDs []string
+		for _, photo := range photos {
+			resp, err := http.Get(photo.(string))
+			if err != nil {
+				return "", err
+			}
+			defer resp.Body.Close()
+
+			var buf bytes.Buffer
+			enc := base64.NewEncoder(base64.StdEncoding, &buf)
+			if _, err := io.Copy(enc, resp.Body); err != nil {
+				return "", err
+			}
+			if err := enc.Close(); err != nil {
+				return "", err
+			}
+
+			media, err := t.api.UploadMedia(buf.String())
+			if err != nil {
+				return "", err
+			}
+
+			mediaIDs = append(mediaIDs, media.MediaIDString)
+		}
+
+		content, ok := mfutil.Get(data, "content.text", "content").(string)
+		if !ok {
+			content = ""
+		}
+
+		tweet, err := t.api.PostTweet(content, url.Values{
+			"media_ids": {strings.Join(mediaIDs, ",")},
+		})
+		if err != nil {
+			return "", err
+		}
+
+		return "https://twitter.com/" + tweet.User.ScreenName + "/status/" + tweet.IdStr, nil
 
 	case "note":
 		content, ok := mfutil.Get(data, "content.text", "content").(string)
