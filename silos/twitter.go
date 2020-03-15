@@ -123,7 +123,20 @@ func (t *twitterSyndicator) Create(data map[string][]interface{}) (location stri
 
 		var mediaIDs []string
 		for _, photo := range photos {
-			resp, err := http.Get(photo.(string))
+			var photoURL string
+			if u, ok := photo.(string); ok {
+				photoURL = u
+			} else if m, ok := photo.(map[string]interface{}); ok {
+				if u, ok := m["value"].(string); ok {
+					photoURL = u
+				} else {
+					continue
+				}
+			} else {
+				continue
+			}
+
+			resp, err := http.Get(photoURL)
 			if err != nil {
 				return "", err
 			}
