@@ -62,7 +62,17 @@ func getCite(u string) (cite map[string]interface{}, err error) {
 			}
 
 			if names := item.Properties["name"]; len(names) > 0 {
-				props["name"] = []interface{}{names[0]}
+				props["name"] = names
+
+				if contents := item.Properties["content"]; len(contents) > 0 {
+					// check if a note
+					if content, ok := contents[0].(map[string]interface{}); ok && content["value"] == props["name"][0] {
+						if content["value"] == props["name"][0] {
+							props["content"] = contents
+							props["name"] = []interface{}{"a note"}
+						}
+					}
+				}
 			}
 
 			if authors := item.Properties["author"]; len(authors) > 0 {

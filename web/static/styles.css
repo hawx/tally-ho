@@ -137,6 +137,10 @@ p {
     font-size: 0.7rem;
 }
 
+.h-cite + .meta {
+    margin-top: 1rem;
+}
+
 .meta a {
     color: var(--faint);
     text-decoration: none;

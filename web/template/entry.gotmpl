@@ -52,5 +52,5 @@
 {{ end }}
 
 {{ if has . "content" }}
-  <div class="e-content">{{ content . }}</div>
+  <div class="{{ if eq "note" (get . "hx-kind") }}p-name {{ end }}e-content">{{ content . }}</div>
 {{ end }}

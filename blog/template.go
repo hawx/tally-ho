@@ -213,12 +213,8 @@ func templateTitle(m map[string][]interface{}) string {
 		return "checked in to " + mfutil.Get(m, "checkin.properties.name").(string)
 	}
 
-	if mfutil.Has(m, "name") {
-		return prefix + mfutil.Get(m, "name").(string)
-	}
-
-	if content, ok := mfutil.Get(m, "content.text", "content").(string); ok {
-		return prefix + templateTruncate(content, 140)
+	if name, ok := mfutil.Get(m, "name", "content.text", "content").(string); ok {
+		return prefix + name
 	}
 
 	return defalt
