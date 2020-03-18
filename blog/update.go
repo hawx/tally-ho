@@ -46,6 +46,15 @@ func (b *Blog) Update(
 		return err
 	}
 
+	b.massage(newData)
+
+	if err := b.entries.DeleteSubject(id); err != nil {
+		return err
+	}
+	if err := b.entries.SetProperties(id, newData); err != nil {
+		return err
+	}
+
 	go b.sendUpdateWebmentions(url, oldData, newData)
 
 	return nil
