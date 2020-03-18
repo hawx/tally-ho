@@ -1,6 +1,7 @@
 package blog
 
 import (
+	"log"
 	"net/http"
 	"net/url"
 
@@ -12,19 +13,19 @@ type Personer interface {
 }
 
 func (b *Blog) getPerson(u string) (map[string]interface{}, error) {
-	// for _, personer := range b.personers {
-	// 	person, err := personer.Person(u)
-	// 	if err != nil {
-	// 		log.Printf("ERR get-person url=%s; %v\n", u, err)
-	// 		return nil, nil
-	// 	}
+	for _, personer := range b.personers {
+		person, err := personer.Person(u)
+		if err != nil {
+			log.Printf("ERR get-person url=%s; %v\n", u, err)
+			return nil, nil
+		}
 
-	// 	if person == nil {
-	// 		continue
-	// 	}
+		if person == nil {
+			continue
+		}
 
-	// 	return person, err
-	// }
+		return person, err
+	}
 
 	return getPerson(u)
 }

@@ -15,7 +15,7 @@ import (
 	"mvdan.cc/xurls/v2"
 )
 
-// TwitterUID is the unique identifier for this syndicator.
+// TwitterUID is the unique identifier for twitter.
 const TwitterUID = "https://twitter.com/"
 
 // TwitterOptions is the configuration required to connect to the Twitter API.
@@ -25,10 +25,10 @@ type TwitterOptions struct {
 	AccessToken, AccessTokenSecret string
 }
 
-// Twitter creates a syndicator for Twitter. On creation it makes a call to the
+// Twitter creates a client for Twitter. On creation it makes a call to the
 // API to verify the credentials are correct and the screen name of the
 // authenticated user.
-func Twitter(options TwitterOptions) (*twitterSyndicator, error) {
+func Twitter(options TwitterOptions) (*twitterClient, error) {
 	api := anaconda.NewTwitterApiWithCredentials(
 		options.AccessToken,
 		options.AccessTokenSecret,
@@ -45,22 +45,22 @@ func Twitter(options TwitterOptions) (*twitterSyndicator, error) {
 		return nil, err
 	}
 
-	return &twitterSyndicator{
+	return &twitterClient{
 		api:        api,
 		screenName: user.ScreenName,
 	}, nil
 }
 
-type twitterSyndicator struct {
+type twitterClient struct {
 	api        *anaconda.TwitterApi
 	screenName string
 }
 
-func (t *twitterSyndicator) UID() string {
+func (t *twitterClient) UID() string {
 	return TwitterUID
 }
 
-func (t *twitterSyndicator) Name() string {
+func (t *twitterClient) Name() string {
 	return "@" + t.screenName + " on twitter"
 }
 
@@ -87,7 +87,7 @@ func twitterParsePersonURL(u string) (username string, ok bool) {
 	return matches[1], len(matches[1]) > 0
 }
 
-func (t *twitterSyndicator) Create(data map[string][]interface{}) (location string, err error) {
+func (t *twitterClient) Create(data map[string][]interface{}) (location string, err error) {
 	switch data["hx-kind"][0].(string) {
 	case "like":
 		likeOf, ok := mfutil.Get(data, "like-of.properties.url", "like-of").(string)
@@ -190,7 +190,10 @@ func (t *twitterSyndicator) Create(data map[string][]interface{}) (location stri
 			return "", ErrUnsure{data}
 		}
 
-		people := mfutil.Get(data, "hx-people").(map[string][]string)
+		people, ok := mfutil.Get(data, "hx-people").(map[string][]string)
+		if !ok {
+			people = map[string][]string{}
+		}
 		reg := xurls.Strict()
 
 		content = regexp.
@@ -218,7 +221,7 @@ func (t *twitterSyndicator) Create(data map[string][]interface{}) (location stri
 	return "", ErrUnsure{data}
 }
 
-func (t *twitterSyndicator) Cite(u string) (map[string]interface{}, error) {
+func (t *twitterClient) Cite(u string) (map[string]interface{}, error) {
 	tweetID, _, ok := twitterParseStatusURL(u)
 	if !ok {
 		return nil, nil
@@ -244,4 +247,24 @@ func (t *twitterSyndicator) Cite(u string) (map[string]interface{}, error) {
 			},
 		},
 	}, err
+}
+
+// Person attempts to resolve a given URL to a Twitter profile, it does this by
+// checking if the URL matches a regexp. It will return a h-card with
+// name='@screename', because that is how people are referred to in tweets even
+// though it would be "more correct" to return this as nickname.
+func (t *twitterClient) Person(u string) (map[string]interface{}, error) {
+	username, ok := twitterParsePersonURL(u)
+	if !ok {
+		return nil, nil
+	}
+
+	return map[string]interface{}{
+		"type": []interface{}{"h-card"},
+		"properties": map[string][]interface{}{
+			"name": {"@" + username},
+			"url":  {"https://twitter.com/" + username},
+		},
+		"me": []string{"https://twitter.com/" + username},
+	}, nil
 }

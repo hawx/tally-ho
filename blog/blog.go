@@ -32,6 +32,7 @@ type Blog struct {
 	entries      *numbersix.DB
 	mentions     *numbersix.DB
 	citers       []Citer
+	personers    []Personer
 	hubPublisher HubPublisher
 
 	Config      Config
@@ -45,6 +46,7 @@ func New(
 	templates *template.Template,
 	syndicators map[string]Syndicator,
 	citers []Citer,
+	personers []Personer,
 	hubPublisher HubPublisher,
 ) (*Blog, error) {
 	entries, err := numbersix.For(db, "entries")
@@ -65,6 +67,7 @@ func New(
 		Syndicators:  syndicators,
 		Templates:    templates,
 		citers:       citers,
+		personers:    personers,
 		hubPublisher: hubPublisher,
 	}, nil
 }

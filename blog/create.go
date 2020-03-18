@@ -69,7 +69,9 @@ func (b *Blog) Create(data map[string][]interface{}) (string, error) {
 						log.Println("WARN get-person;", err)
 					}
 					if person != nil {
-						people[u[1:]] = person["me"].([]string)
+						if me, ok := person["me"].([]string); ok {
+							people[u[1:]] = me
+						}
 						return `<a href="` + mfutil.Get(person, "properties.url").(string) + `">` + mfutil.Get(person, "properties.name", "properties.url").(string) + `</a>`
 					}
 				}

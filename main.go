@@ -73,6 +73,7 @@ func main() {
 	}
 
 	blogCiters := []blog.Citer{}
+	blogPersoners := []blog.Personer{}
 	blogSyndicators := map[string]blog.Syndicator{}
 	micropubSyndicators := map[string]micropub.Syndicator{}
 
@@ -87,6 +88,7 @@ func main() {
 			log.Println("WARN twitter;", err)
 		} else {
 			blogCiters = append(blogCiters, twitter)
+			blogPersoners = append(blogPersoners, twitter)
 			blogSyndicators[silos.TwitterUID] = twitter
 			micropubSyndicators[silos.TwitterUID] = twitter
 		}
@@ -140,7 +142,7 @@ func main() {
 		MediaURL:    mediaURL,
 		MediaDir:    *mediaDir,
 		HubURL:      baseURL.ResolveReference(hubEndpointURL).String(),
-	}, db, templates, blogSyndicators, blogCiters, websubhub)
+	}, db, templates, blogSyndicators, blogCiters, blogPersoners, websubhub)
 	if err != nil {
 		log.Println("ERR new-blog;", err)
 		return
