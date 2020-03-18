@@ -1,6 +1,7 @@
 package blog
 
 import (
+	"errors"
 	"log"
 	"net/http"
 	"net/url"
@@ -10,6 +11,8 @@ import (
 	"hawx.me/code/tally-ho/internal/htmlutil"
 	"willnorris.com/go/microformats"
 )
+
+var ErrNoName = errors.New("no name to find")
 
 type Citer interface {
 	Cite(string) (map[string]interface{}, error)

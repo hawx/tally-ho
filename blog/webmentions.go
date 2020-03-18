@@ -6,6 +6,9 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/net/html"
+	"golang.org/x/net/html/atom"
+	"hawx.me/code/tally-ho/internal/htmlutil"
 	"hawx.me/code/tally-ho/internal/mfutil"
 	"hawx.me/code/tally-ho/webmention"
 )
@@ -59,6 +62,39 @@ func findMentionedLinks(data map[string][]interface{}) []string {
 			if u, err := url.Parse(v); err == nil && u.IsAbs() {
 				links = append(links, v)
 			}
+		}
+	}
+
+	return links
+}
+
+func findAs(data map[string][]interface{}) []string {
+	content, ok := mfutil.SafeGet(data, "content.html")
+	if !ok {
+		return []string{}
+	}
+
+	htmlContent, ok := content.(string)
+	if !ok {
+		return []string{}
+	}
+
+	root, err := html.Parse(strings.NewReader(htmlContent))
+	if err != nil {
+		log.Println("ERR find-as;", err)
+		return []string{}
+	}
+
+	as := htmlutil.SearchAll(root, func(node *html.Node) bool {
+		return node.Type == html.ElementNode &&
+			node.DataAtom == atom.A &&
+			htmlutil.Has(node, "href")
+	})
+
+	var links []string
+	for _, a := range as {
+		if val := htmlutil.Attr(a, "href"); val != "" {
+			links = append(links, val)
 		}
 	}
 
