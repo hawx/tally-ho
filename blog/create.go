@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -57,7 +58,22 @@ func (b *Blog) Create(data map[string][]interface{}) (string, error) {
 
 	if content, ok := data["content"]; ok && len(content) > 0 {
 		if s, ok := content[0].(string); ok {
-			html := xurls.Strict().ReplaceAllStringFunc(s, func(u string) string {
+			reg := xurls.Strict()
+
+			people := map[string][]string{}
+
+			html := regexp.MustCompile("@?"+reg.String()).ReplaceAllStringFunc(s, func(u string) string {
+				if u[0] == '@' {
+					person, err := b.getPerson(u[1:])
+					if err != nil {
+						log.Println("WARN get-person;", err)
+					}
+					if person != nil {
+						people[u[1:]] = person["me"].([]string)
+						return `<a href="` + mfutil.Get(person, "properties.url").(string) + `">` + mfutil.Get(person, "properties.name", "properties.url").(string) + `</a>`
+					}
+				}
+
 				return `<a href="` + u + `">` + u + `</a>`
 			})
 
@@ -65,6 +81,7 @@ func (b *Blog) Create(data map[string][]interface{}) (string, error) {
 				"text": s,
 				"html": html,
 			}}
+			data["hx-people"] = []interface{}{people}
 		}
 	}
 

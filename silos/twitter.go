@@ -12,6 +12,7 @@ import (
 
 	"github.com/ChimeraCoder/anaconda"
 	"hawx.me/code/tally-ho/internal/mfutil"
+	"mvdan.cc/xurls/v2"
 )
 
 // TwitterUID is the unique identifier for this syndicator.
@@ -64,8 +65,9 @@ func (t *twitterSyndicator) Name() string {
 }
 
 var twitterStatusRegexp = regexp.MustCompile(`^https?://twitter\.com/(?:\#!/)?(\w+)/status(es)?/(\d+)`)
+var twitterPersonRegexp = regexp.MustCompile(`^https?://twitter\.com/(?:\#!/)?(\w+)`)
 
-func twitterParseURL(u string) (tweetID int64, username string, ok bool) {
+func twitterParseStatusURL(u string) (tweetID int64, username string, ok bool) {
 	matches := twitterStatusRegexp.FindStringSubmatch(u)
 	if len(matches) != 4 {
 		return 0, "", false
@@ -76,6 +78,15 @@ func twitterParseURL(u string) (tweetID int64, username string, ok bool) {
 	return tweetID, matches[1], err == nil
 }
 
+func twitterParsePersonURL(u string) (username string, ok bool) {
+	matches := twitterPersonRegexp.FindStringSubmatch(u)
+	if len(matches) != 2 {
+		return "", false
+	}
+
+	return matches[1], len(matches[1]) > 0
+}
+
 func (t *twitterSyndicator) Create(data map[string][]interface{}) (location string, err error) {
 	switch data["hx-kind"][0].(string) {
 	case "like":
@@ -84,7 +95,7 @@ func (t *twitterSyndicator) Create(data map[string][]interface{}) (location stri
 			return "", ErrUnsure{data}
 		}
 
-		if tweetID, _, ok := twitterParseURL(likeOf); ok {
+		if tweetID, _, ok := twitterParseStatusURL(likeOf); ok {
 			_, err := t.api.Favorite(tweetID)
 			if err != nil {
 				return "", err
@@ -104,7 +115,7 @@ func (t *twitterSyndicator) Create(data map[string][]interface{}) (location stri
 			return "", ErrUnsure{data}
 		}
 
-		if tweetID, username, ok := twitterParseURL(replyTo); ok {
+		if tweetID, username, ok := twitterParseStatusURL(replyTo); ok {
 			tweet, err := t.api.PostTweet("@"+username+" "+content, url.Values{
 				"in_reply_to_status_id": {strconv.FormatInt(tweetID, 10)},
 			})
@@ -179,6 +190,23 @@ func (t *twitterSyndicator) Create(data map[string][]interface{}) (location stri
 			return "", ErrUnsure{data}
 		}
 
+		people := mfutil.Get(data, "hx-people").(map[string][]string)
+		reg := xurls.Strict()
+
+		content = regexp.
+			MustCompile("@"+reg.String()).
+			ReplaceAllStringFunc(content, func(u string) string {
+				if found, ok := people[u[1:]]; ok {
+					for _, u := range found {
+						if username, ok := twitterParsePersonURL(u); ok {
+							return "@" + username
+						}
+					}
+				}
+
+				return u
+			})
+
 		tweet, err := t.api.PostTweet(content, url.Values{})
 		if err != nil {
 			return "", err
@@ -191,7 +219,7 @@ func (t *twitterSyndicator) Create(data map[string][]interface{}) (location stri
 }
 
 func (t *twitterSyndicator) Cite(u string) (map[string]interface{}, error) {
-	tweetID, _, ok := twitterParseURL(u)
+	tweetID, _, ok := twitterParseStatusURL(u)
 	if !ok {
 		return nil, nil
 	}
