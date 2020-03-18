@@ -110,7 +110,7 @@ func (t *twitterClient) Create(data map[string][]interface{}) (location string, 
 			return "", ErrUnsure{data}
 		}
 
-		content, ok := mfutil.Get(data, "content.text", "content").(string)
+		content, ok := autoLinkContent(data)
 		if !ok {
 			return "", ErrUnsure{data}
 		}
@@ -170,7 +170,7 @@ func (t *twitterClient) Create(data map[string][]interface{}) (location string, 
 			mediaIDs = append(mediaIDs, media.MediaIDString)
 		}
 
-		content, ok := mfutil.Get(data, "content.text", "content").(string)
+		content, ok := autoLinkContent(data)
 		if !ok {
 			content = ""
 		}
@@ -185,30 +185,10 @@ func (t *twitterClient) Create(data map[string][]interface{}) (location string, 
 		return "https://twitter.com/" + tweet.User.ScreenName + "/status/" + tweet.IdStr, nil
 
 	case "note":
-		content, ok := mfutil.Get(data, "content.text", "content").(string)
+		content, ok := autoLinkContent(data)
 		if !ok {
 			return "", ErrUnsure{data}
 		}
-
-		people, ok := mfutil.Get(data, "hx-people").(map[string][]string)
-		if !ok {
-			people = map[string][]string{}
-		}
-		reg := xurls.Strict()
-
-		content = regexp.
-			MustCompile("@"+reg.String()).
-			ReplaceAllStringFunc(content, func(u string) string {
-				if found, ok := people[u[1:]]; ok {
-					for _, u := range found {
-						if username, ok := twitterParsePersonURL(u); ok {
-							return "@" + username
-						}
-					}
-				}
-
-				return u
-			})
 
 		tweet, err := t.api.PostTweet(content, url.Values{})
 		if err != nil {
@@ -219,6 +199,35 @@ func (t *twitterClient) Create(data map[string][]interface{}) (location string, 
 	}
 
 	return "", ErrUnsure{data}
+}
+
+func autoLinkContent(data map[string][]interface{}) (string, bool) {
+	content, ok := mfutil.Get(data, "content.text", "content").(string)
+	if !ok {
+		return "", false
+	}
+
+	people, ok := mfutil.Get(data, "hx-people").(map[string][]string)
+	if !ok {
+		people = map[string][]string{}
+	}
+	reg := xurls.Strict()
+
+	content = regexp.
+		MustCompile("@"+reg.String()).
+		ReplaceAllStringFunc(content, func(u string) string {
+			if found, ok := people[u[1:]]; ok {
+				for _, u := range found {
+					if username, ok := twitterParsePersonURL(u); ok {
+						return "@" + username
+					}
+				}
+			}
+
+			return u
+		})
+
+	return content, true
 }
 
 func (t *twitterClient) Cite(u string) (map[string]interface{}, error) {
