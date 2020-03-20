@@ -44,10 +44,8 @@ func New(
 	config Config,
 	db *sql.DB,
 	templates *template.Template,
-	syndicators map[string]Syndicator,
-	citers []CiteResolver,
-	personers []CardResolver,
 	hubPublisher HubPublisher,
+	siloList []interface{},
 ) (*Blog, error) {
 	entries, err := numbersix.For(db, "entries")
 	if err != nil {
@@ -59,6 +57,24 @@ func New(
 		return nil, err
 	}
 
+	var (
+		cardResolvers []CardResolver
+		citeResolvers []CiteResolver
+		syndicators   = map[string]Syndicator{}
+	)
+
+	for _, silo := range siloList {
+		if v, ok := silo.(CiteResolver); ok {
+			citeResolvers = append(citeResolvers, v)
+		}
+		if v, ok := silo.(CardResolver); ok {
+			cardResolvers = append(cardResolvers, v)
+		}
+		if v, ok := silo.(Syndicator); ok {
+			syndicators[v.UID()] = v
+		}
+	}
+
 	return &Blog{
 		closer:       db,
 		entries:      entries,
@@ -66,8 +82,8 @@ func New(
 		Config:       config,
 		Syndicators:  syndicators,
 		Templates:    templates,
-		citers:       citers,
-		personers:    personers,
+		citers:       citeResolvers,
+		personers:    cardResolvers,
 		hubPublisher: hubPublisher,
 	}, nil
 }

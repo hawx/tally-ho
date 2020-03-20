@@ -22,22 +22,9 @@ func (b *fakeGetDB) Entry(url string) (map[string][]interface{}, error) {
 	return nil, errors.New("nope")
 }
 
-type fakeSyndicator struct{}
-
-func (fakeSyndicator) UID() string {
-	return "https://fake/"
-}
-func (fakeSyndicator) Name() string {
-	return "fake on fake"
-}
-
-func (fakeSyndicator) Create(data map[string][]interface{}) (string, error) {
-	return "", nil
-}
-
-func fakeSyndicators() map[string]Syndicator {
-	return map[string]Syndicator{
-		"https://fake/": fakeSyndicator{},
+func fakeSyndicators() []SyndicateTo {
+	return []SyndicateTo{
+		{UID: "https://fake/", Name: "fake on fake"},
 	}
 }
 

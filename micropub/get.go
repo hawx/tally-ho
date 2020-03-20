@@ -5,11 +5,6 @@ import (
 	"net/http"
 )
 
-type Syndicator interface {
-	Name() string
-	UID() string
-}
-
 type getDB interface {
 	Entry(url string) (data map[string][]interface{}, err error)
 }
@@ -17,11 +12,11 @@ type getDB interface {
 func getHandler(
 	db getDB,
 	mediaURL string,
-	syndicators map[string]Syndicator,
+	syndicateTo []SyndicateTo,
 ) http.HandlerFunc {
-	configHandler := configHandler(mediaURL, syndicators)
+	configHandler := configHandler(mediaURL, syndicateTo)
 	sourceHandler := sourceHandler(db)
-	syndicationHandler := syndicationHandler(syndicators)
+	syndicationHandler := syndicationHandler(syndicateTo)
 	mediaEndpointHandler := mediaEndpointHandler(mediaURL)
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -38,27 +33,18 @@ func getHandler(
 	}
 }
 
-type syndicateTo struct {
+type SyndicateTo struct {
 	UID  string `json:"uid"`
 	Name string `json:"name"`
 }
 
-func configHandler(mediaURL string, syndicators map[string]Syndicator) http.HandlerFunc {
-	var configs []syndicateTo
-
-	for _, s := range syndicators {
-		configs = append(configs, syndicateTo{
-			UID:  s.UID(),
-			Name: s.Name(),
-		})
-	}
-
+func configHandler(mediaURL string, syndicateTo []SyndicateTo) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(struct {
 			Q             []string      `json:"q"`
 			MediaEndpoint string        `json:"media-endpoint"`
-			SyndicateTo   []syndicateTo `json:"syndicate-to"`
+			SyndicateTo   []SyndicateTo `json:"syndicate-to"`
 		}{
 			Q: []string{
 				"config",
@@ -67,7 +53,7 @@ func configHandler(mediaURL string, syndicators map[string]Syndicator) http.Hand
 				"syndicate-to",
 			},
 			MediaEndpoint: mediaURL,
-			SyndicateTo:   configs,
+			SyndicateTo:   syndicateTo,
 		})
 	}
 }
@@ -118,22 +104,13 @@ type syndicationTarget struct {
 	Name string `json:"name"`
 }
 
-func syndicationHandler(syndicators map[string]Syndicator) http.HandlerFunc {
-	var configs []syndicateTo
-
-	for _, s := range syndicators {
-		configs = append(configs, syndicateTo{
-			UID:  s.UID(),
-			Name: s.Name(),
-		})
-	}
-
+func syndicationHandler(syndicateTo []SyndicateTo) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(struct {
-			SyndicateTo []syndicateTo `json:"syndicate-to"`
+			SyndicateTo []SyndicateTo `json:"syndicate-to"`
 		}{
-			SyndicateTo: configs,
+			SyndicateTo: syndicateTo,
 		})
 	}
 }

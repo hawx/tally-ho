@@ -72,10 +72,8 @@ func main() {
 		return
 	}
 
-	blogCiteResolvers := []blog.CiteResolver{}
-	blogCardResolvers := []blog.CardResolver{}
-	blogSyndicators := map[string]blog.Syndicator{}
-	micropubSyndicators := map[string]micropub.Syndicator{}
+	var blogSilos []interface{}
+	var micropubSyndicateTo []micropub.SyndicateTo
 
 	if conf.Twitter.ConsumerKey != "" {
 		twitter, err := silos.Twitter(silos.TwitterOptions{
@@ -87,10 +85,11 @@ func main() {
 		if err != nil {
 			log.Println("WARN twitter;", err)
 		} else {
-			blogCiteResolvers = append(blogCiteResolvers, twitter)
-			blogCardResolvers = append(blogCardResolvers, twitter)
-			blogSyndicators[silos.TwitterUID] = twitter
-			micropubSyndicators[silos.TwitterUID] = twitter
+			blogSilos = append(blogSilos, twitter)
+			micropubSyndicateTo = append(micropubSyndicateTo, micropub.SyndicateTo{
+				UID:  twitter.UID(),
+				Name: twitter.Name(),
+			})
 		}
 	}
 
@@ -104,9 +103,11 @@ func main() {
 		if err != nil {
 			log.Println("WARN flickr;", err)
 		} else {
-			blogCiteResolvers = append(blogCiteResolvers, flickr)
-			blogSyndicators[silos.FlickrUID] = flickr
-			micropubSyndicators[silos.FlickrUID] = flickr
+			blogSilos = append(blogSilos, flickr)
+			micropubSyndicateTo = append(micropubSyndicateTo, micropub.SyndicateTo{
+				UID:  flickr.UID(),
+				Name: flickr.Name(),
+			})
 		}
 	}
 
@@ -142,7 +143,7 @@ func main() {
 		MediaURL:    mediaURL,
 		MediaDir:    *mediaDir,
 		HubURL:      baseURL.ResolveReference(hubEndpointURL).String(),
-	}, db, templates, blogSyndicators, blogCiteResolvers, blogCardResolvers, websubhub)
+	}, db, templates, websubhub, blogSilos)
 	if err != nil {
 		log.Println("ERR new-blog;", err)
 		return
@@ -160,7 +161,7 @@ func main() {
 		b,
 		conf.Me,
 		baseURL.ResolveReference(mediaEndpointURL).String(),
-		micropubSyndicators,
+		micropubSyndicateTo,
 		b))
 	http.Handle("/-/webmention", webmention.Endpoint(b))
 	http.Handle("/-/media", media.Endpoint(conf.Me, b))
