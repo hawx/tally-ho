@@ -270,6 +270,43 @@ func (b *Blog) Handler() http.Handler {
 		}
 	})
 
+	route.HandleFunc("/mentions", func(w http.ResponseWriter, r *http.Request) {
+		showLatest := true
+
+		before, err := time.Parse(time.RFC3339, r.FormValue("before"))
+		if err != nil {
+			showLatest = false
+			before = time.Now().UTC()
+		}
+
+		mentions, err := b.MentionsBefore(before, 25)
+		if err != nil {
+			log.Printf("ERR mentions; %v\n", err)
+			return
+		}
+
+		olderThan := ""
+		if len(mentions) == 25 {
+			olderThan = mentions[len(mentions)-1].Properties["published"][0].(string)
+		} else if len(mentions) == 0 {
+			olderThan = "NOMORE"
+		}
+
+		if err := b.templates.ExecuteTemplate(w, "page_mentions.gotmpl", struct {
+			Title      string
+			Items      []numbersix.Group
+			OlderThan  string
+			ShowLatest bool
+		}{
+			Title:      "mentions",
+			Items:      mentions,
+			OlderThan:  olderThan,
+			ShowLatest: showLatest,
+		}); err != nil {
+			log.Printf("ERR mentions-render; %v\n", err)
+		}
+	})
+
 	route.HandleFunc("/feed/rss", func(w http.ResponseWriter, r *http.Request) {
 		f, err := b.feed()
 		if err != nil {

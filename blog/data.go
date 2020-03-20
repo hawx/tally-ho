@@ -88,6 +88,18 @@ func (b *Blog) MentionsForEntry(url string) (list []numbersix.Group, err error) 
 	return
 }
 
+func (b *Blog) MentionsBefore(published time.Time, limit int) (list []numbersix.Group, err error) {
+	triples, err := b.mentions.List(numbersix.
+		Before("published", published.Format(time.RFC3339)).
+		Limit(limit))
+	if err != nil {
+		return
+	}
+
+	list = numbersix.Grouped(triples)
+	return
+}
+
 func (b *Blog) Before(published time.Time) (groups []numbersix.Group, err error) {
 	triples, err := b.entries.List(
 		numbersix.

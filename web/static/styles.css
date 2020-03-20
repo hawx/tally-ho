@@ -367,3 +367,19 @@ footer a {
 footer a:hover {
     color: var(--foreground);
 }
+
+/* mentions */
+
+ul.mentions {
+    list-style: none;
+    padding-left: 0;
+}
+
+.mentions li {
+    margin: 1rem 0;
+}
+
+.mentions .target {
+    display: block;
+    font-size: .8rem;
+}
