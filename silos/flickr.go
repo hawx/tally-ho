@@ -183,7 +183,7 @@ func (c *flickrClient) Create(data map[string][]interface{}) (location string, e
 	return "", ErrUnsure{data}
 }
 
-func (c *flickrClient) Cite(u string) (map[string]interface{}, error) {
+func (c *flickrClient) ResolveCite(u string) (map[string]interface{}, error) {
 	photoID, ok := flickrParseURL(u)
 	if !ok {
 		return nil, nil

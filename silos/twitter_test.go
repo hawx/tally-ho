@@ -240,7 +240,7 @@ func TestTwitterCreate(t *testing.T) {
 	})
 }
 
-func TestTwitterCite(t *testing.T) {
+func TestTwitterResolveCite(t *testing.T) {
 	qs := make(chan url.Values, 1)
 
 	s := httptest.NewServer(
@@ -281,7 +281,7 @@ func TestTwitterCite(t *testing.T) {
 		return
 	}
 
-	cite, err := twitter.Cite("https://twitter.com/johndoe/status/1432")
+	cite, err := twitter.ResolveCite("https://twitter.com/johndoe/status/1432")
 	assert.Nil(t, err)
 	assert.Equal(t, map[string]interface{}{
 		"type": []interface{}{"h-cite"},

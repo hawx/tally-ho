@@ -31,8 +31,8 @@ type Blog struct {
 	closer       io.Closer
 	entries      *numbersix.DB
 	mentions     *numbersix.DB
-	citers       []Citer
-	personers    []Personer
+	citers       []CiteResolver
+	personers    []CardResolver
 	hubPublisher HubPublisher
 
 	Config      Config
@@ -45,8 +45,8 @@ func New(
 	db *sql.DB,
 	templates *template.Template,
 	syndicators map[string]Syndicator,
-	citers []Citer,
-	personers []Personer,
+	citers []CiteResolver,
+	personers []CardResolver,
 	hubPublisher HubPublisher,
 ) (*Blog, error) {
 	entries, err := numbersix.For(db, "entries")

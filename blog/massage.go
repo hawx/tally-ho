@@ -47,7 +47,7 @@ func (b *Blog) massage(data map[string][]interface{}) {
 				continue
 			}
 
-			cite, err := b.getCite(s)
+			cite, err := b.resolveCite(s)
 			if err != nil {
 				log.Printf("WARN get-cite; %v\n", err)
 				continue
@@ -69,7 +69,7 @@ func (b *Blog) massage(data map[string][]interface{}) {
 
 			html := regexp.MustCompile("@?"+reg.String()).ReplaceAllStringFunc(s, func(u string) string {
 				if u[0] == '@' {
-					person, err := b.getPerson(u[1:])
+					person, err := b.resolveCard(u[1:])
 					if err != nil {
 						log.Println("WARN get-person;", err)
 					}

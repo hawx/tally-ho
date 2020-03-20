@@ -230,7 +230,7 @@ func autoLinkContent(data map[string][]interface{}) (string, bool) {
 	return content, true
 }
 
-func (t *twitterClient) Cite(u string) (map[string]interface{}, error) {
+func (t *twitterClient) ResolveCite(u string) (map[string]interface{}, error) {
 	tweetID, _, ok := twitterParseStatusURL(u)
 	if !ok {
 		return nil, nil
@@ -258,11 +258,11 @@ func (t *twitterClient) Cite(u string) (map[string]interface{}, error) {
 	}, err
 }
 
-// Person attempts to resolve a given URL to a Twitter profile, it does this by
-// checking if the URL matches a regexp. It will return a h-card with
+// ResolveCard attempts to resolve a given URL to a Twitter profile, it does
+// this by checking if the URL matches a regexp. It will return a h-card with
 // name='@screename', because that is how people are referred to in tweets even
 // though it would be "more correct" to return this as nickname.
-func (t *twitterClient) Person(u string) (map[string]interface{}, error) {
+func (t *twitterClient) ResolveCard(u string) (map[string]interface{}, error) {
 	username, ok := twitterParsePersonURL(u)
 	if !ok {
 		return nil, nil

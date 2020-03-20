@@ -16,7 +16,7 @@ func TestGetCite(t *testing.T) {
 	}))
 	defer s.Close()
 
-	cite, err := getCite(s.URL)
+	cite, err := resolveCite(s.URL)
 	assert.NotNil(err)
 	assert.Equal(map[string]interface{}{
 		"type": []interface{}{"h-cite"},
@@ -39,7 +39,7 @@ func TestGetCiteHEntry(t *testing.T) {
 	}))
 	defer s.Close()
 
-	cite, err := getCite(s.URL)
+	cite, err := resolveCite(s.URL)
 	if !assert.Nil(err) {
 		return
 	}
@@ -128,7 +128,7 @@ func TestGetCiteOG(t *testing.T) {
 			}))
 			defer s.Close()
 
-			cite, err := getCite(s.URL)
+			cite, err := resolveCite(s.URL)
 			if !assert.Equal(tc.err, err) {
 				return
 			}
@@ -150,7 +150,7 @@ func TestGetCiteTitle(t *testing.T) {
 	}))
 	defer s.Close()
 
-	cite, err := getCite(s.URL)
+	cite, err := resolveCite(s.URL)
 	if !assert.Nil(err) {
 		return
 	}

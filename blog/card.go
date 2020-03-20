@@ -8,13 +8,13 @@ import (
 	"willnorris.com/go/microformats"
 )
 
-type Personer interface {
-	Person(string) (map[string]interface{}, error)
+type CardResolver interface {
+	ResolveCard(string) (map[string]interface{}, error)
 }
 
-func (b *Blog) getPerson(u string) (map[string]interface{}, error) {
+func (b *Blog) resolveCard(u string) (map[string]interface{}, error) {
 	for _, personer := range b.personers {
-		person, err := personer.Person(u)
+		person, err := personer.ResolveCard(u)
 		if err != nil {
 			log.Printf("ERR get-person url=%s; %v\n", u, err)
 			return nil, nil
@@ -27,10 +27,10 @@ func (b *Blog) getPerson(u string) (map[string]interface{}, error) {
 		return person, err
 	}
 
-	return getPerson(u)
+	return resolveCard(u)
 }
 
-func getPerson(u string) (card map[string]interface{}, err error) {
+func resolveCard(u string) (card map[string]interface{}, err error) {
 	card = map[string]interface{}{
 		"type": []interface{}{"h-card"},
 		"properties": map[string][]interface{}{

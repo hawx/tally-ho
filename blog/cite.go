@@ -14,13 +14,13 @@ import (
 
 var ErrNoName = errors.New("no name to find")
 
-type Citer interface {
-	Cite(string) (map[string]interface{}, error)
+type CiteResolver interface {
+	ResolveCite(string) (map[string]interface{}, error)
 }
 
-func (b *Blog) getCite(u string) (map[string]interface{}, error) {
+func (b *Blog) resolveCite(u string) (map[string]interface{}, error) {
 	for _, citer := range b.citers {
-		cite, err := citer.Cite(u)
+		cite, err := citer.ResolveCite(u)
 		if err != nil {
 			log.Printf("ERR get-cite url=%s; %v\n", u, err)
 			return nil, nil
@@ -33,10 +33,10 @@ func (b *Blog) getCite(u string) (map[string]interface{}, error) {
 		return cite, err
 	}
 
-	return getCite(u)
+	return resolveCite(u)
 }
 
-func getCite(u string) (cite map[string]interface{}, err error) {
+func resolveCite(u string) (cite map[string]interface{}, err error) {
 	cite = map[string]interface{}{
 		"type": []interface{}{"h-cite"},
 		"properties": map[string][]interface{}{
