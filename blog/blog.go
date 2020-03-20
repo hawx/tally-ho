@@ -28,16 +28,15 @@ type Config struct {
 }
 
 type Blog struct {
-	closer       io.Closer
-	entries      *numbersix.DB
-	mentions     *numbersix.DB
-	citers       []CiteResolver
-	personers    []CardResolver
-	hubPublisher HubPublisher
-
-	Config      Config
-	Syndicators map[string]Syndicator
-	Templates   *template.Template
+	config        Config
+	closer        io.Closer
+	entries       *numbersix.DB
+	mentions      *numbersix.DB
+	syndicators   map[string]Syndicator
+	templates     *template.Template
+	citeResolvers []CiteResolver
+	cardResolvers []CardResolver
+	hubPublisher  HubPublisher
 }
 
 func New(
@@ -45,7 +44,7 @@ func New(
 	db *sql.DB,
 	templates *template.Template,
 	hubPublisher HubPublisher,
-	siloList []interface{},
+	silos []interface{},
 ) (*Blog, error) {
 	entries, err := numbersix.For(db, "entries")
 	if err != nil {
@@ -63,7 +62,7 @@ func New(
 		syndicators   = map[string]Syndicator{}
 	)
 
-	for _, silo := range siloList {
+	for _, silo := range silos {
 		if v, ok := silo.(CiteResolver); ok {
 			citeResolvers = append(citeResolvers, v)
 		}
@@ -76,15 +75,15 @@ func New(
 	}
 
 	return &Blog{
-		closer:       db,
-		entries:      entries,
-		mentions:     mentions,
-		Config:       config,
-		Syndicators:  syndicators,
-		Templates:    templates,
-		citers:       citeResolvers,
-		personers:    cardResolvers,
-		hubPublisher: hubPublisher,
+		config:        config,
+		closer:        db,
+		entries:       entries,
+		mentions:      mentions,
+		templates:     templates,
+		syndicators:   syndicators,
+		citeResolvers: citeResolvers,
+		cardResolvers: cardResolvers,
+		hubPublisher:  hubPublisher,
 	}, nil
 }
 
@@ -93,17 +92,17 @@ func (b *Blog) Close() error {
 }
 
 func (b *Blog) BaseURL() string {
-	return b.Config.BaseURL.String()
+	return b.config.BaseURL.String()
 }
 
 func (b *Blog) absoluteURL(p string) string {
 	u, _ := url.Parse(p)
 
-	return b.Config.BaseURL.ResolveReference(u).String()
+	return b.config.BaseURL.ResolveReference(u).String()
 }
 
 func (b *Blog) Handler() http.Handler {
-	baseURL := b.Config.BaseURL
+	baseURL := b.config.BaseURL
 	indexURL := b.absoluteURL("/")
 	feedAtomURL := b.absoluteURL("/feed/atom")
 	feedJsonfeedURL := b.absoluteURL("/feed/jsonfeed")
@@ -132,10 +131,10 @@ func (b *Blog) Handler() http.Handler {
 		}
 
 		w.Header().Add("Link", `<`+indexURL+`>; rel="self"`)
-		w.Header().Add("Link", `<`+b.Config.HubURL+`>; rel="hub"`)
+		w.Header().Add("Link", `<`+b.config.HubURL+`>; rel="hub"`)
 
-		if err := b.Templates.ExecuteTemplate(w, "page_list.gotmpl", pageListCtx{
-			Title:        b.Config.Title,
+		if err := b.templates.ExecuteTemplate(w, "page_list.gotmpl", pageListCtx{
+			Title:        b.config.Title,
 			GroupedPosts: groupLikes(posts),
 			OlderThan:    olderThan,
 			ShowLatest:   showLatest,
@@ -168,8 +167,8 @@ func (b *Blog) Handler() http.Handler {
 			olderThan = "NOMORE"
 		}
 
-		if err := b.Templates.ExecuteTemplate(w, "page_list.gotmpl", pageListCtx{
-			Title:        b.Config.Title,
+		if err := b.templates.ExecuteTemplate(w, "page_list.gotmpl", pageListCtx{
+			Title:        b.config.Title,
 			GroupedPosts: groupLikes(posts),
 			OlderThan:    olderThan,
 			ShowLatest:   showLatest,
@@ -203,8 +202,8 @@ func (b *Blog) Handler() http.Handler {
 			olderThan = "NOMORE"
 		}
 
-		if err := b.Templates.ExecuteTemplate(w, "page_list.gotmpl", pageListCtx{
-			Title:        b.Config.Title,
+		if err := b.templates.ExecuteTemplate(w, "page_list.gotmpl", pageListCtx{
+			Title:        b.config.Title,
 			GroupedPosts: groupLikes(posts),
 			OlderThan:    olderThan,
 			ShowLatest:   showLatest,
@@ -235,7 +234,7 @@ func (b *Blog) Handler() http.Handler {
 			return
 		}
 
-		if err := b.Templates.ExecuteTemplate(w, "page_post.gotmpl", struct {
+		if err := b.templates.ExecuteTemplate(w, "page_post.gotmpl", struct {
 			Posts    GroupedPosts
 			Entry    map[string][]interface{}
 			Mentions []numbersix.Group
@@ -260,7 +259,7 @@ func (b *Blog) Handler() http.Handler {
 			return
 		}
 
-		if err := b.Templates.ExecuteTemplate(w, "page_day.gotmpl", struct {
+		if err := b.templates.ExecuteTemplate(w, "page_day.gotmpl", struct {
 			Title string
 			Items []numbersix.Group
 		}{
@@ -285,7 +284,7 @@ func (b *Blog) Handler() http.Handler {
 		}
 
 		w.Header().Add("Link", `<`+feedRssURL+`>; rel="self"`)
-		w.Header().Add("Link", `<`+b.Config.HubURL+`>; rel="hub"`)
+		w.Header().Add("Link", `<`+b.config.HubURL+`>; rel="hub"`)
 		w.Header().Set("Content-Type", "application/rss+xml")
 		io.WriteString(w, rss)
 	})
@@ -304,7 +303,7 @@ func (b *Blog) Handler() http.Handler {
 		}
 
 		w.Header().Add("Link", `<`+feedAtomURL+`>; rel="self"`)
-		w.Header().Add("Link", `<`+b.Config.HubURL+`>; rel="hub"`)
+		w.Header().Add("Link", `<`+b.config.HubURL+`>; rel="hub"`)
 		w.Header().Set("Content-Type", "application/atom+xml")
 		io.WriteString(w, atom)
 	})
@@ -323,7 +322,7 @@ func (b *Blog) Handler() http.Handler {
 		}
 
 		w.Header().Add("Link", `<`+feedJsonfeedURL+`>; rel="self"`)
-		w.Header().Add("Link", `<`+b.Config.HubURL+`>; rel="hub"`)
+		w.Header().Add("Link", `<`+b.config.HubURL+`>; rel="hub"`)
 		w.Header().Set("Content-Type", "application/json")
 		io.WriteString(w, json)
 	})
@@ -335,9 +334,9 @@ func (b *Blog) Handler() http.Handler {
 
 func (b *Blog) feed() (*feeds.Feed, error) {
 	feed := &feeds.Feed{
-		Title:   b.Config.Title,
-		Link:    &feeds.Link{Href: b.Config.BaseURL.String()},
-		Author:  &feeds.Author{Name: b.Config.Name},
+		Title:   b.config.Title,
+		Link:    &feeds.Link{Href: b.config.BaseURL.String()},
+		Author:  &feeds.Author{Name: b.config.Name},
 		Created: time.Now(),
 	}
 
@@ -348,7 +347,7 @@ func (b *Blog) feed() (*feeds.Feed, error) {
 
 	for _, post := range posts {
 		relURL, _ := url.Parse(post.Properties["url"][0].(string))
-		absURL := b.Config.BaseURL.ResolveReference(relURL)
+		absURL := b.config.BaseURL.ResolveReference(relURL)
 
 		createdAt, _ := time.Parse(time.RFC3339, post.Properties["published"][0].(string))
 

@@ -13,7 +13,7 @@ type CardResolver interface {
 }
 
 func (b *Blog) resolveCard(u string) (map[string]interface{}, error) {
-	for _, personer := range b.personers {
+	for _, personer := range b.cardResolvers {
 		person, err := personer.ResolveCard(u)
 		if err != nil {
 			log.Printf("ERR get-person url=%s; %v\n", u, err)

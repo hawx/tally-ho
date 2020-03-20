@@ -19,7 +19,7 @@ func (b *Blog) WriteFile(name, contentType string, r io.Reader) (location string
 	}
 
 	name = uid.String() + extension(contentType, name)
-	p := path.Join(b.Config.MediaDir, name)
+	p := path.Join(b.config.MediaDir, name)
 
 	file, err := os.Create(p)
 	if err != nil {
@@ -33,7 +33,7 @@ func (b *Blog) WriteFile(name, contentType string, r io.Reader) (location string
 	log.Printf("INFO wrote-file path=%s\n", p)
 
 	relURL, _ := url.Parse(name)
-	return b.Config.MediaURL.ResolveReference(relURL).String(), nil
+	return b.config.MediaURL.ResolveReference(relURL).String(), nil
 }
 
 func extension(contentType, filename string) string {

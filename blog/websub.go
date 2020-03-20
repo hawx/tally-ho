@@ -29,7 +29,7 @@ func (b *Blog) hubPublish() {
 			continue
 		}
 
-		err = b.hubPublisher.Publish(b.Config.BaseURL.ResolveReference(u).String())
+		err = b.hubPublisher.Publish(b.config.BaseURL.ResolveReference(u).String())
 		if err != nil {
 			log.Printf("WARN hub-publish url=%s; %v\n", c, err)
 		}

@@ -24,7 +24,7 @@ func (b *Blog) massage(data map[string][]interface{}) {
 	uid := uuid.New().String()
 
 	relativeURL, _ := url.Parse("/entry/" + uid)
-	location := b.Config.BaseURL.ResolveReference(relativeURL).String()
+	location := b.config.BaseURL.ResolveReference(relativeURL).String()
 
 	if len(data["uid"]) == 0 {
 		data["uid"] = []interface{}{uid}

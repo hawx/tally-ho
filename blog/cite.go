@@ -19,7 +19,7 @@ type CiteResolver interface {
 }
 
 func (b *Blog) resolveCite(u string) (map[string]interface{}, error) {
-	for _, citer := range b.citers {
+	for _, citer := range b.citeResolvers {
 		cite, err := citer.ResolveCite(u)
 		if err != nil {
 			log.Printf("ERR get-cite url=%s; %v\n", u, err)

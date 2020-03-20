@@ -155,8 +155,8 @@ func (b *Blog) withAuthor(m map[string][]interface{}) map[string][]interface{} {
 		map[string]interface{}{
 			"types": []interface{}{"h-card"},
 			"properties": map[string][]interface{}{
-				"name": {b.Config.Name},
-				"url":  {b.Config.Me},
+				"name": {b.config.Name},
+				"url":  {b.config.Me},
 			},
 		},
 	}
