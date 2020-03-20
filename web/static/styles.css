@@ -1,4 +1,4 @@
-html {
+:root {
     /* https://www.colourlovers.com/palette/4654317/V_O_G_U_E_%E2%80%A2_1928 */
     --a: hsl(13, 74%, 59%);
     --b: hsl(5, 79%, 38%);
@@ -19,6 +19,23 @@ html {
     --vertical-gap: 3rem;
     --top-gutter: 1rem;
     --left-gutter: 2rem;
+}
+
+@media (prefers-color-scheme: light) {
+    :root {
+        --background: var(--e);
+        --foreground: var(--c);
+        --primary: var(--b);
+        --secondary: var(--a);
+        --secondarier: hsl(13, 74%, 70%);
+        --faint: hsl(42, 65%, 20%);
+        --faintish: hsl(42, 60%, 33%);
+        --fainter: var(--d);
+    }
+
+    body {
+        text-shadow: none !important;
+    }
 }
 
 body {
