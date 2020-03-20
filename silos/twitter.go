@@ -78,6 +78,24 @@ func twitterParseStatusURL(u string) (tweetID int64, username string, ok bool) {
 	return tweetID, matches[1], err == nil
 }
 
+func findTwitterStatusURL(vs []interface{}) (url string, tweetID int64, username string, ok bool) {
+	for _, v := range vs {
+		s, ok := v.(string)
+		if !ok {
+			continue
+		}
+
+		tweetID, username, ok := twitterParseStatusURL(s)
+		if !ok {
+			continue
+		}
+
+		return s, tweetID, username, ok
+	}
+
+	return "", 0, "", false
+}
+
 func twitterParsePersonURL(u string) (username string, ok bool) {
 	matches := twitterPersonRegexp.FindStringSubmatch(u)
 	if len(matches) != 2 {
@@ -90,22 +108,24 @@ func twitterParsePersonURL(u string) (username string, ok bool) {
 func (t *twitterClient) Create(data map[string][]interface{}) (location string, err error) {
 	switch data["hx-kind"][0].(string) {
 	case "like":
-		likeOf, ok := mfutil.Get(data, "like-of.properties.url", "like-of").(string)
+		likeOf, tweetID, _, ok := findTwitterStatusURL(
+			mfutil.GetAll(data, "like-of.properties.url", "like-of"),
+		)
 		if !ok {
 			return "", ErrUnsure{data}
 		}
 
-		if tweetID, _, ok := twitterParseStatusURL(likeOf); ok {
-			_, err := t.api.Favorite(tweetID)
-			if err != nil {
-				return "", err
-			}
-
-			return likeOf, nil
+		_, err := t.api.Favorite(tweetID)
+		if err != nil {
+			return "", err
 		}
 
+		return likeOf, nil
+
 	case "reply":
-		replyTo, ok := mfutil.Get(data, "in-reply-to.properties.url", "in-reply-to").(string)
+		_, tweetID, username, ok := findTwitterStatusURL(
+			mfutil.GetAll(data, "in-reply-to.properties.url", "in-reply-to"),
+		)
 		if !ok {
 			return "", ErrUnsure{data}
 		}
@@ -115,16 +135,14 @@ func (t *twitterClient) Create(data map[string][]interface{}) (location string, 
 			return "", ErrUnsure{data}
 		}
 
-		if tweetID, username, ok := twitterParseStatusURL(replyTo); ok {
-			tweet, err := t.api.PostTweet("@"+username+" "+content, url.Values{
-				"in_reply_to_status_id": {strconv.FormatInt(tweetID, 10)},
-			})
-			if err != nil {
-				return "", err
-			}
-
-			return "https://twitter.com/" + tweet.User.ScreenName + "/status/" + tweet.IdStr, nil
+		tweet, err := t.api.PostTweet("@"+username+" "+content, url.Values{
+			"in_reply_to_status_id": {strconv.FormatInt(tweetID, 10)},
+		})
+		if err != nil {
+			return "", err
 		}
+
+		return "https://twitter.com/" + tweet.User.ScreenName + "/status/" + tweet.IdStr, nil
 
 	case "photo":
 		photos, ok := data["photo"]

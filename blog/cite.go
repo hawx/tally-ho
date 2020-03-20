@@ -61,7 +61,7 @@ func resolveCite(u string) (cite map[string]interface{}, err error) {
 	for _, item := range data.Items {
 		if contains("h-entry", item.Type) {
 			props := map[string][]interface{}{
-				"url": {u},
+				"url": append([]interface{}{u}, item.Properties["syndication"]...),
 			}
 
 			if names := item.Properties["name"]; len(names) > 0 {

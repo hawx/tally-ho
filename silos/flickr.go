@@ -115,32 +115,49 @@ func flickrParseURL(u string) (photoID string, ok bool) {
 	return matches[1], true
 }
 
+func findFlickrURL(vs []interface{}) (url string, id string, ok bool) {
+	for _, v := range vs {
+		s, ok := v.(string)
+		if !ok {
+			continue
+		}
+
+		photoID, ok := flickrParseURL(s)
+		if !ok {
+			continue
+		}
+
+		return s, photoID, true
+	}
+
+	return "", "", false
+}
+
 func (c *flickrClient) Create(data map[string][]interface{}) (location string, err error) {
 	switch data["hx-kind"][0].(string) {
 	case "like":
-		likeOf, ok := mfutil.Get(data, "like-of.properties.url", "like-of").(string)
+		likeOf, photoID, ok := findFlickrURL(mfutil.GetAll(data, "like-of.properties.url", "like-of"))
 		if !ok {
 			return "", ErrUnsure{data}
 		}
 
-		if photoID, ok := flickrParseURL(likeOf); ok {
-			resp, err := c.oauthClient.Post(c.client, c.credentials, c.baseURL, url.Values{
-				"method":   {"flickr.favorites.add"},
-				"photo_id": {photoID},
-			})
-			if err != nil {
-				return "", err
-			}
-			defer resp.Body.Close()
-
-			if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-				return "", errors.New("flickr add new comment got: " + resp.Status)
-			}
-
-			return likeOf, nil
+		resp, err := c.oauthClient.Post(c.client, c.credentials, c.baseURL, url.Values{
+			"method":   {"flickr.favorites.add"},
+			"photo_id": {photoID},
+		})
+		if err != nil {
+			return "", err
 		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			return "", errors.New("flickr add new comment got: " + resp.Status)
+		}
+
+		return likeOf, nil
+
 	case "reply":
-		replyTo, ok := mfutil.Get(data, "in-reply-to.properties.url", "in-reply-to").(string)
+		_, photoID, ok := findFlickrURL(mfutil.GetAll(data, "in-reply-to.properties.url", "in-reply-to"))
 		if !ok {
 			return "", ErrUnsure{data}
 		}
@@ -150,34 +167,32 @@ func (c *flickrClient) Create(data map[string][]interface{}) (location string, e
 			return "", ErrUnsure{data}
 		}
 
-		if photoID, ok := flickrParseURL(replyTo); ok {
-			resp, err := c.oauthClient.Post(c.client, c.credentials, c.baseURL, url.Values{
-				"format":         {"json"},
-				"nojsoncallback": {"1"},
-				"method":         {"flickr.photos.comments.addComment"},
-				"photo_id":       {photoID},
-				"comment_text":   {content},
-			})
-			if err != nil {
-				return "", err
-			}
-			defer resp.Body.Close()
-
-			if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-				return "", errors.New("flickr add new comment got: " + resp.Status)
-			}
-
-			var v struct {
-				Comment struct {
-					Permalink string `json:"permalink"`
-				} `json:"comment"`
-			}
-			if err := json.NewDecoder(resp.Body).Decode(&v); err != nil {
-				return "", err
-			}
-
-			return v.Comment.Permalink, nil
+		resp, err := c.oauthClient.Post(c.client, c.credentials, c.baseURL, url.Values{
+			"format":         {"json"},
+			"nojsoncallback": {"1"},
+			"method":         {"flickr.photos.comments.addComment"},
+			"photo_id":       {photoID},
+			"comment_text":   {content},
+		})
+		if err != nil {
+			return "", err
 		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+			return "", errors.New("flickr add new comment got: " + resp.Status)
+		}
+
+		var v struct {
+			Comment struct {
+				Permalink string `json:"permalink"`
+			} `json:"comment"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&v); err != nil {
+			return "", err
+		}
+
+		return v.Comment.Permalink, nil
 	}
 
 	return "", ErrUnsure{data}
