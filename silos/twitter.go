@@ -214,6 +214,24 @@ func (t *twitterClient) Create(data map[string][]interface{}) (location string, 
 		}
 
 		return "https://twitter.com/" + tweet.User.ScreenName + "/status/" + tweet.IdStr, nil
+
+	case "article":
+		name, ok := mfutil.Get(data, "name").(string)
+		if !ok {
+			return "", ErrUnsure{data}
+		}
+
+		u, ok := mfutil.Get(data, "url").(string)
+		if !ok {
+			return "", ErrUnsure{data}
+		}
+
+		tweet, err := t.api.PostTweet(name+" † "+u, url.Values{})
+		if err != nil {
+			return "", err
+		}
+
+		return "https://twitter.com/" + tweet.User.ScreenName + "/status/" + tweet.IdStr, nil
 	}
 
 	return "", ErrUnsure{data}

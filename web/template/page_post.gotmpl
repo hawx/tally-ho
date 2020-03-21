@@ -1,9 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" prefix="og: http://ogp.me/ns#">
   <head>
     <meta charset="utf-8" />
     <title>{{ truncate (title .Entry) 70 }}</title>
     {{ template "meta.gotmpl" }}
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="{{ title .Entry }}" />
+    <meta property="og:url" content="{{ get .Entry "url" }}" />
   </head>
   <body>
     <nav>
