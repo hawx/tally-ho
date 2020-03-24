@@ -274,23 +274,42 @@ func (t *twitterClient) ResolveCite(u string) (map[string]interface{}, error) {
 
 	tweet, err := t.api.GetTweet(tweetID, url.Values{})
 
-	return map[string]interface{}{
-		"type": []interface{}{"h-cite"},
-		"properties": map[string][]interface{}{
-			"name":    {"@" + tweet.User.ScreenName + "'s tweet"},
-			"content": {tweet.FullText},
-			"url":     {u},
-			"author": {
-				map[string]interface{}{
-					"type": []interface{}{"h-card"},
-					"properties": map[string][]interface{}{
-						"name":     {tweet.User.Name},
-						"url":      {"https://twitter.com/" + tweet.User.ScreenName},
-						"nickname": {"@" + tweet.User.ScreenName},
-					},
+	props := map[string][]interface{}{
+		"name": {"@" + tweet.User.ScreenName + "'s tweet"},
+		"url":  {u},
+		"author": {
+			map[string]interface{}{
+				"type": []interface{}{"h-card"},
+				"properties": map[string][]interface{}{
+					"name":     {tweet.User.Name},
+					"url":      {"https://twitter.com/" + tweet.User.ScreenName},
+					"nickname": {"@" + tweet.User.ScreenName},
 				},
 			},
 		},
+	}
+
+	content := tweet.FullText
+
+	for _, media := range tweet.Entities.Media {
+		props["photo"] = append(props["photo"], media.Media_url_https)
+		content = strings.ReplaceAll(content, media.Url, "")
+	}
+
+	for _, url := range tweet.Entities.Urls {
+		content = strings.ReplaceAll(content, url.Url, `<a href="`+url.Expanded_url+`">`+url.Display_url+`</a>`)
+	}
+
+	props["content"] = []interface{}{
+		map[string]interface{}{
+			"html": content,
+			"text": tweet.FullText,
+		},
+	}
+
+	return map[string]interface{}{
+		"type":       []interface{}{"h-cite"},
+		"properties": props,
 	}, err
 }
 
