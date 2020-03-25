@@ -60,6 +60,18 @@ func main() {
 		return
 	}
 
+	baseURL, err := url.Parse(conf.BaseURL)
+	if err != nil {
+		log.Println("ERR base-url-invalid;", err)
+		return
+	}
+
+	mediaURL, err := url.Parse(conf.MediaURL)
+	if err != nil {
+		log.Println("ERR media-url-invalid;", err)
+		return
+	}
+
 	templates, err := blog.ParseTemplates(*webPath)
 	if err != nil {
 		log.Println("ERR parse-templates;", err)
@@ -72,6 +84,11 @@ func main() {
 		return
 	}
 
+	fw := &blog.FileWriter{
+		MediaDir: *mediaDir,
+		MediaURL: mediaURL,
+	}
+
 	var blogSilos []interface{}
 	var micropubSyndicateTo []micropub.SyndicateTo
 
@@ -81,7 +98,7 @@ func main() {
 			ConsumerSecret:    conf.Twitter.ConsumerSecret,
 			AccessToken:       conf.Twitter.AccessToken,
 			AccessTokenSecret: conf.Twitter.AccessTokenSecret,
-		})
+		}, fw)
 		if err != nil {
 			log.Println("WARN twitter;", err)
 		} else {
@@ -109,18 +126,6 @@ func main() {
 				Name: flickr.Name(),
 			})
 		}
-	}
-
-	baseURL, err := url.Parse(conf.BaseURL)
-	if err != nil {
-		log.Println("ERR base-url-invalid;", err)
-		return
-	}
-
-	mediaURL, err := url.Parse(conf.MediaURL)
-	if err != nil {
-		log.Println("ERR media-url-invalid;", err)
-		return
 	}
 
 	hubStore, err := blog.NewHubStore(db)
@@ -162,9 +167,9 @@ func main() {
 		conf.Me,
 		baseURL.ResolveReference(mediaEndpointURL).String(),
 		micropubSyndicateTo,
-		b))
+		fw))
 	http.Handle("/-/webmention", webmention.Endpoint(b))
-	http.Handle("/-/media", media.Endpoint(conf.Me, b))
+	http.Handle("/-/media", media.Endpoint(conf.Me, fw))
 	http.Handle("/-/hub", websubhub)
 
 	serve.Serve(*port, *socket, http.DefaultServeMux)

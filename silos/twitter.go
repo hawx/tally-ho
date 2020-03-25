@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/base64"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -14,6 +16,10 @@ import (
 	"hawx.me/code/tally-ho/internal/mfutil"
 	"mvdan.cc/xurls/v2"
 )
+
+type FileWriter interface {
+	WriteFile(name, contentType string, r io.Reader) (location string, err error)
+}
 
 // TwitterUID is the unique identifier for twitter.
 const TwitterUID = "https://twitter.com/"
@@ -28,7 +34,7 @@ type TwitterOptions struct {
 // Twitter creates a client for Twitter. On creation it makes a call to the
 // API to verify the credentials are correct and the screen name of the
 // authenticated user.
-func Twitter(options TwitterOptions) (*twitterClient, error) {
+func Twitter(options TwitterOptions, fw FileWriter) (*twitterClient, error) {
 	api := anaconda.NewTwitterApiWithCredentials(
 		options.AccessToken,
 		options.AccessTokenSecret,
@@ -48,12 +54,14 @@ func Twitter(options TwitterOptions) (*twitterClient, error) {
 	return &twitterClient{
 		api:        api,
 		screenName: user.ScreenName,
+		fw:         fw,
 	}, nil
 }
 
 type twitterClient struct {
 	api        *anaconda.TwitterApi
 	screenName string
+	fw         FileWriter
 }
 
 func (t *twitterClient) UID() string {
@@ -292,8 +300,25 @@ func (t *twitterClient) ResolveCite(u string) (map[string]interface{}, error) {
 	content := tweet.FullText
 
 	for _, media := range tweet.Entities.Media {
-		props["photo"] = append(props["photo"], media.Media_url_https)
-		content = strings.ReplaceAll(content, media.Url, "")
+		if media.Type != "photo" {
+			continue
+		}
+
+		mediaURL := media.Media_url_https
+
+		resp, err := http.Get(mediaURL)
+		if err == nil {
+			defer resp.Body.Close()
+			location, err := t.fw.WriteFile(path.Base(mediaURL), "this-will-never-be-used", resp.Body)
+			if err == nil {
+				mediaURL = location
+			} else {
+				log.Printf("ERR twitter-write-file url=%s; %v\n", mediaURL, err)
+			}
+		}
+
+		props["photo"] = append(props["photo"], mediaURL)
+		content = strings.TrimSpace(strings.ReplaceAll(content, media.Url, ""))
 	}
 
 	for _, url := range tweet.Entities.Urls {

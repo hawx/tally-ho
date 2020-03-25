@@ -12,14 +12,22 @@ import (
 	"github.com/google/uuid"
 )
 
-func (b *Blog) WriteFile(name, contentType string, r io.Reader) (location string, err error) {
+type FileWriter struct {
+	// MediaDir is the directory to write files to.
+	MediaDir string
+
+	// MediaURL is the base URL files will be accessed from.
+	MediaURL *url.URL
+}
+
+func (fw *FileWriter) WriteFile(name, contentType string, r io.Reader) (location string, err error) {
 	uid, err := uuid.NewRandom()
 	if err != nil {
 		return "", err
 	}
 
 	name = uid.String() + extension(contentType, name)
-	p := path.Join(b.config.MediaDir, name)
+	p := path.Join(fw.MediaDir, name)
 
 	file, err := os.Create(p)
 	if err != nil {
@@ -33,7 +41,7 @@ func (b *Blog) WriteFile(name, contentType string, r io.Reader) (location string
 	log.Printf("INFO wrote-file path=%s\n", p)
 
 	relURL, _ := url.Parse(name)
-	return b.config.MediaURL.ResolveReference(relURL).String(), nil
+	return fw.MediaURL.ResolveReference(relURL).String(), nil
 }
 
 func extension(contentType, filename string) string {

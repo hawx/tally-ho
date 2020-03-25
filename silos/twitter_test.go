@@ -1,6 +1,7 @@
 package silos
 
 import (
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -10,6 +11,21 @@ import (
 
 	"hawx.me/code/assert"
 )
+
+type fakeFileWriter struct {
+	name        string
+	contentType string
+	data        []byte
+}
+
+func (w *fakeFileWriter) WriteFile(name, contentType string, r io.Reader) (string, error) {
+	w.name = name
+	w.contentType = contentType
+	data, _ := ioutil.ReadAll(r)
+	w.data = data
+
+	return "what", nil
+}
 
 type Req struct {
 	r    *http.Request
@@ -50,7 +66,7 @@ func TestTwitterCreate(t *testing.T) {
 		ConsumerSecret:    "consumer-secret",
 		AccessToken:       "access-token",
 		AccessTokenSecret: "access-token-secret",
-	})
+	}, &fakeFileWriter{})
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -276,7 +292,7 @@ func TestTwitterResolveCite(t *testing.T) {
 		ConsumerSecret:    "consumer-secret",
 		AccessToken:       "access-token",
 		AccessTokenSecret: "access-token-secret",
-	})
+	}, &fakeFileWriter{})
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -286,9 +302,14 @@ func TestTwitterResolveCite(t *testing.T) {
 	assert.Equal(t, map[string]interface{}{
 		"type": []interface{}{"h-cite"},
 		"properties": map[string][]interface{}{
-			"name":    {"@testing's tweet"},
-			"content": {"Hey there"},
-			"url":     {"https://twitter.com/johndoe/status/1432"},
+			"name": {"@testing's tweet"},
+			"content": {
+				map[string]interface{}{
+					"html": "Hey there",
+					"text": "Hey there",
+				},
+			},
+			"url": {"https://twitter.com/johndoe/status/1432"},
 			"author": {
 				map[string]interface{}{
 					"type": []interface{}{"h-card"},
@@ -301,6 +322,108 @@ func TestTwitterResolveCite(t *testing.T) {
 			},
 		},
 	}, cite)
+
+	select {
+	case q := <-qs:
+		assert.Equal(t, url.Values{
+			"id":         {"1432"},
+			"tweet_mode": {"extended"},
+		}, q)
+	case <-time.After(time.Millisecond):
+		assert.Fail(t, "timed out")
+	}
+}
+
+func TestTwitterResolveCiteWithPhotos(t *testing.T) {
+	qs := make(chan url.Values, 1)
+
+	tw := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				w.Write([]byte("a-jpg"))
+			},
+		),
+	)
+	defer tw.Close()
+
+	s := httptest.NewServer(
+		http.HandlerFunc(
+			func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/account/verify_credentials.json" {
+					w.Write([]byte(`{"screen_name": "TwitterDev"}`))
+					return
+				}
+
+				if r.URL.Path == "/statuses/show.json" {
+					qs <- r.URL.Query()
+
+					w.Write([]byte(`{
+  "id": 1050118621198921700,
+  "id_str": "1050118621198921728",
+  "text": "Hey there https://an.img/",
+  "user": {
+    "url": "https://t.co/something",
+    "name": "Test Thing",
+    "screen_name": "testing"
+  },
+  "entities": {
+    "media": [
+      {
+        "media_url_https": "` + tw.URL + `/image.jpg",
+        "url": "https://an.img/",
+        "type": "photo"
+      }
+    ]
+  }
+}`))
+				}
+			},
+		),
+	)
+	defer s.Close()
+
+	fw := &fakeFileWriter{}
+
+	twitter, err := Twitter(TwitterOptions{
+		BaseURL:           s.URL,
+		ConsumerKey:       "consumer-key",
+		ConsumerSecret:    "consumer-secret",
+		AccessToken:       "access-token",
+		AccessTokenSecret: "access-token-secret",
+	}, fw)
+	if !assert.Nil(t, err) {
+		return
+	}
+
+	cite, err := twitter.ResolveCite("https://twitter.com/johndoe/status/1432")
+	assert.Nil(t, err)
+	assert.Equal(t, map[string]interface{}{
+		"type": []interface{}{"h-cite"},
+		"properties": map[string][]interface{}{
+			"name": {"@testing's tweet"},
+			"content": {
+				map[string]interface{}{
+					"html": "Hey there",
+					"text": "Hey there https://an.img/",
+				},
+			},
+			"photo": {"what"},
+			"url":   {"https://twitter.com/johndoe/status/1432"},
+			"author": {
+				map[string]interface{}{
+					"type": []interface{}{"h-card"},
+					"properties": map[string][]interface{}{
+						"name":     {"Test Thing"},
+						"url":      {"https://twitter.com/testing"},
+						"nickname": {"@testing"},
+					},
+				},
+			},
+		},
+	}, cite)
+
+	assert.Equal(t, fw.name, "image.jpg")
+	assert.Equal(t, fw.data, []byte("a-jpg"))
 
 	select {
 	case q := <-qs:
