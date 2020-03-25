@@ -1,13 +1,18 @@
 {{ if hasAny . "content" "photo" }}
-<div class="h-cite">
+  <div class="h-cite">
+  {{ if eq (len .photo) 1 }}
+    <img src="{{ get . "photo" }}" />
+  {{ end }}
   {{ if has . "author.properties.name" }}
     <p class="p-author h-card">
       <a class="p-name u-url" href="{{ get . "author.properties.url" }}">{{ get . "author.properties.name" }}</a>
       :
     </p>
   {{ end }}
-  {{ if has . "photo" }}
-    <img src="{{ get . "photo" }}" />
+  {{ if gt (len .photo) 1 }}
+    {{ range .photo }}
+      <img src="{{ . }}" />
+    {{ end }}
   {{ end }}
   {{ if has . "content" }}
     <div class="e-content">{{ content . }}</div>

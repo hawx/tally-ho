@@ -299,7 +299,7 @@ func (t *twitterClient) ResolveCite(u string) (map[string]interface{}, error) {
 
 	content := tweet.FullText
 
-	for _, media := range tweet.Entities.Media {
+	for _, media := range tweet.ExtendedEntities.Media {
 		if media.Type != "photo" {
 			continue
 		}

@@ -366,7 +366,7 @@ func TestTwitterResolveCiteWithPhotos(t *testing.T) {
     "name": "Test Thing",
     "screen_name": "testing"
   },
-  "entities": {
+  "extended_entities": {
     "media": [
       {
         "media_url_https": "` + tw.URL + `/image.jpg",
