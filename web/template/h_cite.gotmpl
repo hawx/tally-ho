@@ -1,6 +1,6 @@
 {{ if hasAny . "content" "photo" }}
   <div class="h-cite">
-  {{ if eq (len .photo) 1 }}
+  {{ if eq (len (getAll . "photo")) 1 }}
     <img src="{{ get . "photo" }}" />
   {{ end }}
   {{ if has . "author.properties.name" }}
@@ -9,8 +9,8 @@
       :
     </p>
   {{ end }}
-  {{ if gt (len .photo) 1 }}
-    {{ range .photo }}
+  {{ if gt (len (getAll . "photo")) 1 }}
+    {{ range (getAll . "photo") }}
       <img src="{{ . }}" />
     {{ end }}
   {{ end }}

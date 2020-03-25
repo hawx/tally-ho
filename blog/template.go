@@ -17,6 +17,7 @@ func ParseTemplates(webPath string) (*template.Template, error) {
 		"hasAny":          templateHasAny,
 		"getOr":           templateGetOr,
 		"get":             templateGet,
+		"getAll":          templateGetAll,
 		"content":         templateContent,
 		"humanDate":       templateHumanDate,
 		"humanDateTime":   templateHumanDateTime,
@@ -55,6 +56,10 @@ func templateGetOr(m map[string][]interface{}, key string, or interface{}) inter
 
 func templateGet(m interface{}, key string) interface{} {
 	return mfutil.Get(m, key)
+}
+
+func templateGetAll(m interface{}, key string) []interface{} {
+	return mfutil.GetAll(m, key)
 }
 
 func templateContent(m interface{}) interface{} {
