@@ -8,6 +8,9 @@ import (
 	"regexp"
 
 	"github.com/gomodule/oauth1/oauth"
+	"golang.org/x/net/html"
+	"golang.org/x/net/html/atom"
+	"hawx.me/code/tally-ho/internal/htmlutil"
 	"hawx.me/code/tally-ho/internal/mfutil"
 )
 
@@ -80,22 +83,6 @@ type flickrClient struct {
 	screenName  string
 }
 
-func (c *flickrClient) get(method string, v interface{}) error {
-	qs := url.Values{
-		"nojsoncallback": {"1"},
-		"format":         {"json"},
-		"method":         {method},
-	}
-
-	resp, err := c.client.Get(c.baseURL + qs.Encode())
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	return json.NewDecoder(resp.Body).Decode(&v)
-}
-
 func (*flickrClient) UID() string {
 	return FlickrUID
 }
@@ -104,7 +91,8 @@ func (c *flickrClient) Name() string {
 	return c.screenName + " on flickr"
 }
 
-var flickrPhotoRegexp = regexp.MustCompile(`^https?://www\.flickr\.com/photos/[a-zA-Z\-]+/(\d+)/`)
+var flickrPhotoRegexp = regexp.MustCompile(`^https?://www\.flickr\.com/photos/[a-zA-Z@\-]+/(\d+)`)
+var flickrPersonRegexp = regexp.MustCompile(`^https?://www\.flickr\.com/people/([a-zA-Z@\-]+)`)
 
 func flickrParseURL(u string) (photoID string, ok bool) {
 	matches := flickrPhotoRegexp.FindStringSubmatch(u)
@@ -113,6 +101,15 @@ func flickrParseURL(u string) (photoID string, ok bool) {
 	}
 
 	return matches[1], true
+}
+
+func flickrParsePersonURL(u string) (username string, ok bool) {
+	matches := flickrPersonRegexp.FindStringSubmatch(u)
+	if len(matches) != 2 {
+		return "", false
+	}
+
+	return matches[1], len(matches[1]) > 0
 }
 
 func findFlickrURL(vs []interface{}) (url string, id string, ok bool) {
@@ -307,5 +304,45 @@ func (c *flickrClient) ResolveCite(u string) (map[string]interface{}, error) {
 	return map[string]interface{}{
 		"type":       []interface{}{"h-cite"},
 		"properties": properties,
+	}, nil
+}
+
+func (c *flickrClient) ResolveCard(u string) (map[string]interface{}, error) {
+	_, ok := flickrParsePersonURL(u)
+	if !ok {
+		return nil, nil
+	}
+
+	resp, err := c.client.Get(u)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, errors.New("flickr resolve card got: " + resp.Status)
+	}
+
+	root, err := html.Parse(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	titles := htmlutil.SearchAll(root, func(node *html.Node) bool {
+		return node.DataAtom == atom.Meta && htmlutil.HasAttr(node, "name", "title")
+	})
+	if len(titles) == 0 {
+		return nil, errors.New("flickr resolve card didn't have title")
+	}
+
+	name := htmlutil.Attr(titles[0], "content")
+
+	return map[string]interface{}{
+		"type": []interface{}{"h-card"},
+		"properties": map[string][]interface{}{
+			"name": {name},
+			"url":  {u},
+		},
+		"me": []string{u},
 	}, nil
 }
