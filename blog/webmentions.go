@@ -20,9 +20,11 @@ func (b *Blog) sendWebmentions(location string, data map[string][]interface{}) {
 	links := findMentionedLinks(data)
 	log.Printf("INFO sending-webmentions; %v\n", links)
 
-	for _, link := range links {
-		if err := webmention.Send(location, link); err != nil {
-			log.Printf("ERR send-webmention source=%s target=%s; %v\n", location, link, err)
+	if !b.local {
+		for _, link := range links {
+			if err := webmention.Send(location, link); err != nil {
+				log.Printf("ERR send-webmention source=%s target=%s; %v\n", location, link, err)
+			}
 		}
 	}
 }
@@ -38,9 +40,11 @@ func (b *Blog) sendUpdateWebmentions(location string, oldData, newData map[strin
 
 	log.Printf("INFO sending-webmentions; %v\n", links)
 
-	for _, link := range links {
-		if err := webmention.Send(location, link); err != nil {
-			log.Printf("ERR send-webmention source=%s target=%s; %v\n", location, link, err)
+	if !b.local {
+		for _, link := range links {
+			if err := webmention.Send(location, link); err != nil {
+				log.Printf("ERR send-webmention source=%s target=%s; %v\n", location, link, err)
+			}
 		}
 	}
 }

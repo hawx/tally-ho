@@ -28,6 +28,7 @@ type Config struct {
 }
 
 type Blog struct {
+	local         bool
 	config        Config
 	closer        io.Closer
 	entries       *numbersix.DB
@@ -74,7 +75,13 @@ func New(
 		}
 	}
 
+	local := config.BaseURL.Hostname() == "localhost"
+	if local {
+		log.Println("INFO local; running in local mode")
+	}
+
 	return &Blog{
+		local:         local,
 		config:        config,
 		closer:        db,
 		entries:       entries,
