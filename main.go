@@ -40,6 +40,12 @@ type config struct {
 		AccessToken       string
 		AccessTokenSecret string
 	}
+
+	Github struct {
+		ClientID     string
+		ClientSecret string
+		AccessToken  string
+	}
 }
 
 func main() {
@@ -124,6 +130,23 @@ func main() {
 			micropubSyndicateTo = append(micropubSyndicateTo, micropub.SyndicateTo{
 				UID:  flickr.UID(),
 				Name: flickr.Name(),
+			})
+		}
+	}
+
+	if conf.Github.AccessToken != "" {
+		github, err := silos.Github(silos.GithubOptions{
+			ClientID:     conf.Github.ClientID,
+			ClientSecret: conf.Github.ClientSecret,
+			AccessToken:  conf.Github.AccessToken,
+		})
+		if err != nil {
+			log.Println("WARN github;", err)
+		} else {
+			blogSilos = append(blogSilos, github)
+			micropubSyndicateTo = append(micropubSyndicateTo, micropub.SyndicateTo{
+				UID:  github.UID(),
+				Name: github.Name(),
 			})
 		}
 	}
