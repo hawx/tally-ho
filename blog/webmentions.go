@@ -50,9 +50,11 @@ func (b *Blog) sendUpdateWebmentions(location string, oldData, newData map[strin
 }
 
 func findMentionedLinks(data map[string][]interface{}) []string {
-	var links []string
+	linkSet := map[string]struct{}{}
 
-	links = append(links, findAs(data)...)
+	for _, link := range findAs(data) {
+		linkSet[link] = struct{}{}
+	}
 
 	for key, value := range data {
 		if strings.HasPrefix(key, "hx-") ||
@@ -64,9 +66,14 @@ func findMentionedLinks(data map[string][]interface{}) []string {
 
 		if v, ok := mfutil.Get(data, key+".properties.url", key).(string); ok {
 			if u, err := url.Parse(v); err == nil && u.IsAbs() {
-				links = append(links, v)
+				linkSet[v] = struct{}{}
 			}
 		}
+	}
+
+	var links []string
+	for link := range linkSet {
+		links = append(links, link)
 	}
 
 	return links
