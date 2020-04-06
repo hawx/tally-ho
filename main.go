@@ -42,9 +42,7 @@ type config struct {
 	}
 
 	Github struct {
-		ClientID     string
-		ClientSecret string
-		AccessToken  string
+		AccessToken string
 	}
 }
 
@@ -136,9 +134,7 @@ func main() {
 
 	if conf.Github.AccessToken != "" {
 		github, err := silos.Github(silos.GithubOptions{
-			ClientID:     conf.Github.ClientID,
-			ClientSecret: conf.Github.ClientSecret,
-			AccessToken:  conf.Github.AccessToken,
+			AccessToken: conf.Github.AccessToken,
 		})
 		if err != nil {
 			log.Println("WARN github;", err)

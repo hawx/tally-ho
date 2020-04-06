@@ -13,9 +13,8 @@ import (
 const GithubUID = "https://github.com/"
 
 type GithubOptions struct {
-	BaseURL                string
-	ClientID, ClientSecret string
-	AccessToken            string
+	BaseURL     string
+	AccessToken string
 }
 
 func Github(options GithubOptions) (*githubClient, error) {
