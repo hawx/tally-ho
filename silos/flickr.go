@@ -109,7 +109,7 @@ func flickrParsePersonURL(u string) (username string, ok bool) {
 		return "", false
 	}
 
-	return matches[1], len(matches[1]) > 0
+	return matches[1], true
 }
 
 func findFlickrURL(vs []interface{}) (url string, id string, ok bool) {

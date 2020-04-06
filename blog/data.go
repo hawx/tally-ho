@@ -145,6 +145,7 @@ func (b *Blog) CategoryBefore(category string, published time.Time) (groups []nu
 }
 
 func (b *Blog) LikesOn(ymd string) (groups []numbersix.Group, err error) {
+	// TODO: this should be sorted
 	triples, err := b.entries.List(
 		numbersix.
 			Begins("published", ymd).

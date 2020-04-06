@@ -157,6 +157,10 @@ func templateSyndicationName(u string) string {
 		return "Flickr"
 	}
 
+	if strings.HasPrefix(u, "https://github.com/") {
+		return "GitHub"
+	}
+
 	return u
 }
 

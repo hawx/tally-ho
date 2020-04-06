@@ -31,7 +31,7 @@ func main() {
 	config := &oauth2.Config{
 		ClientID:     conf.Github.ClientID,
 		ClientSecret: conf.Github.ClientSecret,
-		Scopes:       []string{},
+		Scopes:       []string{"repo"},
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  "https://github.com/login/oauth/authorize",
 			TokenURL: "https://github.com/login/oauth/access_token",
