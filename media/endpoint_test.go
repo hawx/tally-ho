@@ -37,8 +37,7 @@ func TestMedia(t *testing.T) {
 	fw := &fakeFileWriter{}
 	state := &uploadState{}
 
-	s := httptest.NewServer(withScope("media", postHandler(state, fw)))
-	defer s.Close()
+	handler := withScope("media", postHandler(state, fw))
 
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
@@ -49,12 +48,13 @@ func TestMedia(t *testing.T) {
 
 	assert.Nil(writer.Close())
 
-	req, err := http.NewRequest("POST", s.URL, &buf)
-	assert.Nil(err)
+	req := httptest.NewRequest("POST", "http://localhost/", &buf)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	resp, err := http.DefaultClient.Do(req)
-	assert.Nil(err)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	resp := w.Result()
 
 	assert.Equal(http.StatusCreated, resp.StatusCode)
 	assert.Equal("a url", resp.Header.Get("Location"))
@@ -69,8 +69,7 @@ func TestMediaWithCreateScope(t *testing.T) {
 	fw := &fakeFileWriter{}
 	state := &uploadState{}
 
-	s := httptest.NewServer(withScope("create", postHandler(state, fw)))
-	defer s.Close()
+	handler := withScope("create", postHandler(state, fw))
 
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
@@ -81,12 +80,13 @@ func TestMediaWithCreateScope(t *testing.T) {
 
 	assert.Nil(writer.Close())
 
-	req, err := http.NewRequest("POST", s.URL, &buf)
-	assert.Nil(err)
+	req := httptest.NewRequest("POST", "http://localhost/", &buf)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	resp, err := http.DefaultClient.Do(req)
-	assert.Nil(err)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	resp := w.Result()
 
 	assert.Equal(http.StatusCreated, resp.StatusCode)
 	assert.Equal("a url", resp.Header.Get("Location"))
@@ -101,8 +101,7 @@ func TestMediaMissingScope(t *testing.T) {
 	fw := &fakeFileWriter{}
 	state := &uploadState{}
 
-	s := httptest.NewServer(withScope("update", postHandler(state, fw)))
-	defer s.Close()
+	handler := withScope("update", postHandler(state, fw))
 
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
@@ -113,12 +112,13 @@ func TestMediaMissingScope(t *testing.T) {
 
 	assert.Nil(writer.Close())
 
-	req, err := http.NewRequest("POST", s.URL, &buf)
-	assert.Nil(err)
+	req := httptest.NewRequest("POST", "http://localhost/", &buf)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	resp, err := http.DefaultClient.Do(req)
-	assert.Nil(err)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	resp := w.Result()
 
 	assert.Equal(http.StatusUnauthorized, resp.StatusCode)
 	assert.Equal("", fw.data)
@@ -128,19 +128,19 @@ func TestMediaMissingScope(t *testing.T) {
 func TestMediaWhenNoFilePart(t *testing.T) {
 	assert := assert.New(t)
 
-	s := httptest.NewServer(withScope("media", postHandler(&uploadState{}, &fakeFileWriter{})))
-	defer s.Close()
+	handler := withScope("media", postHandler(&uploadState{}, &fakeFileWriter{}))
 
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 	assert.Nil(writer.Close())
 
-	req, err := http.NewRequest("POST", s.URL, &buf)
-	assert.Nil(err)
+	req := httptest.NewRequest("POST", "http://localhost/", &buf)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	resp, err := http.DefaultClient.Do(req)
-	assert.Nil(err)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	resp := w.Result()
 
 	assert.Equal(http.StatusBadRequest, resp.StatusCode)
 }
@@ -150,8 +150,7 @@ func TestMediaWhenMultipleFileParts(t *testing.T) {
 	file := "this is an image"
 	fw := &fakeFileWriter{}
 
-	s := httptest.NewServer(withScope("media", postHandler(&uploadState{}, fw)))
-	defer s.Close()
+	handler := withScope("media", postHandler(&uploadState{}, fw))
 
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
@@ -166,12 +165,13 @@ func TestMediaWhenMultipleFileParts(t *testing.T) {
 
 	assert.Nil(writer.Close())
 
-	req, err := http.NewRequest("POST", s.URL, &buf)
-	assert.Nil(err)
+	req := httptest.NewRequest("POST", "http://localhost/", &buf)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
-	resp, err := http.DefaultClient.Do(req)
-	assert.Nil(err)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	resp := w.Result()
 
 	assert.Equal(http.StatusCreated, resp.StatusCode)
 	assert.Equal("a url", resp.Header.Get("Location"))
@@ -181,14 +181,14 @@ func TestMediaWhenMultipleFileParts(t *testing.T) {
 func TestQueryUnknown(t *testing.T) {
 	assert := assert.New(t)
 
-	s := httptest.NewServer(withScope("media", getHandler(&uploadState{})))
-	defer s.Close()
+	handler := withScope("media", getHandler(&uploadState{}))
 
-	req, err := http.NewRequest("GET", s.URL+"?q=what", nil)
-	assert.Nil(err)
+	req := httptest.NewRequest("GET", "http://localhost/?q=what", nil)
 
-	resp, err := http.DefaultClient.Do(req)
-	assert.Nil(err)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	resp := w.Result()
 
 	assert.Equal(http.StatusBadRequest, resp.StatusCode)
 }
@@ -196,16 +196,16 @@ func TestQueryUnknown(t *testing.T) {
 func TestQueryLast(t *testing.T) {
 	assert := assert.New(t)
 
-	s := httptest.NewServer(getHandler(&uploadState{
+	handler := getHandler(&uploadState{
 		LastURL: "http://media.example.com/file.jpg",
-	}))
-	defer s.Close()
+	})
 
-	req, err := http.NewRequest("GET", s.URL+"?q=last", nil)
-	assert.Nil(err)
+	req := httptest.NewRequest("GET", "http://localhost/?q=last", nil)
 
-	resp, err := http.DefaultClient.Do(req)
-	assert.Nil(err)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	resp := w.Result()
 
 	assert.Equal(http.StatusOK, resp.StatusCode)
 	assert.Equal("application/json", resp.Header.Get("Content-Type"))
@@ -218,14 +218,14 @@ func TestQueryLast(t *testing.T) {
 func TestQueryLastWhenNoneUploaded(t *testing.T) {
 	assert := assert.New(t)
 
-	s := httptest.NewServer(getHandler(&uploadState{}))
-	defer s.Close()
+	handler := getHandler(&uploadState{})
 
-	req, err := http.NewRequest("GET", s.URL+"?q=last", nil)
-	assert.Nil(err)
+	req := httptest.NewRequest("GET", "http://localhost/?q=last", nil)
 
-	resp, err := http.DefaultClient.Do(req)
-	assert.Nil(err)
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	resp := w.Result()
 
 	assert.Equal(http.StatusOK, resp.StatusCode)
 	assert.Equal("application/json", resp.Header.Get("Content-Type"))
