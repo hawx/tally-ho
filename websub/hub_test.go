@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -59,6 +60,12 @@ func (s *fakeHubStore) Unsubscribe(callback, topic string) error {
 	return nil
 }
 
+func newFormRequest(qs url.Values) *http.Request {
+	req := httptest.NewRequest("POST", "http://localhost/", strings.NewReader(qs.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	return req
+}
+
 func TestSubscribe(t *testing.T) {
 	assert := assert.New(t)
 	challenge := []byte{1, 2, 3, 4}
@@ -68,9 +75,6 @@ func TestSubscribe(t *testing.T) {
 	hub.generator = func() ([]byte, error) {
 		return challenge, nil
 	}
-
-	h := httptest.NewServer(hub)
-	defer h.Close()
 
 	verification := make(chan url.Values, 1)
 
@@ -82,12 +86,16 @@ func TestSubscribe(t *testing.T) {
 	}))
 	defer s.Close()
 
-	resp, err := http.PostForm(h.URL, url.Values{
+	req := newFormRequest(url.Values{
 		"hub.callback": {s.URL + "/unguessable-path-unique-per-subscription?keep=me"},
 		"hub.mode":     {"subscribe"},
 		"hub.topic":    {"http://example.com/category/cats"},
 	})
-	assert.Nil(err)
+
+	w := httptest.NewRecorder()
+	hub.ServeHTTP(w, req)
+
+	resp := w.Result()
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
 	select {
@@ -120,9 +128,6 @@ func TestSubscribeWithSecret(t *testing.T) {
 		return challenge, nil
 	}
 
-	h := httptest.NewServer(hub)
-	defer h.Close()
-
 	verification := make(chan url.Values, 1)
 
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -133,13 +138,17 @@ func TestSubscribeWithSecret(t *testing.T) {
 	}))
 	defer s.Close()
 
-	resp, err := http.PostForm(h.URL, url.Values{
+	req := newFormRequest(url.Values{
 		"hub.callback": {s.URL + "/unguessable-path-unique-per-subscription?keep=me"},
 		"hub.mode":     {"subscribe"},
 		"hub.topic":    {"http://example.com/category/cats"},
 		"hub.secret":   {"catgifs"},
 	})
-	assert.Nil(err)
+
+	w := httptest.NewRecorder()
+	hub.ServeHTTP(w, req)
+
+	resp := w.Result()
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
 	select {
@@ -172,9 +181,6 @@ func TestSubscribeWithLongSecret(t *testing.T) {
 		return challenge, nil
 	}
 
-	h := httptest.NewServer(hub)
-	defer h.Close()
-
 	verification := make(chan url.Values, 1)
 
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -185,13 +191,17 @@ func TestSubscribeWithLongSecret(t *testing.T) {
 	}))
 	defer s.Close()
 
-	resp, err := http.PostForm(h.URL, url.Values{
+	req := newFormRequest(url.Values{
 		"hub.callback": {s.URL + "/unguessable-path-unique-per-subscription?keep=me"},
 		"hub.mode":     {"subscribe"},
 		"hub.topic":    {"http://example.com/category/cats"},
 		"hub.secret":   {"12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890X"},
 	})
-	assert.Nil(err)
+
+	w := httptest.NewRecorder()
+	hub.ServeHTTP(w, req)
+
+	resp := w.Result()
 	assert.Equal(http.StatusBadRequest, resp.StatusCode)
 }
 
@@ -205,9 +215,6 @@ func TestSubscribeWithSpecificLease(t *testing.T) {
 		return challenge, nil
 	}
 
-	h := httptest.NewServer(hub)
-	defer h.Close()
-
 	verification := make(chan url.Values, 1)
 
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -218,13 +225,17 @@ func TestSubscribeWithSpecificLease(t *testing.T) {
 	}))
 	defer s.Close()
 
-	resp, err := http.PostForm(h.URL, url.Values{
+	req := newFormRequest(url.Values{
 		"hub.callback":      {s.URL + "/unguessable-path-unique-per-subscription?keep=me"},
 		"hub.mode":          {"subscribe"},
 		"hub.topic":         {"http://example.com/category/cats"},
 		"hub.lease_seconds": {strconv.Itoa(int((24 * time.Hour).Seconds()))},
 	})
-	assert.Nil(err)
+
+	w := httptest.NewRecorder()
+	hub.ServeHTTP(w, req)
+
+	resp := w.Result()
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
 	select {
@@ -256,9 +267,6 @@ func TestSubscribeWithTooLongLease(t *testing.T) {
 		return challenge, nil
 	}
 
-	h := httptest.NewServer(hub)
-	defer h.Close()
-
 	verification := make(chan url.Values, 1)
 
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -269,13 +277,17 @@ func TestSubscribeWithTooLongLease(t *testing.T) {
 	}))
 	defer s.Close()
 
-	resp, err := http.PostForm(h.URL, url.Values{
+	req := newFormRequest(url.Values{
 		"hub.callback":      {s.URL + "/unguessable-path-unique-per-subscription?keep=me"},
 		"hub.mode":          {"subscribe"},
 		"hub.topic":         {"http://example.com/category/cats"},
 		"hub.lease_seconds": {strconv.Itoa(int((29 * 24 * time.Hour).Seconds()))},
 	})
-	assert.Nil(err)
+
+	w := httptest.NewRecorder()
+	hub.ServeHTTP(w, req)
+
+	resp := w.Result()
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
 	select {
@@ -300,8 +312,7 @@ func TestSubscribeWithTooLongLease(t *testing.T) {
 func TestSubscribeWhenRespondingWithWrongChallenge(t *testing.T) {
 	assert := assert.New(t)
 
-	h := httptest.NewServer(New("", nil))
-	defer h.Close()
+	hub := New("", nil)
 
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet && r.URL.Path == "/unguessable-path-unique-per-subscription" {
@@ -310,73 +321,89 @@ func TestSubscribeWhenRespondingWithWrongChallenge(t *testing.T) {
 	}))
 	defer s.Close()
 
-	resp, err := http.PostForm(h.URL, url.Values{
+	req := newFormRequest(url.Values{
 		"hub.callback": {s.URL + "/unguessable-path-unique-per-subscription"},
 		"hub.mode":     {"subscribe"},
 		"hub.topic":    {"http://example.com/category/cats"},
 	})
-	assert.Nil(err)
+
+	w := httptest.NewRecorder()
+	hub.ServeHTTP(w, req)
+
+	resp := w.Result()
 	assert.Equal(http.StatusBadRequest, resp.StatusCode)
 }
 
 func TestSubscribeNotPostRequest(t *testing.T) {
 	assert := assert.New(t)
 
-	h := httptest.NewServer(New("", nil))
-	defer h.Close()
+	hub := New("", nil)
 
-	resp, err := http.Get(h.URL)
-	assert.Nil(err)
+	req := httptest.NewRequest("GET", "http://localhost/", nil)
+
+	w := httptest.NewRecorder()
+	hub.ServeHTTP(w, req)
+
+	resp := w.Result()
 	assert.Equal(http.StatusMethodNotAllowed, resp.StatusCode)
 }
 
 func TestSubscribeBadCallback(t *testing.T) {
 	assert := assert.New(t)
 
-	h := httptest.NewServer(New("", nil))
-	defer h.Close()
+	hub := New("", nil)
 
-	resp, err := http.PostForm(h.URL, url.Values{
+	req := newFormRequest(url.Values{
 		"hub.callback": {"this-aint-a-url"},
 		"hub.mode":     {"subscribe"},
 		"hub.topic":    {"http://example.com/category/cats"},
 	})
-	assert.Nil(err)
+
+	w := httptest.NewRecorder()
+	hub.ServeHTTP(w, req)
+
+	resp := w.Result()
 	assert.Equal(http.StatusBadRequest, resp.StatusCode)
 }
 
 func TestSubscribeBadMode(t *testing.T) {
 	assert := assert.New(t)
 
-	h := httptest.NewServer(New("", nil))
-	defer h.Close()
+	hub := New("", nil)
 
-	resp, err := http.PostForm(h.URL, url.Values{
+	req := newFormRequest(url.Values{
 		"hub.callback": {"http://example.com/callback"},
 		"hub.mode":     {"what"},
 		"hub.topic":    {"http://example.com/category/cats"},
 	})
-	assert.Nil(err)
+
+	w := httptest.NewRecorder()
+	hub.ServeHTTP(w, req)
+
+	resp := w.Result()
 	assert.Equal(http.StatusBadRequest, resp.StatusCode)
 }
 
 func TestSubscribeBadVerificationResponse(t *testing.T) {
 	assert := assert.New(t)
 
-	h := httptest.NewServer(New("", nil))
-	defer h.Close()
+	hub := New("", nil)
 
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
 	defer s.Close()
 
-	resp, err := http.PostForm(h.URL, url.Values{
+	req := newFormRequest(url.Values{
 		"hub.callback": {s.URL},
 		"hub.mode":     {"subscribe"},
 		"hub.topic":    {"http://example.com/category/cats"},
 	})
-	assert.Nil(err)
+
+	w := httptest.NewRecorder()
+	hub.ServeHTTP(w, req)
+
+	resp := w.Result()
 	assert.Equal(http.StatusBadRequest, resp.StatusCode)
 }
 

@@ -9,16 +9,15 @@ import (
 	"hawx.me/code/assert"
 )
 
-func testCases(queryAdd, headerAdd string) map[string]func(string) (*http.Response, error) {
-	return map[string]func(string) (*http.Response, error){
-		"query": func(u string) (*http.Response, error) {
-			return http.Get(u + queryAdd)
-		},
-		"header": func(u string) (*http.Response, error) {
-			req, _ := http.NewRequest("GET", u, nil)
-			req.Header.Add("Authorization", "Bearer "+headerAdd)
-			return http.DefaultClient.Do(req)
-		},
+func testCases(queryAdd, headerAdd string) map[string]*http.Request {
+	queryRequest := httptest.NewRequest("GET", "http://localhost/"+queryAdd, nil)
+
+	headerRequest := httptest.NewRequest("GET", "http://localhost/", nil)
+	headerRequest.Header.Add("Authorization", "Bearer "+headerAdd)
+
+	return map[string]*http.Request{
+		"query":  queryRequest,
+		"header": headerRequest,
 	}
 }
 
@@ -77,7 +76,7 @@ func (h *meHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestAuthenticate(t *testing.T) {
-	for name, f := range testCases("?access_token=abcde", "abcde") {
+	for name, req := range testCases("?access_token=abcde", "abcde") {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
 			good := &goodHandler{}
@@ -87,11 +86,10 @@ func TestAuthenticate(t *testing.T) {
 			defer meServer.Close()
 			me.Me = meServer.URL
 
-			s := httptest.NewServer(Only(meServer.URL, good))
-			defer s.Close()
+			handler := Only(meServer.URL, good)
 
-			_, err := f(s.URL)
-			assert.Nil(err)
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
 
 			assert.True(good.OK)
 		})
@@ -99,7 +97,7 @@ func TestAuthenticate(t *testing.T) {
 }
 
 func TestAuthenticateMissingScope(t *testing.T) {
-	for name, f := range testCases("?access_token=abcde", "abcde") {
+	for name, req := range testCases("?access_token=abcde", "abcde") {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
 			good := &goodHandler{}
@@ -109,11 +107,12 @@ func TestAuthenticateMissingScope(t *testing.T) {
 			defer meServer.Close()
 			me.Me = meServer.URL
 
-			s := httptest.NewServer(Only(meServer.URL, good))
-			defer s.Close()
+			handler := Only(meServer.URL, good)
 
-			resp, err := f(s.URL)
-			assert.Nil(err)
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
+
+			resp := w.Result()
 			assert.Equal(http.StatusOK, resp.StatusCode)
 
 			assert.True(good.OK)
@@ -122,7 +121,7 @@ func TestAuthenticateMissingScope(t *testing.T) {
 }
 
 func TestAuthenticateNotMe(t *testing.T) {
-	for name, f := range testCases("?access_token=abcde", "abcde") {
+	for name, req := range testCases("?access_token=abcde", "abcde") {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
 			good := &goodHandler{}
@@ -132,11 +131,12 @@ func TestAuthenticateNotMe(t *testing.T) {
 			defer meServer.Close()
 			me.Me = "http://who.example.com"
 
-			s := httptest.NewServer(Only(meServer.URL, good))
-			defer s.Close()
+			handler := Only(meServer.URL, good)
 
-			resp, err := f(s.URL)
-			assert.Nil(err)
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
+
+			resp := w.Result()
 			assert.Equal(http.StatusForbidden, resp.StatusCode)
 
 			assert.False(good.OK)
@@ -145,7 +145,7 @@ func TestAuthenticateNotMe(t *testing.T) {
 }
 
 func TestAuthenticatedBadToken(t *testing.T) {
-	for name, f := range testCases("?access_token=xyz", "xyz") {
+	for name, req := range testCases("?access_token=xyz", "xyz") {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
 			good := &goodHandler{}
@@ -155,11 +155,12 @@ func TestAuthenticatedBadToken(t *testing.T) {
 			defer meServer.Close()
 			me.Me = meServer.URL
 
-			s := httptest.NewServer(Only(meServer.URL, good))
-			defer s.Close()
+			handler := Only(meServer.URL, good)
 
-			resp, err := f(s.URL)
-			assert.Nil(err)
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
+
+			resp := w.Result()
 			assert.Equal(http.StatusForbidden, resp.StatusCode)
 
 			assert.False(good.OK)
@@ -168,7 +169,7 @@ func TestAuthenticatedBadToken(t *testing.T) {
 }
 
 func TestAuthenticatedMissingToken(t *testing.T) {
-	for name, f := range testCases("", "") {
+	for name, req := range testCases("", "") {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
 			good := &goodHandler{}
@@ -181,8 +182,12 @@ func TestAuthenticatedMissingToken(t *testing.T) {
 			s := httptest.NewServer(Only(meServer.URL, good))
 			defer s.Close()
 
-			resp, err := f(s.URL)
-			assert.Nil(err)
+			handler := Only(meServer.URL, good)
+
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
+
+			resp := w.Result()
 			assert.Equal(http.StatusUnauthorized, resp.StatusCode)
 
 			assert.False(good.OK)
@@ -191,7 +196,7 @@ func TestAuthenticatedMissingToken(t *testing.T) {
 }
 
 func TestScopedAuthenticate(t *testing.T) {
-	for name, f := range testCases("?access_token=abcde", "abcde") {
+	for name, req := range testCases("?access_token=abcde", "abcde") {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
 			good := &scopedHandler{}
@@ -201,11 +206,12 @@ func TestScopedAuthenticate(t *testing.T) {
 			defer meServer.Close()
 			me.Me = meServer.URL
 
-			s := httptest.NewServer(Only(meServer.URL, good))
-			defer s.Close()
+			handler := Only(meServer.URL, good)
 
-			resp, err := f(s.URL)
-			assert.Nil(err)
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
+
+			resp := w.Result()
 			assert.Equal(http.StatusOK, resp.StatusCode)
 
 			assert.True(good.OK)
@@ -214,7 +220,7 @@ func TestScopedAuthenticate(t *testing.T) {
 }
 
 func TestScopedAuthenticateMissingScope(t *testing.T) {
-	for name, f := range testCases("?access_token=abcde", "abcde") {
+	for name, req := range testCases("?access_token=abcde", "abcde") {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
 			good := &scopedHandler{}
@@ -224,11 +230,12 @@ func TestScopedAuthenticateMissingScope(t *testing.T) {
 			defer meServer.Close()
 			me.Me = meServer.URL
 
-			s := httptest.NewServer(Only(meServer.URL, good))
-			defer s.Close()
+			handler := Only(meServer.URL, good)
 
-			resp, err := f(s.URL)
-			assert.Nil(err)
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
+
+			resp := w.Result()
 			assert.Equal(http.StatusUnauthorized, resp.StatusCode)
 
 			assert.False(good.OK)
@@ -237,7 +244,7 @@ func TestScopedAuthenticateMissingScope(t *testing.T) {
 }
 
 func TestAuthenticateClientID(t *testing.T) {
-	for name, f := range testCases("?access_token=abcde", "abcde") {
+	for name, req := range testCases("?access_token=abcde", "abcde") {
 		t.Run(name, func(t *testing.T) {
 			assert := assert.New(t)
 			good := &clientHandler{}
@@ -247,11 +254,10 @@ func TestAuthenticateClientID(t *testing.T) {
 			defer meServer.Close()
 			me.Me = meServer.URL
 
-			s := httptest.NewServer(Only(meServer.URL, good))
-			defer s.Close()
+			handler := Only(meServer.URL, good)
 
-			_, err := f(s.URL)
-			assert.Nil(err)
+			w := httptest.NewRecorder()
+			handler.ServeHTTP(w, req)
 
 			assert.Equal("http://client.example.com/", good.client)
 		})

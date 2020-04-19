@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -65,6 +66,12 @@ func sequenceHandlers(hs ...http.Handler) http.HandlerFunc {
 	}
 }
 
+func newFormRequest(qs url.Values) *http.Request {
+	req := httptest.NewRequest("POST", "http://localhost/", strings.NewReader(qs.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	return req
+}
+
 func TestMention(t *testing.T) {
 	assert := assert.New(t)
 
@@ -80,15 +87,17 @@ func TestMention(t *testing.T) {
 `))
 	defer source.Close()
 
-	endpoint := Endpoint(blog)
-	s := httptest.NewServer(endpoint)
-	defer s.Close()
+	handler := Endpoint(blog)
 
-	resp, err := http.PostForm(s.URL, url.Values{
+	req := newFormRequest(url.Values{
 		"source": {source.URL},
 		"target": {"http://example.com/weblog/post-id"},
 	})
-	assert.Nil(err)
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	resp := w.Result()
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
 	select {
@@ -127,15 +136,17 @@ func TestMentionWhenPostUpdated(t *testing.T) {
 `)))
 	defer source.Close()
 
-	endpoint := Endpoint(blog)
-	s := httptest.NewServer(endpoint)
-	defer s.Close()
+	handler := Endpoint(blog)
 
-	resp, err := http.PostForm(s.URL, url.Values{
+	req := newFormRequest(url.Values{
 		"source": {source.URL},
 		"target": {"http://example.com/weblog/post-id"},
 	})
-	assert.Nil(err)
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	resp := w.Result()
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
 	select {
@@ -151,11 +162,15 @@ func TestMentionWhenPostUpdated(t *testing.T) {
 		t.Fatal("failed to get notified")
 	}
 
-	resp, err = http.PostForm(s.URL, url.Values{
+	req = newFormRequest(url.Values{
 		"source": {source.URL},
 		"target": {"http://example.com/weblog/post-id"},
 	})
-	assert.Nil(err)
+
+	w = httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	resp = w.Result()
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
 	select {
@@ -191,15 +206,17 @@ func TestMentionWithHCardAndHEntry(t *testing.T) {
 `))
 	defer source.Close()
 
-	endpoint := Endpoint(blog)
-	s := httptest.NewServer(endpoint)
-	defer s.Close()
+	handler := Endpoint(blog)
 
-	resp, err := http.PostForm(s.URL, url.Values{
+	req := newFormRequest(url.Values{
 		"source": {source.URL},
 		"target": {"http://example.com/weblog/post-id"},
 	})
-	assert.Nil(err)
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	resp := w.Result()
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
 	select {
@@ -228,15 +245,17 @@ func TestMentionWithoutMicroformats(t *testing.T) {
 `))
 	defer source.Close()
 
-	endpoint := Endpoint(blog)
-	s := httptest.NewServer(endpoint)
-	defer s.Close()
+	handler := Endpoint(blog)
 
-	resp, err := http.PostForm(s.URL, url.Values{
+	req := newFormRequest(url.Values{
 		"source": {source.URL},
 		"target": {"http://example.com/weblog/post-id"},
 	})
-	assert.Nil(err)
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	resp := w.Result()
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
 	select {
@@ -259,15 +278,17 @@ func TestMentionOfDeletedPost(t *testing.T) {
 	source := httptest.NewServer(goneHandler())
 	defer source.Close()
 
-	endpoint := Endpoint(blog)
-	s := httptest.NewServer(endpoint)
-	defer s.Close()
+	handler := Endpoint(blog)
 
-	resp, err := http.PostForm(s.URL, url.Values{
+	req := newFormRequest(url.Values{
 		"source": {source.URL},
 		"target": {"http://example.com/weblog/post-id"},
 	})
-	assert.Nil(err)
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	resp := w.Result()
 	assert.Equal(http.StatusAccepted, resp.StatusCode)
 
 	select {
