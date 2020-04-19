@@ -31,11 +31,15 @@ func fakeSyndicators() []SyndicateTo {
 func TestConfigurationConfig(t *testing.T) {
 	assert := assert.New(t)
 
-	s := httptest.NewServer(getHandler(nil, "http://media.example.com/", fakeSyndicators()))
-	defer s.Close()
+	handler := getHandler(nil, "http://media.example.com/", fakeSyndicators())
 
-	resp, err := http.Get(s.URL + "?q=config")
-	assert.Nil(err)
+	req := httptest.NewRequest("GET", "http://localhost/?q=config", nil)
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	resp := w.Result()
+
 	assert.Equal(http.StatusOK, resp.StatusCode)
 	assert.Equal("application/json", resp.Header.Get("Content-Type"))
 
@@ -71,11 +75,15 @@ func TestConfigurationSource(t *testing.T) {
 		},
 	}
 
-	s := httptest.NewServer(getHandler(blog, "", fakeSyndicators()))
-	defer s.Close()
+	handler := getHandler(blog, "", fakeSyndicators())
 
-	resp, err := http.Get(s.URL + "?q=source&url=https://example.com/weblog/p/1")
-	assert.Nil(err)
+	req := httptest.NewRequest("GET", "http://localhost/?q=source&url=https://example.com/weblog/p/1", nil)
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	resp := w.Result()
+
 	assert.Equal(http.StatusOK, resp.StatusCode)
 	assert.Equal("application/json", resp.Header.Get("Content-Type"))
 
@@ -101,11 +109,15 @@ func TestConfigurationSourceWithProperties(t *testing.T) {
 		},
 	}
 
-	s := httptest.NewServer(getHandler(blog, "", fakeSyndicators()))
-	defer s.Close()
+	handler := getHandler(blog, "", fakeSyndicators())
 
-	resp, err := http.Get(s.URL + "?q=source&properties=title&url=https://example.com/weblog/p/1")
-	assert.Nil(err)
+	req := httptest.NewRequest("GET", "http://localhost/?q=source&properties=title&url=https://example.com/weblog/p/1", nil)
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	resp := w.Result()
+
 	assert.Equal(http.StatusOK, resp.StatusCode)
 	assert.Equal("application/json", resp.Header.Get("Content-Type"))
 
@@ -133,11 +145,15 @@ func TestConfigurationSourceWithManyProperties(t *testing.T) {
 		},
 	}
 
-	s := httptest.NewServer(getHandler(blog, "", fakeSyndicators()))
-	defer s.Close()
+	handler := getHandler(blog, "", fakeSyndicators())
 
-	resp, err := http.Get(s.URL + "?q=source&properties[]=title&properties[]=categories&url=https://example.com/weblog/p/1")
-	assert.Nil(err)
+	req := httptest.NewRequest("GET", "http://localhost/?q=source&properties[]=title&properties[]=categories&url=https://example.com/weblog/p/1", nil)
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	resp := w.Result()
+
 	assert.Equal(http.StatusOK, resp.StatusCode)
 	assert.Equal("application/json", resp.Header.Get("Content-Type"))
 
@@ -157,11 +173,15 @@ func TestConfigurationSourceWithManyProperties(t *testing.T) {
 func TestConfigurationSyndicationTarget(t *testing.T) {
 	assert := assert.New(t)
 
-	s := httptest.NewServer(getHandler(nil, "http://media.example.com/", fakeSyndicators()))
-	defer s.Close()
+	handler := getHandler(nil, "http://media.example.com/", fakeSyndicators())
 
-	resp, err := http.Get(s.URL + "?q=syndicate-to")
-	assert.Nil(err)
+	req := httptest.NewRequest("GET", "http://localhost/?q=syndicate-to", nil)
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	resp := w.Result()
+
 	assert.Equal(http.StatusOK, resp.StatusCode)
 	assert.Equal("application/json", resp.Header.Get("Content-Type"))
 
@@ -182,11 +202,15 @@ func TestConfigurationSyndicationTarget(t *testing.T) {
 func TestConfigurationMediaEndpoint(t *testing.T) {
 	assert := assert.New(t)
 
-	s := httptest.NewServer(getHandler(nil, "http://media.example.com/", fakeSyndicators()))
-	defer s.Close()
+	handler := getHandler(nil, "http://media.example.com/", fakeSyndicators())
 
-	resp, err := http.Get(s.URL + "?q=media-endpoint")
-	assert.Nil(err)
+	req := httptest.NewRequest("GET", "http://localhost/?q=media-endpoint", nil)
+
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+
+	resp := w.Result()
+
 	assert.Equal(http.StatusOK, resp.StatusCode)
 	assert.Equal("application/json", resp.Header.Get("Content-Type"))
 
