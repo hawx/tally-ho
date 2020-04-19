@@ -14,6 +14,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"hawx.me/code/serve"
+	"hawx.me/code/tally-ho/auth"
 	"hawx.me/code/tally-ho/blog"
 	"hawx.me/code/tally-ho/media"
 	"hawx.me/code/tally-ho/micropub"
@@ -188,7 +189,7 @@ func main() {
 		micropubSyndicateTo,
 		fw))
 	http.Handle("/-/webmention", webmention.Endpoint(b))
-	http.Handle("/-/media", media.Endpoint(conf.Me, fw))
+	http.Handle("/-/media", auth.Only(conf.Me, media.Endpoint(fw, auth.HasScope)))
 	http.Handle("/-/hub", websubhub)
 
 	serve.Serve(*port, *socket, http.DefaultServeMux)

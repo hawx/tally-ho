@@ -11,108 +11,125 @@ import (
 	"mime/multipart"
 	"net/http"
 	"sync"
-
-	"hawx.me/code/mux"
-	"hawx.me/code/tally-ho/auth"
 )
 
 type FileWriter interface {
+	// WriteFile is given the name and content-type of the uploaded media, along
+	// with a Reader of its contents. It returns a URL locating the file, or an
+	// error if a problem occured.
 	WriteFile(name, contentType string, r io.Reader) (location string, err error)
 }
 
-type uploadState struct {
-	sync.RWMutex
-	LastURL string
+// HasScope returns true if the Request contains one of the listed valid
+// scopes. It is expected to write any applicable error information and/or
+// status codes to the ResponseWriter.
+type HasScope func(w http.ResponseWriter, r *http.Request, valid ...string) bool
+
+type Handler struct {
+	fw       FileWriter
+	hasScope HasScope
+
+	mu      sync.RWMutex
+	lastURL string
 }
 
-// Endpoint returns a simple implementation of a media endpoint.
+// Endpoint returns a simple implementation of a media endpoint. It expects a
+// multipart form with a single part named 'file'.
 //
-// The handler expects a multipart form with a single part named 'file'. The
-// part will be written to the configured directory named with a UUID.
+// No limits are imposed on requests so care should be taken to configure them
+// using a reverse-proxy or similar.
 //
-// No limits are imposed on requests made so care should be taken to configure
-// this using a reverse-proxy or similar.
-func Endpoint(me string, fw FileWriter) http.Handler {
-	state := &uploadState{}
-
-	return auth.Only(me, mux.Method{
-		"GET":  getHandler(state),
-		"POST": postHandler(state, fw),
-	})
-}
-
-func getHandler(state *uploadState) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.FormValue("q") != "last" {
-			http.Error(w, "", http.StatusBadRequest)
-			return
-		}
-
-		state.RLock()
-		lastURL := state.LastURL
-		state.RUnlock()
-
-		w.Header().Add("Content-Type", "application/json")
-		if err := json.NewEncoder(w).Encode(struct {
-			URL string `json:"url,omitempty"`
-		}{
-			URL: lastURL,
-		}); err != nil {
-			log.Println("ERR get-last-media;", err)
-		}
+// The URL of the last file uploaded can be queried by requesting 'GET
+// /?q=last'.
+func Endpoint(fw FileWriter, hasScope HasScope) *Handler {
+	return &Handler{
+		fw:       fw,
+		hasScope: hasScope,
 	}
 }
 
-func postHandler(state *uploadState, fw FileWriter) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if !auth.HasScope(w, r, "media", "create") {
-			return
-		}
-
-		mediaType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
-		if err != nil {
-			log.Println("ERR media-upload;", err)
-			return
-		}
-		if mediaType != "multipart/form-data" {
-			log.Println("ERR media-upload; bad mediaType")
-			http.Error(w, "expected content-type of multipart/form-data", http.StatusUnsupportedMediaType)
-			return
-		}
-
-		parts := multipart.NewReader(r.Body, params["boundary"])
-
-		part, err := parts.NextPart()
-		if err == io.EOF {
-			log.Println("ERR media-upload; empty form")
-			http.Error(w, "expected multipart form to contain a part", http.StatusBadRequest)
-			return
-		}
-		if err != nil {
-			log.Println("ERR media-upload;", err)
-			http.Error(w, "problem reading multipart form", http.StatusBadRequest)
-			return
-		}
-
-		mt, ps, er := mime.ParseMediaType(part.Header.Get("Content-Disposition"))
-		if er != nil || mt != "form-data" || ps["name"] != "file" {
-			log.Println("ERR media-upload; expected only single part")
-			http.Error(w, "request must only contain a part named 'file'", http.StatusBadRequest)
-			return
-		}
-
-		location, err := fw.WriteFile(ps["filename"], part.Header.Get("Content-Type"), part)
-		if err != nil {
-			log.Println("ERR media-upload;", err)
-			http.Error(w, "problem writing media to file", http.StatusInternalServerError)
-			return
-		}
-
-		state.Lock()
-		state.LastURL = location
-		state.Unlock()
-
-		w.Header().Set("Location", location)
-		w.WriteHeader(http.StatusCreated)
+func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		h.get(w, r)
+	case http.MethodPost:
+		h.post(w, r)
+	case http.MethodOptions:
+		w.Header().Set("Accept", "GET,POST")
+	default:
+		w.Header().Set("Accept", "GET,POST")
+		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
+}
+
+func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
+	if r.FormValue("q") != "last" {
+		http.Error(w, "", http.StatusBadRequest)
+		return
+	}
+
+	h.mu.RLock()
+	lastURL := h.lastURL
+	h.mu.RUnlock()
+
+	w.Header().Add("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(struct {
+		URL string `json:"url,omitempty"`
+	}{
+		URL: lastURL,
+	}); err != nil {
+		log.Println("ERR get-last-media;", err)
+	}
+}
+
+func (h *Handler) post(w http.ResponseWriter, r *http.Request) {
+	if !h.hasScope(w, r, "media", "create") {
+		return
+	}
+
+	mediaType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil {
+		log.Println("ERR media-upload;", err)
+		return
+	}
+	if mediaType != "multipart/form-data" {
+		log.Println("ERR media-upload; bad mediaType")
+		http.Error(w, "expected content-type of multipart/form-data", http.StatusUnsupportedMediaType)
+		return
+	}
+
+	parts := multipart.NewReader(r.Body, params["boundary"])
+
+	part, err := parts.NextPart()
+	if err == io.EOF {
+		log.Println("ERR media-upload; empty form")
+		http.Error(w, "expected multipart form to contain a part", http.StatusBadRequest)
+		return
+	}
+	if err != nil {
+		log.Println("ERR media-upload;", err)
+		http.Error(w, "problem reading multipart form", http.StatusBadRequest)
+		return
+	}
+
+	mt, ps, er := mime.ParseMediaType(part.Header.Get("Content-Disposition"))
+	if er != nil || mt != "form-data" || ps["name"] != "file" {
+		log.Println("ERR media-upload; expected only single part")
+		http.Error(w, "request must only contain a part named 'file'", http.StatusBadRequest)
+		return
+	}
+
+	location, err := h.fw.WriteFile(ps["filename"], part.Header.Get("Content-Type"), part)
+	if err != nil {
+		log.Println("ERR media-upload;", err)
+		http.Error(w, "problem writing media to file", http.StatusInternalServerError)
+		return
+	}
+
+	h.mu.Lock()
+	h.lastURL = location
+	h.mu.Unlock()
+
+	w.Header().Set("Location", location)
+	w.WriteHeader(http.StatusCreated)
 }

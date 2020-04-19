@@ -2,7 +2,6 @@ package media
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"io"
 	"io/ioutil"
@@ -25,51 +24,34 @@ func (fw *fakeFileWriter) WriteFile(name, contentType string, r io.Reader) (stri
 	return "a url", nil
 }
 
-func withScope(scope string, handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handler.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), "__hawx.me/code/tally-ho:Scopes__", []string{scope})))
-	})
+type fakeHasScope struct {
+	ok    bool
+	valid []string
+}
+
+func (hs *fakeHasScope) HasScope(w http.ResponseWriter, r *http.Request, valid ...string) bool {
+	hs.valid = valid
+
+	if !hs.ok {
+		w.WriteHeader(http.StatusUnauthorized)
+	}
+
+	return hs.ok
+}
+
+func hasScope(ok bool) HasScope {
+	a := &fakeHasScope{ok: ok}
+	return a.HasScope
 }
 
 func TestMedia(t *testing.T) {
 	assert := assert.New(t)
 	file := "this is an image"
 	fw := &fakeFileWriter{}
-	state := &uploadState{}
+	hs := &fakeHasScope{ok: true}
+	state := Endpoint(fw, hs.HasScope)
 
-	handler := withScope("media", postHandler(state, fw))
-
-	var buf bytes.Buffer
-	writer := multipart.NewWriter(&buf)
-
-	part, err := writer.CreateFormFile("file", "whatever.png")
-	assert.Nil(err)
-	io.WriteString(part, file)
-
-	assert.Nil(writer.Close())
-
-	req := httptest.NewRequest("POST", "http://localhost/", &buf)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-
-	w := httptest.NewRecorder()
-	handler.ServeHTTP(w, req)
-
-	resp := w.Result()
-
-	assert.Equal(http.StatusCreated, resp.StatusCode)
-	assert.Equal("a url", resp.Header.Get("Location"))
-	assert.Equal(file, fw.data)
-
-	assert.Equal("a url", state.LastURL)
-}
-
-func TestMediaWithCreateScope(t *testing.T) {
-	assert := assert.New(t)
-	file := "this is an image"
-	fw := &fakeFileWriter{}
-	state := &uploadState{}
-
-	handler := withScope("create", postHandler(state, fw))
+	handler := state
 
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
@@ -92,16 +74,17 @@ func TestMediaWithCreateScope(t *testing.T) {
 	assert.Equal("a url", resp.Header.Get("Location"))
 	assert.Equal(file, fw.data)
 
-	assert.Equal("a url", state.LastURL)
+	assert.Equal("a url", state.lastURL)
+	assert.Equal([]string{"media", "create"}, hs.valid)
 }
 
 func TestMediaMissingScope(t *testing.T) {
 	assert := assert.New(t)
 	file := "this is an image"
 	fw := &fakeFileWriter{}
-	state := &uploadState{}
+	state := Endpoint(fw, hasScope(false))
 
-	handler := withScope("update", postHandler(state, fw))
+	handler := state
 
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
@@ -122,13 +105,14 @@ func TestMediaMissingScope(t *testing.T) {
 
 	assert.Equal(http.StatusUnauthorized, resp.StatusCode)
 	assert.Equal("", fw.data)
-	assert.Equal("", state.LastURL)
+	assert.Equal("", state.lastURL)
 }
 
 func TestMediaWhenNoFilePart(t *testing.T) {
 	assert := assert.New(t)
 
-	handler := withScope("media", postHandler(&uploadState{}, &fakeFileWriter{}))
+	state := Endpoint(&fakeFileWriter{}, hasScope(true))
+	handler := state
 
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
@@ -150,7 +134,8 @@ func TestMediaWhenMultipleFileParts(t *testing.T) {
 	file := "this is an image"
 	fw := &fakeFileWriter{}
 
-	handler := withScope("media", postHandler(&uploadState{}, fw))
+	state := Endpoint(fw, hasScope(true))
+	handler := state
 
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
@@ -181,7 +166,8 @@ func TestMediaWhenMultipleFileParts(t *testing.T) {
 func TestQueryUnknown(t *testing.T) {
 	assert := assert.New(t)
 
-	handler := withScope("media", getHandler(&uploadState{}))
+	state := Endpoint(nil, hasScope(true))
+	handler := state
 
 	req := httptest.NewRequest("GET", "http://localhost/?q=what", nil)
 
@@ -196,9 +182,9 @@ func TestQueryUnknown(t *testing.T) {
 func TestQueryLast(t *testing.T) {
 	assert := assert.New(t)
 
-	handler := getHandler(&uploadState{
-		LastURL: "http://media.example.com/file.jpg",
-	})
+	state := Endpoint(nil, hasScope(true))
+	state.lastURL = "http://media.example.com/file.jpg"
+	handler := state
 
 	req := httptest.NewRequest("GET", "http://localhost/?q=last", nil)
 
@@ -218,7 +204,7 @@ func TestQueryLast(t *testing.T) {
 func TestQueryLastWhenNoneUploaded(t *testing.T) {
 	assert := assert.New(t)
 
-	handler := getHandler(&uploadState{})
+	handler := Endpoint(nil, hasScope(true))
 
 	req := httptest.NewRequest("GET", "http://localhost/?q=last", nil)
 
