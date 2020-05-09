@@ -21,7 +21,7 @@
   </h1>
 {{ else if has . "read-of" }}
   <h1 class="p-summary">
-    {{ humanReadStatus . }} <span class="h-cite"><strong class="p-name">{{ get . "read-of.properties.name" }}</strong> by <strong class="p-author">{{ get . "read-of.properties.author" }}</strong></span>
+    {{ humanReadStatus . }} <span class="h-cite"><strong class="p-name">{{ get . "read-of.properties.name" }}</strong>{{ if has . "read-of.properties.author" }} by <strong class="p-author">{{ get . "read-of.properties.author" }}</strong>{{ end }}</span>
   </h1>
 {{ else if has . "drank" }}
   <h1 class="p-summary">
