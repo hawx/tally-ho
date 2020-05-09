@@ -213,9 +213,13 @@ func templateTitle(m map[string][]interface{}) string {
 		prefix = "photo: "
 		defalt = "a photo"
 	case "read":
+		if mfutil.Has(m, "read-of.properties.author") {
+			return templateHumanReadStatus(m) + " " +
+				mfutil.Get(m, "read-of.properties.name").(string) + " by " +
+				mfutil.Get(m, "read-of.properties.author").(string)
+		}
 		return templateHumanReadStatus(m) + " " +
-			mfutil.Get(m, "read-of.properties.name").(string) + " by " +
-			mfutil.Get(m, "read-of.properties.author").(string)
+			mfutil.Get(m, "read-of.properties.name").(string)
 	case "drank":
 		return "drank " + mfutil.Get(m, "drank.properties.name").(string)
 	case "checkin":
