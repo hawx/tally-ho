@@ -20,7 +20,7 @@ require (
 	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80
 	golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	hawx.me/code/assert v0.0.0-20150803185601-4570da094475
+	hawx.me/code/assert v0.0.0-20200428180912-91e855e32e7d
 	hawx.me/code/indieauth v1.0.2-0.20190414103535-e45980f3aa4d
 	hawx.me/code/microformats v0.0.0-20191022184242-49e59d72c0b9
 	hawx.me/code/mux v0.0.0-20200113153227-9b1ff45c6491

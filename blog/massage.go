@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/url"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -35,6 +36,8 @@ func (b *Blog) massage(data map[string][]interface{}) {
 
 	if len(data["published"]) == 0 {
 		data["published"] = []interface{}{time.Now().UTC().Format(time.RFC3339)}
+	} else {
+		data["published"] = []interface{}{parseDate(data["published"][0].(string)).UTC().Format(time.RFC3339)}
 	}
 
 	kind := postTypeDiscovery(data)
@@ -141,4 +144,45 @@ func postTypeDiscovery(data map[string][]interface{}) string {
 	}
 
 	return "note"
+}
+
+func parseDate(s string) time.Time {
+	var layouts = []string{
+		time.RFC3339,
+		time.RFC3339Nano,
+		"2006-01-02T15:04:05-0700",
+		"2006-01-02T15:04-0700",
+		"2006-01-02 15:04:05-0700",
+		"2006-01-02 15:04-0700",
+		"Mon, _2 Jan 2006 15:04:05 MST",
+		"Mon, _2 Jan 2006 15:04:05 -0700",
+		time.ANSIC,
+		time.UnixDate,
+		time.RubyDate,
+		time.RFC822,
+		time.RFC822Z,
+		time.RFC850,
+		time.RFC1123,
+		time.RFC1123Z,
+		"Mon, 2, Jan 2006 15:4",
+		"02 Jan 2006 15:04:05 MST",
+	}
+
+	var t time.Time
+	var err error
+	s = strings.TrimSpace(s)
+
+	for _, layout := range layouts {
+		t, err = time.Parse(layout, s)
+		if !t.IsZero() {
+			break
+		}
+	}
+
+	// give up
+	if err != nil {
+		t = time.Now()
+	}
+
+	return t
 }
