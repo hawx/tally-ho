@@ -40,7 +40,7 @@ Possibly up-to-date feature list:
   * [ ] `post-status`
 
 - Syndication:
-  * Twitter:
+  * Twitter
     * Create
         * [x] Notes
         * [ ] Posts
@@ -61,6 +61,7 @@ Possibly up-to-date feature list:
     * [ ] Retreive likes
     * [ ] Retrieve comments
   * GitHub
+    * [x] Likes
     * [ ] Create issue
     * [ ] Create comment
     * [ ] Retrieve reactions
