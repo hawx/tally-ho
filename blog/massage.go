@@ -15,6 +15,7 @@ import (
 var citeable = map[string]string{
 	"like":     "like-of",
 	"reply":    "in-reply-to",
+	"repost":   "repost-of",
 	"bookmark": "bookmark-of",
 }
 

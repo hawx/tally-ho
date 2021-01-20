@@ -150,6 +150,62 @@ func TestTwitterCreate(t *testing.T) {
 		}
 	})
 
+	t.Run("repost-cite", func(t *testing.T) {
+		assert := assert.New(t)
+
+		location, err := twitter.Create(map[string][]interface{}{
+			"hx-kind": {"repost"},
+			"repost-of": {map[string]interface{}{
+				"type": []string{"h-cite"},
+				"properties": map[string][]interface{}{
+					"url": {"https://twitter.com/SomePerson/status/1234"},
+				},
+			}},
+		})
+
+		assert.Nil(err)
+		assert.Equal("https://twitter.com/SomePerson/status/1234", location)
+
+		select {
+		case req := <-rs:
+			r, body := req.r, req.body
+
+			assert.Equal("POST", r.Method)
+			assert.Equal("/statuses/retweet/1234.json", r.URL.Path)
+			assert.Equal("trim_user=t", string(body))
+		case <-time.After(time.Second):
+			t.Fatal("expected request to be made within 1s")
+		}
+	})
+
+	t.Run("repost-cite-query", func(t *testing.T) {
+		assert := assert.New(t)
+
+		location, err := twitter.Create(map[string][]interface{}{
+			"hx-kind": {"repost"},
+			"repost-of": {map[string]interface{}{
+				"type": []string{"h-cite"},
+				"properties": map[string][]interface{}{
+					"url": {"https://twitter.com/SomePerson/status/1234?s=09"},
+				},
+			}},
+		})
+
+		assert.Nil(err)
+		assert.Equal("https://twitter.com/SomePerson/status/1234?s=09", location)
+
+		select {
+		case req := <-rs:
+			r, body := req.r, req.body
+
+			assert.Equal("POST", r.Method)
+			assert.Equal("/statuses/retweet/1234.json", r.URL.Path)
+			assert.Equal("trim_user=t", string(body))
+		case <-time.After(time.Second):
+			t.Fatal("expected request to be made within 1s")
+		}
+	})
+
 	t.Run("note-string", func(t *testing.T) {
 		assert := assert.New(t)
 

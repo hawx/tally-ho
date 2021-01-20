@@ -130,6 +130,21 @@ func (t *twitterClient) Create(data map[string][]interface{}) (location string, 
 
 		return likeOf, nil
 
+	case "repost":
+		repostOf, tweetID, _, ok := findTwitterStatusURL(
+			mfutil.GetAll(data, "repost-of.properties.url", "repost-of"),
+		)
+		if !ok {
+			return "", ErrUnsure{data}
+		}
+
+		_, err := t.api.Retweet(tweetID, true)
+		if err != nil {
+			return "", err
+		}
+
+		return repostOf, nil
+
 	case "reply":
 		_, tweetID, username, ok := findTwitterStatusURL(
 			mfutil.GetAll(data, "in-reply-to.properties.url", "in-reply-to"),

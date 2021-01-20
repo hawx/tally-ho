@@ -51,6 +51,12 @@ func extension(contentType, filename string) string {
 	}
 
 	exts, err := mime.ExtensionsByType(contentType)
+
+	// why must this keep being changed
+	if contains(".jpg", exts) {
+		return ".jpg"
+	}
+
 	if err == nil && len(exts) > 0 {
 		return exts[0]
 	}

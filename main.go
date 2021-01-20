@@ -24,7 +24,14 @@ import (
 )
 
 func usage() {
-	fmt.Println(`Usage: tally-ho [options]`)
+	fmt.Println(`Usage: tally-ho [options]
+
+  --config PATH=./config.toml
+  --web DIR=web
+  --db PATH=file::memory
+  --media-dir DIR
+  --port PORT=8080
+  --socket PATH`)
 }
 
 type config struct {

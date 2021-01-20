@@ -48,7 +48,7 @@ Possibly up-to-date feature list:
         * [ ] Videos
         * [x] Likes
         * [x] Replies
-        * [ ] Reposts
+        * [x] Reposts (url only)
     * [ ] Retrieve likes
     * [ ] Retrieve replies
     * [ ] Retrieve retweets
