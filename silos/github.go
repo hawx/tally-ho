@@ -105,6 +105,27 @@ func (c *githubClient) Create(data map[string][]interface{}) (location string, e
 		}
 
 		return likeOf, nil
+
+	case "reply":
+		_, owner, repo, ok := findGithubRepoURL(mfutil.GetAll(data, "in-reply-to.properties.url", "in-reply-to"))
+		if !ok {
+			return "", ErrUnsure{data}
+		}
+
+		req := &github.IssueRequest{}
+		if name, ok := mfutil.Get(data, "name").(string); ok {
+			req.Title = &name
+		}
+		if content, ok := mfutil.Get(data, "content.text", "content").(string); ok {
+			req.Body = &content
+		}
+
+		issue, _, err := c.api.Issues.Create(context.Background(), owner, repo, req)
+		if err != nil {
+			return "", err
+		}
+
+		return *issue.HTMLURL, nil
 	}
 
 	return "", ErrUnsure{data}

@@ -231,7 +231,7 @@ div.h-cite img:first-child {
 
 /* reply */
 
-.reply h1:before {
+.reply h1.p-summary:before {
     content: '↳ ';
 }
 

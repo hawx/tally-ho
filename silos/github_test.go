@@ -24,6 +24,14 @@ func TestGithub(t *testing.T) {
 				w.WriteHeader(http.StatusNoContent)
 				return
 			}
+
+			if r.Method == "POST" && r.URL.Path == "/repos/person/repo/issues" {
+				rs <- "created issue"
+				w.Write([]byte(`{"html_url": "https://github.com/person/repo/issues/1"}`))
+				return
+			}
+
+			t.Log(r.Method, r.URL.Path)
 		},
 	))
 	defer s.Close()
@@ -53,6 +61,53 @@ func TestGithub(t *testing.T) {
 			assert.Equal("starred", r)
 		case <-time.After(time.Second):
 			t.Fatal("expected like")
+		}
+	})
+
+	t.Run("reply-string-repo", func(t *testing.T) {
+		assert := assert.New(t)
+
+		location, err := github.Create(map[string][]interface{}{
+			"hx-kind":     {"reply"},
+			"in-reply-to": {"https://github.com/person/repo/"},
+			"name":        {"Issue title"},
+			"content":     {"This is my issue"},
+		})
+
+		assert.Nil(err)
+		assert.Equal("https://github.com/person/repo/issues/1", location)
+
+		select {
+		case r := <-rs:
+			assert.Equal("created issue", r)
+		case <-time.After(time.Second):
+			t.Fatal("expected reply")
+		}
+	})
+
+	t.Run("reply-cite-repo", func(t *testing.T) {
+		assert := assert.New(t)
+
+		location, err := github.Create(map[string][]interface{}{
+			"hx-kind": {"reply"},
+			"in-reply-to": {map[string]interface{}{
+				"type": []string{"h-cite"},
+				"properties": map[string][]interface{}{
+					"url": {"https://github.com/person/repo/"},
+				},
+			}},
+			"name":    {"Issue title"},
+			"content": {"This is my issue"},
+		})
+
+		assert.Nil(err)
+		assert.Equal("https://github.com/person/repo/issues/1", location)
+
+		select {
+		case r := <-rs:
+			assert.Equal("created issue", r)
+		case <-time.After(time.Second):
+			t.Fatal("expected reply")
 		}
 	})
 }
