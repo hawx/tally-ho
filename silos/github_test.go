@@ -31,6 +31,12 @@ func TestGithub(t *testing.T) {
 				return
 			}
 
+			if r.Method == "POST" && r.URL.Path == "/repos/person/repo/issues/1/comments" {
+				rs <- "created comment"
+				w.Write([]byte(`{"html_url": "https://github.com/person/repo/issues/1#issueComment1"}`))
+				return
+			}
+
 			t.Log(r.Method, r.URL.Path)
 		},
 	))
@@ -106,6 +112,51 @@ func TestGithub(t *testing.T) {
 		select {
 		case r := <-rs:
 			assert.Equal("created issue", r)
+		case <-time.After(time.Second):
+			t.Fatal("expected reply")
+		}
+	})
+
+	t.Run("reply-string-issue", func(t *testing.T) {
+		assert := assert.New(t)
+
+		location, err := github.Create(map[string][]interface{}{
+			"hx-kind":     {"reply"},
+			"in-reply-to": {"https://github.com/person/repo/issues/1"},
+			"content":     {"This is my comment"},
+		})
+
+		assert.Nil(err)
+		assert.Equal("https://github.com/person/repo/issues/1#issueComment1", location)
+
+		select {
+		case r := <-rs:
+			assert.Equal("created comment", r)
+		case <-time.After(time.Second):
+			t.Fatal("expected reply")
+		}
+	})
+
+	t.Run("reply-cite-issue", func(t *testing.T) {
+		assert := assert.New(t)
+
+		location, err := github.Create(map[string][]interface{}{
+			"hx-kind": {"reply"},
+			"in-reply-to": {map[string]interface{}{
+				"type": []string{"h-cite"},
+				"properties": map[string][]interface{}{
+					"url": {"https://github.com/person/repo/issues/1"},
+				},
+			}},
+			"content": {"This is my comment"},
+		})
+
+		assert.Nil(err)
+		assert.Equal("https://github.com/person/repo/issues/1#issueComment1", location)
+
+		select {
+		case r := <-rs:
+			assert.Equal("created comment", r)
 		case <-time.After(time.Second):
 			t.Fatal("expected reply")
 		}

@@ -153,7 +153,7 @@ func (t *twitterClient) Create(data map[string][]interface{}) (location string, 
 			return "", ErrUnsure{data}
 		}
 
-		content, ok := autoLinkContent(data)
+		content, ok := twitterAutoLinkContent(data)
 		if !ok {
 			return "", ErrUnsure{data}
 		}
@@ -211,7 +211,7 @@ func (t *twitterClient) Create(data map[string][]interface{}) (location string, 
 			mediaIDs = append(mediaIDs, media.MediaIDString)
 		}
 
-		content, ok := autoLinkContent(data)
+		content, ok := twitterAutoLinkContent(data)
 		if !ok {
 			content = ""
 		}
@@ -226,7 +226,7 @@ func (t *twitterClient) Create(data map[string][]interface{}) (location string, 
 		return "https://twitter.com/" + tweet.User.ScreenName + "/status/" + tweet.IdStr, nil
 
 	case "note":
-		content, ok := autoLinkContent(data)
+		content, ok := twitterAutoLinkContent(data)
 		if !ok {
 			return "", ErrUnsure{data}
 		}
@@ -260,7 +260,7 @@ func (t *twitterClient) Create(data map[string][]interface{}) (location string, 
 	return "", ErrUnsure{data}
 }
 
-func autoLinkContent(data map[string][]interface{}) (string, bool) {
+func twitterAutoLinkContent(data map[string][]interface{}) (string, bool) {
 	content, ok := mfutil.Get(data, "content.text", "content").(string)
 	if !ok {
 		return "", false
