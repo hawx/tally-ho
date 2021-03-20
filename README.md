@@ -100,5 +100,6 @@ Possibly up-to-date feature list:
   * [x] Jsonfeed (<https://jsonfeed.org/>)
   * [x] WebSub
     * [x] On create
-    * [ ] On update
-    * [ ] On delete
+    * [x] On update
+    * [x] On delete
+    * [x] On undelete

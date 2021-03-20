@@ -56,6 +56,7 @@ func (b *Blog) Update(
 	}
 
 	go b.sendUpdateWebmentions(url, oldData, newData)
+	go b.hubPublish()
 
 	return nil
 }

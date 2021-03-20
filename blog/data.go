@@ -47,6 +47,8 @@ func (b *Blog) Delete(url string) error {
 	}
 
 	go b.sendWebmentions(url, data)
+	go b.hubPublish()
+
 	return b.entries.Set(id, "hx-deleted", true)
 }
 
@@ -62,6 +64,8 @@ func (b *Blog) Undelete(url string) error {
 	}
 
 	go b.sendWebmentions(url, data)
+	go b.hubPublish()
+
 	return b.entries.DeletePredicate(id, "hx-deleted")
 }
 
