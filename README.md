@@ -43,7 +43,7 @@ Possibly up-to-date feature list:
   * Twitter
     * Create
         * [x] Notes
-        * [ ] Posts
+        * [x] Posts
         * [x] Photos
         * [ ] Videos
         * [x] Likes
@@ -61,10 +61,14 @@ Possibly up-to-date feature list:
     * [ ] Retreive likes
     * [ ] Retrieve comments
   * GitHub
-    * [x] Likes
-    * [ ] Create issue
-    * [ ] Create comment
+    * Likes
+      * [x] Repos
+      * [ ] Issues
+      * [ ] Comments
+    * [x] Create issue (in-reply-to repo)
+    * [x] Create comment (in-reply-to issue)
     * [ ] Retrieve reactions
+    * [ ] Retrieve comments
 
 - Webmentions:
   * [x] Receive webmentions for posts
