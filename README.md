@@ -36,16 +36,26 @@ running you will need to:
     [flickr]
     consumerKey = "..."
     consumerSecret = "..."
+    # To get these values you can use the cmd/flickr-credentials tool which uses
+    # this config file to perform the web authentorization flow.
+    #
+    #   $ go install hawx.me/code/tally-ho/cmd/flickr-credentials
+    #   $ flickr-credentials -config $PATH_TO_CONFIG
     accessToken = "..."
     accessTokenSecret = "..."
 
     [github]
     clientID = "..."
     clientSecret = "..."
+    # To get this value you can use the cmd/github-credentials tool which uses
+    # this config file to perform the web authentorization flow.
+    #
+    #   $ go install hawx.me/code/tally-ho/cmd/github-credentials
+    #   $ github-credentials -config $PATH_TO_CONFIG
     accessToken = "..."
     ```
 
-1. Copy the [`web`](web) directory somewhere
+1. Copy the [`./web`](web) directory somewhere
 
 1. Edit the contents of
    [`web/templates/foooter.gotmpl`](web/templates/footer.gotmpl) to not have my
@@ -69,6 +79,7 @@ To get webmentions for social media posts I recommend setting up
 <https://brid.gy/>, as `tally-ho` only allows syndicating to
 Twitter/Flickr/GitHub and not gathering responses (yet).
 
+See [`./misc`](misc) for examples of config files for nginx and systemd.
 
 ## features
 

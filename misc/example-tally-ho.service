@@ -1,0 +1,12 @@
+[Unit]
+Description=tally-ho
+After=network.target
+Requires=example-tally-ho.socket
+
+[Service]
+User=www-data
+ExecStart=/bin/tally-ho --config '/etc/tally-ho.toml' --db '/etc/tally-ho.sqlite' --web '/www/tally-ho/web' --media-dir '/www/tally-ho-media'
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

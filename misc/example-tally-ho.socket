@@ -1,0 +1,9 @@
+[Unit]
+Description=tally-ho socket
+PartOf=example-tally-ho.service
+
+[Socket]
+ListenStream=/run/tally-ho.socket
+
+[Install]
+WantedBy=sockets.target
