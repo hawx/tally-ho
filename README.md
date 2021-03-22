@@ -2,12 +2,75 @@
 
 A micropub speaking blog.
 
-Relevant specs:
 
-- [Micropub](https://www.w3.org/TR/micropub/)
-- [Webmention](https://www.w3.org/TR/webmention/)
-- [IndieAuth](https://www.w3.org/TR/indieauth/)
-- [WebSub](https://www.w3.org/TR/websub/)
+## usage
+
+This is an almost all-in-one solution for running an "IndieWeb" blog. To get
+running you will need to:
+
+1. Run `go install hawx.me/code/tally-ho@latest`, or clone this repo and run `go build`
+
+1. Make a directory to put media files in (`tally-ho` will write files to this
+   directory but will not serve them)
+
+1. Create a config file, by default it looks for a file called `config.toml`
+
+    ```
+    me = "https://john.example.com/"
+    name = "John Doe"
+    title = "John Doe's blog"
+    description = "My great blog"
+
+    # the URL tally-ho will be accessed from
+    baseURL = "http://blog.john.example.com/"
+    # the URL the media directory will be accessed from
+    mediaURL = "http://media.john.example.com/"
+
+    # each of these blocks can be left out if you don't want to use them
+    [twitter]
+    consumerKey = "..."
+    consumerSecret = "..."
+    accessToken = "..."
+    accessTokenSecret = "..."
+
+    [flickr]
+    consumerKey = "..."
+    consumerSecret = "..."
+    accessToken = "..."
+    accessTokenSecret = "..."
+
+    [github]
+    clientID = "..."
+    clientSecret = "..."
+    accessToken = "..."
+    ```
+
+1. Copy the [`web`](web) directory somewhere
+
+1. Edit the contents of
+   [`web/templates/foooter.gotmpl`](web/templates/footer.gotmpl) to not have my
+   details, and potentially change the css or templates to be more your style
+
+Then you are ready to run it:
+
+```
+$ tally-ho
+    --config $PATH_TO_CONFIG_FILE
+    --web $PATH_TO_WEB_DIR
+    --media-dir $PATH_TO_MEDIA_DIR
+    --db ./db.sqlite
+```
+
+It will be listening on <http://localhost:8080>, this can be changed by passing
+`--port` or `--socket`. If run as a systemd service then it will detect a
+corresponding `.socket` definition.
+
+To get webmentions for social media posts I recommend setting up
+<https://brid.gy/>, as `tally-ho` only allows syndicating to
+Twitter/Flickr/GitHub and not gathering responses (yet).
+
+
+## features
 
 Possibly up-to-date feature list:
 
@@ -107,3 +170,10 @@ Possibly up-to-date feature list:
     * [x] On update
     * [x] On delete
     * [x] On undelete
+
+Relevant specs:
+
+- [Micropub](https://www.w3.org/TR/micropub/)
+- [Webmention](https://www.w3.org/TR/webmention/)
+- [IndieAuth](https://www.w3.org/TR/indieauth/)
+- [WebSub](https://www.w3.org/TR/websub/)
