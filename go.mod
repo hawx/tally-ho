@@ -13,12 +13,11 @@ require (
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/feeds v1.1.1
-	github.com/gorilla/sessions v1.1.3
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/kylelemons/godebug v0.0.0-20170820004349-d65d576e9348 // indirect
 	github.com/mattn/go-sqlite3 v1.10.0
 	github.com/tomnomnom/linkheader v0.0.0-20180905144013-02ca5825eb80
-	golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
+	golang.org/x/net v0.7.0
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 	hawx.me/code/assert v0.0.0-20200428180912-91e855e32e7d
 	hawx.me/code/indieauth v1.0.2-0.20190414103535-e45980f3aa4d
@@ -27,7 +26,6 @@ require (
 	hawx.me/code/numbersix v0.0.0-20200127191504-26b4426584e4
 	hawx.me/code/route v1.0.0
 	hawx.me/code/serve v0.0.0-20190207181551-eb94630184cf
-	mvdan.cc/xurls v1.1.0
 	mvdan.cc/xurls/v2 v2.1.0
 	willnorris.com/go/microformats v1.0.0
 )
