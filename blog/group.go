@@ -5,13 +5,10 @@ import (
 	"strings"
 
 	"hawx.me/code/numbersix"
+	"hawx.me/code/tally-ho/internal/page"
 )
 
-type GroupedPosts struct {
-	Type  string
-	Posts []map[string][]interface{}
-	Meta  map[string][]interface{}
-}
+type GroupedPosts = page.GroupedPosts
 
 func groupLikes(posts []numbersix.Group) []GroupedPosts {
 	var groupedPosts []GroupedPosts

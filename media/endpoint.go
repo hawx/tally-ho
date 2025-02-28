@@ -6,7 +6,7 @@ package media
 import (
 	"encoding/json"
 	"io"
-	"log"
+	"log/slog"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -26,6 +26,7 @@ type FileWriter interface {
 type HasScope func(w http.ResponseWriter, r *http.Request, valid ...string) bool
 
 type Handler struct {
+	logger   *slog.Logger
 	fw       FileWriter
 	hasScope HasScope
 
@@ -43,6 +44,7 @@ type Handler struct {
 // /?q=last'.
 func Endpoint(fw FileWriter, hasScope HasScope) *Handler {
 	return &Handler{
+		logger:   slog.Default().With("component", "media"),
 		fw:       fw,
 		hasScope: hasScope,
 	}
@@ -78,7 +80,7 @@ func (h *Handler) get(w http.ResponseWriter, r *http.Request) {
 	}{
 		URL: lastURL,
 	}); err != nil {
-		log.Println("ERR get-last-media;", err)
+		h.logger.Error("get last media", slog.Any("err", err))
 	}
 }
 
@@ -89,11 +91,11 @@ func (h *Handler) post(w http.ResponseWriter, r *http.Request) {
 
 	mediaType, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
-		log.Println("ERR media-upload;", err)
+		h.logger.Error("parsing media type", slog.Any("err", err))
 		return
 	}
 	if mediaType != "multipart/form-data" {
-		log.Println("ERR media-upload; bad mediaType")
+		h.logger.Error("bad mediaType")
 		http.Error(w, "expected content-type of multipart/form-data", http.StatusUnsupportedMediaType)
 		return
 	}
@@ -102,26 +104,26 @@ func (h *Handler) post(w http.ResponseWriter, r *http.Request) {
 
 	part, err := parts.NextPart()
 	if err == io.EOF {
-		log.Println("ERR media-upload; empty form")
+		h.logger.Error("empty form")
 		http.Error(w, "expected multipart form to contain a part", http.StatusBadRequest)
 		return
 	}
 	if err != nil {
-		log.Println("ERR media-upload;", err)
+		h.logger.Error("next part", slog.Any("err", err))
 		http.Error(w, "problem reading multipart form", http.StatusBadRequest)
 		return
 	}
 
 	mt, ps, er := mime.ParseMediaType(part.Header.Get("Content-Disposition"))
 	if er != nil || mt != "form-data" || ps["name"] != "file" {
-		log.Println("ERR media-upload; expected only single part")
+		h.logger.Error("expected only single part")
 		http.Error(w, "request must only contain a part named 'file'", http.StatusBadRequest)
 		return
 	}
 
 	location, err := h.fw.WriteFile(ps["filename"], part.Header.Get("Content-Type"), part)
 	if err != nil {
-		log.Println("ERR media-upload;", err)
+		h.logger.Error("write file", slog.Any("err", err))
 		http.Error(w, "problem writing media to file", http.StatusInternalServerError)
 		return
 	}

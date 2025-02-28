@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"path"
@@ -328,7 +328,7 @@ func (t *twitterClient) ResolveCite(u string) (map[string]interface{}, error) {
 			if err == nil {
 				mediaURL = location
 			} else {
-				log.Printf("ERR twitter-write-file url=%s; %v\n", mediaURL, err)
+				slog.Error("twitter write file", slog.String("url", mediaURL), slog.Any("err", err))
 			}
 		}
 

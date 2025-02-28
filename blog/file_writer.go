@@ -2,7 +2,7 @@ package blog
 
 import (
 	"io"
-	"log"
+	"log/slog"
 	"mime"
 	"net/url"
 	"os"
@@ -38,7 +38,7 @@ func (fw *FileWriter) WriteFile(name, contentType string, r io.Reader) (location
 	if _, err := io.Copy(file, r); err != nil {
 		return "", err
 	}
-	log.Printf("INFO wrote-file path=%s\n", p)
+	slog.Info("wrote file", slog.String("path", p))
 
 	relURL, _ := url.Parse(name)
 	return fw.MediaURL.ResolveReference(relURL).String(), nil

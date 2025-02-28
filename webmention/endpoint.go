@@ -5,9 +5,11 @@ package webmention
 
 import (
 	"errors"
-	"log"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
 	"hawx.me/code/microformats/authorship"
@@ -36,10 +38,10 @@ func postHandler(blog Blog) http.HandlerFunc {
 
 	go func() {
 		for mention := range mentions {
-			log.Printf("INFO received-webmention target=%s source=%s\n", mention.target, mention.source)
+			slog.Info("received webmention", slog.String("target", mention.target), slog.String("source", mention.source))
 
 			if err := processMention(mention, blog); err != nil {
-				log.Println("ERR process-mention;", err)
+				slog.Error("process mention", slog.Any("err", err))
 			}
 		}
 	}()
@@ -51,18 +53,18 @@ func postHandler(blog Blog) http.HandlerFunc {
 		)
 
 		if source == "" || target == "" {
-			log.Printf("ERR invalid-webmention source=%s target=%s; missing argument\n", source, target)
+			slog.Error("invalid webmention missing argument", slog.String("source", source), slog.String("target", target))
 			http.Error(w, "", http.StatusBadRequest)
 			return
 		}
 
 		if !strings.HasPrefix(target, baseURL) {
-			log.Printf("ERR invalid-webmention target=%s; incorrect base url\n", target)
+			slog.Error("invalid webmention incorrect base url", slog.String("target", target))
 			http.Error(w, "", http.StatusBadRequest)
 			return
 		}
 
-		log.Printf("INFO webmention-queued source=%s target=%s\n", source, target)
+		slog.Info("webmention queued", slog.String("source", source), slog.String("target", target))
 		mentions <- webmention{source: source, target: target}
 		w.WriteHeader(http.StatusAccepted)
 	}
@@ -71,18 +73,18 @@ func postHandler(blog Blog) http.HandlerFunc {
 func processMention(mention webmention, blog Blog) error {
 	_, err := blog.Entry(mention.target)
 	if err != nil {
-		return errors.New("  no such post at 'target'")
+		return errors.New("no such post at 'target'")
 	}
 
 	source, err := url.Parse(mention.source)
 	if err != nil {
-		return errors.New("  could not parse 'source'")
+		return errors.New("could not parse 'source'")
 	}
 
 	// use a http client with a shortish timeout or this could block
 	resp, err := http.Get(mention.source)
 	if err != nil {
-		return errors.New("  could not retrieve 'source'")
+		return errors.New("could not retrieve 'source'")
 	}
 	defer resp.Body.Close()
 
@@ -91,7 +93,7 @@ func processMention(mention webmention, blog Blog) error {
 			"hx-target": {mention.target},
 			"hx-gone":   {true},
 		}); err != nil {
-			return errors.New("  could not tombstone webmention: " + err.Error())
+			return fmt.Errorf("could not tombstone webmention: %w", err)
 		}
 
 		return nil
@@ -101,7 +103,7 @@ func processMention(mention webmention, blog Blog) error {
 
 	properties := map[string][]interface{}{}
 	for _, item := range data.Items {
-		if contains("h-entry", item.Type) {
+		if slices.Contains(item.Type, "h-entry") {
 			properties = item.Properties
 			break
 		}
@@ -109,18 +111,8 @@ func processMention(mention webmention, blog Blog) error {
 	properties["hx-target"] = []interface{}{mention.target}
 
 	if err := blog.Mention(mention.source, properties); err != nil {
-		return errors.New("  could not add webmention: " + err.Error())
+		return fmt.Errorf("could not add webmention: %w", err)
 	}
 
 	return nil
-}
-
-func contains(needle string, list []string) bool {
-	for _, item := range list {
-		if item == needle {
-			return true
-		}
-	}
-
-	return false
 }

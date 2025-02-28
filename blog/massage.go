@@ -1,7 +1,7 @@
 package blog
 
 import (
-	"log"
+	"log/slog"
 	"net/url"
 	"regexp"
 	"strings"
@@ -22,23 +22,23 @@ var citeable = map[string]string{
 // massage will do all of the magic to the data to make it nicer. It should be
 // safe to call this when updating a post, so it should NOT overwrite any
 // existing data.
-func (b *Blog) massage(data map[string][]interface{}) {
+func (b *Blog) massage(data map[string][]any) {
 	uid := uuid.New().String()
 
 	relativeURL, _ := url.Parse("/entry/" + uid)
 	location := b.config.BaseURL.ResolveReference(relativeURL).String()
 
 	if len(data["uid"]) == 0 {
-		data["uid"] = []interface{}{uid}
+		data["uid"] = []any{uid}
 	}
 	if len(data["url"]) == 0 {
-		data["url"] = []interface{}{location}
+		data["url"] = []any{location}
 	}
 
 	if len(data["published"]) == 0 {
-		data["published"] = []interface{}{time.Now().UTC().Format(time.RFC3339)}
+		data["published"] = []any{time.Now().UTC().Format(time.RFC3339)}
 	} else {
-		data["published"] = []interface{}{parseDate(data["published"][0].(string)).UTC().Format(time.RFC3339)}
+		data["published"] = []any{parseDate(data["published"][0].(string)).UTC().Format(time.RFC3339)}
 	}
 
 	kind := postTypeDiscovery(data)
@@ -53,16 +53,16 @@ func (b *Blog) massage(data map[string][]interface{}) {
 
 			cite, err := b.resolveCite(s)
 			if err != nil {
-				log.Printf("WARN get-cite; %v\n", err)
+				b.logger.Warn("resolve cite", slog.Any("err", err))
 				continue
 			}
 
-			data[v] = []interface{}{cite}
+			data[v] = []any{cite}
 		}
 	}
 
 	// kind could be changed by an update, so this is fine
-	data["hx-kind"] = []interface{}{kind}
+	data["hx-kind"] = []any{kind}
 
 	if content, ok := data["content"]; ok && len(content) > 0 {
 		// safe because it only attempts to autolink when content is a string
@@ -75,7 +75,7 @@ func (b *Blog) massage(data map[string][]interface{}) {
 				if u[0] == '@' {
 					person, err := b.resolveCard(u[1:])
 					if err != nil {
-						log.Println("WARN get-person;", err)
+						b.logger.Warn("massage resolve person", slog.Any("err", err))
 					}
 					if person != nil {
 						if me, ok := person["me"].([]string); ok {
@@ -88,16 +88,16 @@ func (b *Blog) massage(data map[string][]interface{}) {
 				return `<a href="` + u + `">` + u + `</a>`
 			})
 
-			data["content"] = []interface{}{map[string]interface{}{
+			data["content"] = []any{map[string]any{
 				"text": s,
 				"html": html,
 			}}
-			data["hx-people"] = []interface{}{people}
+			data["hx-people"] = []any{people}
 		}
 	}
 }
 
-func postTypeDiscovery(data map[string][]interface{}) string {
+func postTypeDiscovery(data map[string][]any) string {
 	if rsvp, ok := data["rsvp"]; ok && len(rsvp) > 0 && (rsvp[0] == "yes" || rsvp[0] == "no" || rsvp[0] == "maybe") {
 		return "rsvp"
 	}

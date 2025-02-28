@@ -6,7 +6,7 @@ package auth
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -22,7 +22,8 @@ import (
 func Only(me string, next http.Handler) http.HandlerFunc {
 	endpoints, err := indieauth.FindEndpoints(me)
 	if err != nil {
-		log.Fatal("ERR find-indieauth-endpoints;", err)
+		slog.Error("find indieauth endpoints", slog.Any("err", err))
+		panic("could not start")
 	}
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +40,7 @@ func Only(me string, next http.Handler) http.HandlerFunc {
 
 		req, err := http.NewRequest("GET", endpoints.Token.String(), nil)
 		if err != nil {
-			log.Println("ERR auth-make-request-failed;", err)
+			slog.Error("auth make request failed", slog.Any("err", err))
 			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
@@ -47,7 +48,7 @@ func Only(me string, next http.Handler) http.HandlerFunc {
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			log.Println("ERR auth-request-failed;", err)
+			slog.Error("auth request failed", slog.Any("err", err))
 			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
@@ -59,14 +60,14 @@ func Only(me string, next http.Handler) http.HandlerFunc {
 			Scope    string `json:"scope"`
 		}
 		if err := json.NewDecoder(resp.Body).Decode(&tokenData); err != nil {
-			log.Println("ERR auth-decode-token;", err)
+			slog.Error("auth decode token", slog.Any("err", err))
 			w.Header().Set("Content-Type", "application/json")
 			http.Error(w, `{"error":"forbidden"}`, http.StatusForbidden)
 			return
 		}
 
 		if tokenData.Me != me {
-			log.Printf("ERR token-is-forbidden me=%s\n", tokenData.Me)
+			slog.Error("token is forbidden", slog.String("me", tokenData.Me))
 			w.Header().Set("Content-Type", "application/json")
 			http.Error(w, `{"error":"forbidden"}`, http.StatusForbidden)
 			return

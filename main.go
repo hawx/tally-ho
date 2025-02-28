@@ -4,9 +4,10 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 
 	// register sqlite3 for database/sql
@@ -26,12 +27,12 @@ import (
 func usage() {
 	fmt.Println(`Usage: tally-ho [options]
 
-  --config PATH=./config.toml
-  --web DIR=web
-  --db PATH=file::memory
-  --media-dir DIR
-  --port PORT=8080
-  --socket PATH`)
+	--config PATH=./config.toml
+	--web DIR=web
+	--db PATH=file::memory
+	--media-dir DIR
+	--port PORT=8080
+	--socket PATH`)
 }
 
 type config struct {
@@ -66,33 +67,30 @@ func main() {
 	flag.Usage = usage
 	flag.Parse()
 
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	slog.SetDefault(logger)
+
 	var conf config
 	if _, err := toml.DecodeFile(*configPath, &conf); err != nil {
-		log.Println("ERR decode-config;", err)
+		logger.Error("config could not be decoded", slog.Any("err", err))
 		return
 	}
 
 	baseURL, err := url.Parse(conf.BaseURL)
 	if err != nil {
-		log.Println("ERR base-url-invalid;", err)
+		logger.Error("base url invalid", slog.Any("err", err))
 		return
 	}
 
 	mediaURL, err := url.Parse(conf.MediaURL)
 	if err != nil {
-		log.Println("ERR media-url-invalid;", err)
-		return
-	}
-
-	templates, err := blog.ParseTemplates(*webPath)
-	if err != nil {
-		log.Println("ERR parse-templates;", err)
+		logger.Error("media url invalid", slog.Any("err", err))
 		return
 	}
 
 	db, err := sql.Open("sqlite3", *dbPath)
 	if err != nil {
-		log.Printf("ERR sql-open path=%s; %v\n", *dbPath, err)
+		logger.Error("error opening sqlite file", slog.String("path", *dbPath), slog.Any("err", err))
 		return
 	}
 
@@ -101,7 +99,7 @@ func main() {
 		MediaURL: mediaURL,
 	}
 
-	var blogSilos []interface{}
+	var blogSilos []any
 	var micropubSyndicateTo []micropub.SyndicateTo
 
 	if conf.Twitter.ConsumerKey != "" {
@@ -112,7 +110,7 @@ func main() {
 			AccessTokenSecret: conf.Twitter.AccessTokenSecret,
 		}, fw)
 		if err != nil {
-			log.Println("WARN twitter;", err)
+			logger.Warn("twitter", slog.Any("err", err))
 		} else {
 			blogSilos = append(blogSilos, twitter)
 			micropubSyndicateTo = append(micropubSyndicateTo, micropub.SyndicateTo{
@@ -130,7 +128,7 @@ func main() {
 			AccessTokenSecret: conf.Flickr.AccessTokenSecret,
 		})
 		if err != nil {
-			log.Println("WARN flickr;", err)
+			logger.Warn("flickr", slog.Any("err", err))
 		} else {
 			blogSilos = append(blogSilos, flickr)
 			micropubSyndicateTo = append(micropubSyndicateTo, micropub.SyndicateTo{
@@ -145,7 +143,7 @@ func main() {
 			AccessToken: conf.Github.AccessToken,
 		})
 		if err != nil {
-			log.Println("WARN github;", err)
+			logger.Warn("github", slog.Any("err", err))
 		} else {
 			blogSilos = append(blogSilos, github)
 			micropubSyndicateTo = append(micropubSyndicateTo, micropub.SyndicateTo{
@@ -157,7 +155,7 @@ func main() {
 
 	hubStore, err := blog.NewHubStore(db)
 	if err != nil {
-		log.Println("ERR blog-hub-store;", err)
+		logger.Error("problem initialising hub store", slog.Any("err", err))
 		return
 	}
 
@@ -166,7 +164,7 @@ func main() {
 
 	websubhub := websub.New(baseURL.ResolveReference(hubEndpointURL).String(), hubStore)
 
-	b, err := blog.New(blog.Config{
+	b, err := blog.New(logger, blog.Config{
 		Me:          conf.Me,
 		Name:        conf.Name,
 		Title:       conf.Title,
@@ -175,9 +173,9 @@ func main() {
 		MediaURL:    mediaURL,
 		MediaDir:    *mediaDir,
 		HubURL:      baseURL.ResolveReference(hubEndpointURL).String(),
-	}, db, templates, websubhub, blogSilos)
+	}, db, websubhub, blogSilos)
 	if err != nil {
-		log.Println("ERR new-blog;", err)
+		logger.Error("problem initialising blog", slog.Any("err", err))
 		return
 	}
 	defer b.Close()

@@ -3,8 +3,7 @@ package micropub
 import (
 	"encoding/json"
 	"io"
-	"io/ioutil"
-	"log"
+	"log/slog"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -16,8 +15,8 @@ import (
 )
 
 type postDB interface {
-	Create(data map[string][]interface{}) (string, error)
-	Update(url string, replace, add, delete map[string][]interface{}, deleteAlls []string) error
+	Create(data map[string][]any) (string, error)
+	Update(url string, replace, add, delete map[string][]any, deleteAlls []string) error
 	Delete(url string) error
 	Undelete(url string) error
 }
@@ -41,7 +40,7 @@ type micropubPostHandler struct {
 }
 
 func (h *micropubPostHandler) handleJSON(w http.ResponseWriter, r *http.Request) {
-	v := jsonMicroformat{Properties: map[string][]interface{}{}}
+	v := jsonMicroformat{Properties: map[string][]any{}}
 
 	if err := json.NewDecoder(r.Body).Decode(&v); err != nil {
 		http.Error(w, "could not decode json request: "+err.Error(), http.StatusBadRequest)
@@ -51,7 +50,7 @@ func (h *micropubPostHandler) handleJSON(w http.ResponseWriter, r *http.Request)
 	data := jsonToForm(v)
 
 	if v.Action == "update" {
-		replace := map[string][]interface{}{}
+		replace := map[string][]any{}
 		for key, value := range v.Replace {
 			if reservedKey(key) {
 				continue
@@ -60,7 +59,7 @@ func (h *micropubPostHandler) handleJSON(w http.ResponseWriter, r *http.Request)
 			replace[key] = value
 		}
 
-		add := map[string][]interface{}{}
+		add := map[string][]any{}
 		for key, value := range v.Add {
 			if reservedKey(key) {
 				continue
@@ -69,10 +68,10 @@ func (h *micropubPostHandler) handleJSON(w http.ResponseWriter, r *http.Request)
 			add[key] = value
 		}
 
-		delete := map[string][]interface{}{}
+		delete := map[string][]any{}
 		var deleteAlls []string
 
-		if ds, ok := v.Delete.([]interface{}); ok {
+		if ds, ok := v.Delete.([]any); ok {
 			for _, d := range ds {
 				if dd, ok := d.(string); ok {
 					deleteAlls = append(deleteAlls, dd)
@@ -81,13 +80,13 @@ func (h *micropubPostHandler) handleJSON(w http.ResponseWriter, r *http.Request)
 					return
 				}
 			}
-		} else if dm, ok := v.Delete.(map[string]interface{}); ok {
+		} else if dm, ok := v.Delete.(map[string]any); ok {
 			for key, value := range dm {
 				if reservedKey(key) {
 					continue
 				}
 
-				if vs, ok := value.([]interface{}); ok {
+				if vs, ok := value.([]any); ok {
 					delete[key] = vs
 				} else {
 					http.Error(w, "could not decode json request: malformed delete", http.StatusBadRequest)
@@ -123,7 +122,7 @@ func (h *micropubPostHandler) handleJSON(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *micropubPostHandler) handleForm(w http.ResponseWriter, r *http.Request) {
-	data := map[string][]interface{}{}
+	data := map[string][]any{}
 
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "could not parse form: "+err.Error(), http.StatusBadRequest)
@@ -143,7 +142,7 @@ func (h *micropubPostHandler) handleForm(w http.ResponseWriter, r *http.Request)
 			}
 		} else {
 			if values[0] != "" {
-				data[key] = []interface{}{values[0]}
+				data[key] = []any{values[0]}
 			}
 		}
 	}
@@ -168,11 +167,11 @@ func (h *micropubPostHandler) handleMultiPart(w http.ResponseWriter, r *http.Req
 
 	_, params, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
 	if err != nil {
-		log.Println("ERR micropub-parse-multi-part;", err)
+		slog.Error("micropub parse content type", slog.Any("err", err))
 		return
 	}
 
-	data := map[string][]interface{}{}
+	data := map[string][]any{}
 	parts := multipart.NewReader(r.Body, params["boundary"])
 
 	for {
@@ -181,7 +180,7 @@ func (h *micropubPostHandler) handleMultiPart(w http.ResponseWriter, r *http.Req
 			break
 		}
 		if err != nil {
-			log.Println("ERR micropub-read-multi-part;", err)
+			slog.Error("micropub read multi part", slog.Any("err", err))
 			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
@@ -197,16 +196,16 @@ func (h *micropubPostHandler) handleMultiPart(w http.ResponseWriter, r *http.Req
 		case "photo", "video", "audio":
 			location, err := h.fw.WriteFile(ps["filename"], p.Header.Get("Content-Type"), p)
 			if err != nil {
-				log.Println("ERR micropub-photo;", err)
+				slog.Error("micropub photo", slog.Any("err", err))
 				continue
 			}
 
-			data[key] = []interface{}{location}
+			data[key] = []any{location}
 
 		case "photo[]", "video[]", "audio[]":
 			location, err := h.fw.WriteFile(ps["filename"], p.Header.Get("Content-Type"), p)
 			if err != nil {
-				log.Println("ERR micropub-photo;", err)
+				slog.Error("micropub-photo", slog.Any("err", err))
 				continue
 			}
 
@@ -218,9 +217,10 @@ func (h *micropubPostHandler) handleMultiPart(w http.ResponseWriter, r *http.Req
 				continue
 			}
 
-			slurp, err := ioutil.ReadAll(p)
+			slurp, err := io.ReadAll(p)
 			if err != nil {
-				log.Fatal(err)
+				slog.Error("could not read", slog.Any("err", err))
+				return
 			}
 
 			value := string(slurp)
@@ -232,7 +232,7 @@ func (h *micropubPostHandler) handleMultiPart(w http.ResponseWriter, r *http.Req
 				key := key[:len(key)-2]
 				data[key] = append(data[key], value)
 			} else {
-				data[key] = []interface{}{value}
+				data[key] = []any{value}
 			}
 		}
 	}
@@ -240,13 +240,13 @@ func (h *micropubPostHandler) handleMultiPart(w http.ResponseWriter, r *http.Req
 	h.create(w, r, data)
 }
 
-func (h *micropubPostHandler) create(w http.ResponseWriter, r *http.Request, data map[string][]interface{}) {
+func (h *micropubPostHandler) create(w http.ResponseWriter, r *http.Request, data map[string][]any) {
 	if !auth.HasScope(w, r, "create") {
 		return
 	}
 
 	if clientID := auth.ClientID(r); clientID != "" {
-		data["hx-client-id"] = []interface{}{clientID}
+		data["hx-client-id"] = []any{clientID}
 	}
 
 	location, err := h.db.Create(data)

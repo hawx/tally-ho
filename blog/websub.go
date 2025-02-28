@@ -1,7 +1,7 @@
 package blog
 
 import (
-	"log"
+	"log/slog"
 	"net/url"
 	"time"
 )
@@ -25,13 +25,13 @@ func (b *Blog) hubPublish() {
 	for _, c := range changed {
 		u, err := url.Parse(c)
 		if err != nil {
-			log.Printf("WARN hub-publish-url url=%s; %v\n", c, err)
+			b.logger.Warn("hub publish parse url", slog.String("url", c), slog.Any("err", err))
 			continue
 		}
 
 		err = b.hubPublisher.Publish(b.config.BaseURL.ResolveReference(u).String())
 		if err != nil {
-			log.Printf("WARN hub-publish url=%s; %v\n", c, err)
+			b.logger.Warn("hub publish", slog.String("url", c), slog.Any("err", err))
 		}
 	}
 }

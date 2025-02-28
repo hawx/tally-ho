@@ -3,9 +3,8 @@ package blog
 import (
 	"database/sql"
 	"fmt"
-	"html/template"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
@@ -13,6 +12,7 @@ import (
 	"github.com/gorilla/feeds"
 	"hawx.me/code/numbersix"
 	"hawx.me/code/route"
+	"hawx.me/code/tally-ho/internal/page"
 )
 
 type Config struct {
@@ -28,24 +28,24 @@ type Config struct {
 }
 
 type Blog struct {
+	logger        *slog.Logger
 	local         bool
 	config        Config
 	closer        io.Closer
 	entries       *numbersix.DB
 	mentions      *numbersix.DB
 	syndicators   map[string]Syndicator
-	templates     *template.Template
 	citeResolvers []CiteResolver
 	cardResolvers []CardResolver
 	hubPublisher  HubPublisher
 }
 
 func New(
+	logger *slog.Logger,
 	config Config,
 	db *sql.DB,
-	templates *template.Template,
 	hubPublisher HubPublisher,
-	silos []interface{},
+	silos []any,
 ) (*Blog, error) {
 	entries, err := numbersix.For(db, "entries")
 	if err != nil {
@@ -77,16 +77,16 @@ func New(
 
 	local := config.BaseURL.Hostname() == "localhost"
 	if local {
-		log.Println("INFO local; running in local mode")
+		logger.Info("running in local mode")
 	}
 
 	return &Blog{
+		logger:        logger,
 		local:         local,
 		config:        config,
 		closer:        db,
 		entries:       entries,
 		mentions:      mentions,
-		templates:     templates,
 		syndicators:   syndicators,
 		citeResolvers: citeResolvers,
 		cardResolvers: cardResolvers,
@@ -115,7 +115,13 @@ func (b *Blog) Handler() http.Handler {
 	feedJsonfeedURL := b.absoluteURL("/feed/jsonfeed")
 	feedRssURL := b.absoluteURL("/feed/rss")
 
-	route.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux := route.New()
+	mux.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+		b.logger.Error("page error", slog.String("url", r.URL.Path), slog.Any("err", err))
+		http.Error(w, "something unexpected happened", http.StatusInternalServerError)
+	}
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) error {
 		showLatest := true
 
 		before, err := time.Parse(time.RFC3339, r.FormValue("before"))
@@ -126,8 +132,7 @@ func (b *Blog) Handler() http.Handler {
 
 		posts, err := b.Before(before)
 		if err != nil {
-			log.Println("ERR get-all;", err)
-			return
+			return err
 		}
 
 		olderThan := ""
@@ -140,17 +145,19 @@ func (b *Blog) Handler() http.Handler {
 		w.Header().Add("Link", `<`+indexURL+`>; rel="self"`)
 		w.Header().Add("Link", `<`+b.config.HubURL+`>; rel="hub"`)
 
-		if err := b.templates.ExecuteTemplate(w, "page_list.gotmpl", pageListCtx{
+		if _, err := page.List(page.ListData{
 			Title:        b.config.Title,
 			GroupedPosts: groupLikes(posts),
 			OlderThan:    olderThan,
 			ShowLatest:   showLatest,
-		}); err != nil {
-			fmt.Fprint(w, err)
+		}).WriteTo(w); err != nil {
+			return err
 		}
+
+		return nil
 	})
 
-	route.HandleFunc("/kind/:kind", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/kind/:kind", func(w http.ResponseWriter, r *http.Request) error {
 		vars := route.Vars(r)
 
 		showLatest := true
@@ -163,8 +170,7 @@ func (b *Blog) Handler() http.Handler {
 
 		posts, err := b.KindBefore(vars["kind"], before)
 		if err != nil {
-			log.Println("ERR get-all;", err)
-			return
+			return err
 		}
 
 		olderThan := ""
@@ -174,18 +180,20 @@ func (b *Blog) Handler() http.Handler {
 			olderThan = "NOMORE"
 		}
 
-		if err := b.templates.ExecuteTemplate(w, "page_list.gotmpl", pageListCtx{
+		if _, err := page.List(page.ListData{
 			Title:        b.config.Title,
 			GroupedPosts: groupLikes(posts),
 			OlderThan:    olderThan,
 			ShowLatest:   showLatest,
 			Kind:         vars["kind"],
-		}); err != nil {
-			fmt.Fprint(w, err)
+		}).WriteTo(w); err != nil {
+			return err
 		}
+
+		return nil
 	})
 
-	route.HandleFunc("/category/:category", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/category/:category", func(w http.ResponseWriter, r *http.Request) error {
 		vars := route.Vars(r)
 
 		showLatest := true
@@ -198,8 +206,7 @@ func (b *Blog) Handler() http.Handler {
 
 		posts, err := b.CategoryBefore(vars["category"], before)
 		if err != nil {
-			log.Println("ERR get-all;", err)
-			return
+			return err
 		}
 
 		olderThan := ""
@@ -209,75 +216,71 @@ func (b *Blog) Handler() http.Handler {
 			olderThan = "NOMORE"
 		}
 
-		if err := b.templates.ExecuteTemplate(w, "page_list.gotmpl", pageListCtx{
+		if _, err := page.List(page.ListData{
 			Title:        b.config.Title,
 			GroupedPosts: groupLikes(posts),
 			OlderThan:    olderThan,
 			ShowLatest:   showLatest,
 			Kind:         "",
 			Category:     vars["category"],
-		}); err != nil {
-			fmt.Fprint(w, err)
+		}).WriteTo(w); err != nil {
+			return fmt.Errorf("render: %w", err)
 		}
+
+		return nil
 	})
 
-	route.HandleFunc("/entry/:id", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/entry/:id", func(w http.ResponseWriter, r *http.Request) error {
 		vars := route.Vars(r)
 
 		entry, err := b.EntryByUID(vars["id"])
 		if err != nil {
-			log.Printf("ERR get-entry id=%s; %v\n", vars["id"], err)
-			return
+			return fmt.Errorf("entry by uid: %w", err)
 		}
 
 		if deleted, ok := entry["hx-deleted"]; ok && len(deleted) > 0 {
 			http.Error(w, "gone", http.StatusGone)
-			return
+			return nil
 		}
 
 		mentions, err := b.MentionsForEntry(baseURL.ResolveReference(r.URL).String())
 		if err != nil {
-			log.Printf("ERR get-entry-mentions url=%s; %v\n", r.URL.Path, err)
-			return
+			return fmt.Errorf("mentions for entry: %w", err)
 		}
 
-		if err := b.templates.ExecuteTemplate(w, "page_post.gotmpl", struct {
-			Posts    GroupedPosts
-			Entry    map[string][]interface{}
-			Mentions []numbersix.Group
-		}{
+		if _, err := page.Post(page.PostData{
 			Entry: entry,
 			Posts: GroupedPosts{
 				Type: "entry",
 				Meta: entry,
 			},
 			Mentions: mentions,
-		}); err != nil {
-			log.Printf("ERR get-entry-render url=%s; %v\n", r.URL.Path, err)
+		}).WriteTo(w); err != nil {
+			return fmt.Errorf("render: %w", err)
 		}
+
+		return nil
 	})
 
-	route.HandleFunc("/likes/:ymd", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/likes/:ymd", func(w http.ResponseWriter, r *http.Request) error {
 		ymd := route.Vars(r)["ymd"]
 
 		likes, err := b.LikesOn(ymd)
 		if err != nil {
-			log.Printf("ERR likes-on ymd=%s; %v\n", ymd, err)
-			return
+			return err
 		}
 
-		if err := b.templates.ExecuteTemplate(w, "page_day.gotmpl", struct {
-			Title string
-			Items []numbersix.Group
-		}{
-			Title: "likes for " + ymd,
+		if _, err := page.Day(page.DayData{
+			Ymd:   ymd,
 			Items: likes,
-		}); err != nil {
-			log.Printf("ERR likes-on-render ymd=%s; %v\n", ymd, err)
+		}).WriteTo(w); err != nil {
+			return fmt.Errorf("render: %w", err)
 		}
+
+		return nil
 	})
 
-	route.HandleFunc("/mentions", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/mentions", func(w http.ResponseWriter, r *http.Request) error {
 		showLatest := true
 
 		before, err := time.Parse(time.RFC3339, r.FormValue("before"))
@@ -288,8 +291,7 @@ func (b *Blog) Handler() http.Handler {
 
 		mentions, err := b.MentionsBefore(before, 25)
 		if err != nil {
-			log.Printf("ERR mentions; %v\n", err)
-			return
+			return err
 		}
 
 		olderThan := ""
@@ -299,81 +301,75 @@ func (b *Blog) Handler() http.Handler {
 			olderThan = "NOMORE"
 		}
 
-		if err := b.templates.ExecuteTemplate(w, "page_mentions.gotmpl", struct {
-			Title      string
-			Items      []numbersix.Group
-			OlderThan  string
-			ShowLatest bool
-		}{
+		if _, err := page.Mentions(page.MentionsData{
 			Title:      "mentions",
 			Items:      mentions,
 			OlderThan:  olderThan,
 			ShowLatest: showLatest,
-		}); err != nil {
-			log.Printf("ERR mentions-render; %v\n", err)
+		}).WriteTo(w); err != nil {
+			return fmt.Errorf("render: %w", err)
 		}
+
+		return nil
 	})
 
-	route.HandleFunc("/feed/rss", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/feed/rss", func(w http.ResponseWriter, r *http.Request) error {
 		f, err := b.feed()
 		if err != nil {
-			log.Println("ERR feed-rss;", err)
-			return
+			return fmt.Errorf("get feed: %w", err)
 		}
 
 		rss, err := f.ToRss()
 		if err != nil {
-			log.Println("ERR feed-rss;", err)
-			return
+			return fmt.Errorf("to rss: %w", err)
 		}
 
 		w.Header().Add("Link", `<`+feedRssURL+`>; rel="self"`)
 		w.Header().Add("Link", `<`+b.config.HubURL+`>; rel="hub"`)
 		w.Header().Set("Content-Type", "application/rss+xml")
 		io.WriteString(w, rss)
+		return nil
 	})
 
-	route.HandleFunc("/feed/atom", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/feed/atom", func(w http.ResponseWriter, r *http.Request) error {
 		f, err := b.feed()
 		if err != nil {
-			log.Println("ERR feed-atom;", err)
-			return
+			return fmt.Errorf("get feed: %w", err)
 		}
 
 		atom, err := f.ToAtom()
 		if err != nil {
-			log.Println("ERR feed-atom;", err)
-			return
+			return fmt.Errorf("to atom: %w", err)
 		}
 
 		w.Header().Add("Link", `<`+feedAtomURL+`>; rel="self"`)
 		w.Header().Add("Link", `<`+b.config.HubURL+`>; rel="hub"`)
 		w.Header().Set("Content-Type", "application/atom+xml")
 		io.WriteString(w, atom)
+		return nil
 	})
 
-	route.HandleFunc("/feed/jsonfeed", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/feed/jsonfeed", func(w http.ResponseWriter, r *http.Request) error {
 		f, err := b.feed()
 		if err != nil {
-			log.Println("ERR feed-jsonfeed;", err)
-			return
+			return fmt.Errorf("get feed: %w", err)
 		}
 
 		json, err := f.ToJSON()
 		if err != nil {
-			log.Println("ERR feed-jsonfeed;", err)
-			return
+			return fmt.Errorf("to json: %w", err)
 		}
 
 		w.Header().Add("Link", `<`+feedJsonfeedURL+`>; rel="self"`)
 		w.Header().Add("Link", `<`+b.config.HubURL+`>; rel="hub"`)
 		w.Header().Set("Content-Type", "application/json")
 		io.WriteString(w, json)
+		return nil
 	})
 
 	// route.Handle("/:year/:month/:date/:slug")
 
-	return route.Default
+	return mux
 }
 
 func (b *Blog) feed() (*feeds.Feed, error) {
@@ -396,7 +392,7 @@ func (b *Blog) feed() (*feeds.Feed, error) {
 		createdAt, _ := time.Parse(time.RFC3339, post.Properties["published"][0].(string))
 
 		feed.Items = append(feed.Items, &feeds.Item{
-			Title:       templateTitle(post.Properties),
+			Title:       page.DecideTitle(post.Properties),
 			Link:        &feeds.Link{Href: absURL.String()},
 			Description: "",
 			Created:     createdAt,

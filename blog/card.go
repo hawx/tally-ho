@@ -1,7 +1,7 @@
 package blog
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 
@@ -9,14 +9,14 @@ import (
 )
 
 type CardResolver interface {
-	ResolveCard(string) (map[string]interface{}, error)
+	ResolveCard(string) (map[string]any, error)
 }
 
-func (b *Blog) resolveCard(u string) (map[string]interface{}, error) {
+func (b *Blog) resolveCard(u string) (map[string]any, error) {
 	for _, personer := range b.cardResolvers {
 		person, err := personer.ResolveCard(u)
 		if err != nil {
-			log.Printf("ERR get-person url=%s; %v\n", u, err)
+			b.logger.Error("resolve card", slog.String("url", u), slog.Any("err", err))
 			return nil, nil
 		}
 
@@ -30,10 +30,10 @@ func (b *Blog) resolveCard(u string) (map[string]interface{}, error) {
 	return resolveCard(u)
 }
 
-func resolveCard(u string) (card map[string]interface{}, err error) {
-	card = map[string]interface{}{
-		"type": []interface{}{"h-card"},
-		"properties": map[string][]interface{}{
+func resolveCard(u string) (card map[string]any, err error) {
+	card = map[string]any{
+		"type": []any{"h-card"},
+		"properties": map[string][]any{
 			"url": {u},
 		},
 	}
@@ -49,8 +49,8 @@ func resolveCard(u string) (card map[string]interface{}, err error) {
 
 	for _, item := range data.Items {
 		if contains("h-card", item.Type) {
-			card = map[string]interface{}{
-				"type":       []interface{}{"h-card"},
+			card = map[string]any{
+				"type":       []any{"h-card"},
 				"properties": item.Properties,
 				"me":         data.Rels["me"],
 			}

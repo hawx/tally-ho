@@ -7,8 +7,8 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"errors"
-	"io/ioutil"
-	"log"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -47,8 +47,8 @@ func New(baseURL string, store HubStore) *Hub {
 	}
 
 	hub := &Hub{
-		BaseURL:          baseURL,
-		Store:            store,
+		baseURL:          baseURL,
+		store:            store,
 		generator:        challengeGenerator(30),
 		noRedirectClient: noRedirectClient,
 	}
@@ -57,8 +57,8 @@ func New(baseURL string, store HubStore) *Hub {
 }
 
 type Hub struct {
-	BaseURL          string
-	Store            HubStore
+	baseURL          string
+	store            HubStore
 	generator        func() ([]byte, error)
 	noRedirectClient *http.Client
 }
@@ -89,7 +89,7 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(secret) > 200 {
-		http.Error(w, "hub.secret must be less than 200i bytes in length", http.StatusBadRequest)
+		http.Error(w, "hub.secret must be less than 200 bytes in length", http.StatusBadRequest)
 		return
 	}
 
@@ -117,7 +117,7 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	query.Add("hub.lease_seconds", strconv.Itoa(int(lease.Seconds())))
 	callbackURL.RawQuery = query.Encode()
 
-	log.Printf("INFO confirm-subscription url=%s", callbackURL.String())
+	slog.Info("confirm subscription", slog.String("url", callbackURL.String()))
 
 	resp, err := http.Get(callbackURL.String())
 	if err != nil {
@@ -131,7 +131,7 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		http.Error(w, "", http.StatusInternalServerError)
 	}
@@ -141,12 +141,12 @@ func (h *Hub) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.Store.Subscribe(callback, topic, time.Now().Add(lease), secret); err != nil {
+	if err := h.store.Subscribe(callback, topic, time.Now().Add(lease), secret); err != nil {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("INFO confirmed-subscription callback=%s topic=%s lease=%v\n", callback, topic, lease)
+	slog.Info("confirmed subscription", slog.String("callback", callback), slog.String("topic", topic), slog.Duration("lease", lease))
 	w.WriteHeader(http.StatusAccepted)
 }
 
@@ -162,19 +162,19 @@ func (h *Hub) Publish(topic string) error {
 	}
 
 	contentType := resp.Header.Get("Content-Type")
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
 
-	subscribers, err := h.Store.Subscribers(topic)
+	subscribers, err := h.store.Subscribers(topic)
 	if err != nil {
 		return err
 	}
 	defer subscribers.Close()
 
 	client := h.noRedirectClient
-	link := `<` + h.BaseURL + `>; rel="hub", <` + topic + `>; rel="self"`
+	link := `<` + h.baseURL + `>; rel="hub", <` + topic + `>; rel="self"`
 
 	for subscribers.Next() {
 		callback, secret, err := subscribers.Data()
@@ -205,7 +205,7 @@ func (h *Hub) Publish(topic string) error {
 		defer resp.Body.Close()
 
 		if resp.StatusCode == http.StatusGone {
-			h.Store.Unsubscribe(callback, topic)
+			h.store.Unsubscribe(callback, topic)
 		}
 	}
 

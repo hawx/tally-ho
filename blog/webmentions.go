@@ -1,7 +1,7 @@
 package blog
 
 import (
-	"log"
+	"log/slog"
 	"net/url"
 	"strings"
 	"time"
@@ -18,12 +18,12 @@ func (b *Blog) sendWebmentions(location string, data map[string][]interface{}) {
 	time.Sleep(time.Second)
 
 	links := findMentionedLinks(data)
-	log.Printf("INFO sending-webmentions; %v\n", links)
+	slog.Info("sending webmentions", slog.Any("links", links))
 
 	if !b.local {
 		for _, link := range links {
 			if err := webmention.Send(location, link); err != nil {
-				log.Printf("ERR send-webmention source=%s target=%s; %v\n", location, link, err)
+				slog.Error("send webmention", slog.String("source", location), slog.String("target", link), slog.Any("err", err))
 			}
 		}
 	}
@@ -38,12 +38,12 @@ func (b *Blog) sendUpdateWebmentions(location string, oldData, newData map[strin
 		}
 	}
 
-	log.Printf("INFO sending-webmentions; %v\n", links)
+	slog.Info("sending webmentions", slog.Any("links", links))
 
 	if !b.local {
 		for _, link := range links {
 			if err := webmention.Send(location, link); err != nil {
-				log.Printf("ERR send-webmention source=%s target=%s; %v\n", location, link, err)
+				slog.Error("send webmention", slog.String("source", location), slog.String("target", link), slog.Any("err", err))
 			}
 		}
 	}
@@ -92,7 +92,7 @@ func findAs(data map[string][]interface{}) []string {
 
 	root, err := html.Parse(strings.NewReader(htmlContent))
 	if err != nil {
-		log.Println("ERR find-as;", err)
+		slog.Error("find-as", slog.Any("err", err))
 		return []string{}
 	}
 

@@ -2,7 +2,7 @@ package blog
 
 import (
 	"errors"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 
@@ -15,14 +15,14 @@ import (
 var ErrNoName = errors.New("no name to find")
 
 type CiteResolver interface {
-	ResolveCite(string) (map[string]interface{}, error)
+	ResolveCite(string) (map[string]any, error)
 }
 
-func (b *Blog) resolveCite(u string) (map[string]interface{}, error) {
+func (b *Blog) resolveCite(u string) (map[string]any, error) {
 	for _, citer := range b.citeResolvers {
 		cite, err := citer.ResolveCite(u)
 		if err != nil {
-			log.Printf("ERR get-cite url=%s; %v\n", u, err)
+			b.logger.Error("resolve cite", slog.String("url", u), slog.Any("err", err))
 			return nil, nil
 		}
 
@@ -36,10 +36,10 @@ func (b *Blog) resolveCite(u string) (map[string]interface{}, error) {
 	return resolveCite(u)
 }
 
-func resolveCite(u string) (cite map[string]interface{}, err error) {
-	cite = map[string]interface{}{
-		"type": []interface{}{"h-cite"},
-		"properties": map[string][]interface{}{
+func resolveCite(u string) (cite map[string]any, err error) {
+	cite = map[string]any{
+		"type": []any{"h-cite"},
+		"properties": map[string][]any{
 			"url": {u},
 		},
 	}
@@ -60,8 +60,8 @@ func resolveCite(u string) (cite map[string]interface{}, err error) {
 
 	for _, item := range data.Items {
 		if contains("h-entry", item.Type) {
-			props := map[string][]interface{}{
-				"url": append([]interface{}{u}, item.Properties["syndication"]...),
+			props := map[string][]any{
+				"url": append([]any{u}, item.Properties["syndication"]...),
 			}
 
 			if names := item.Properties["name"]; len(names) > 0 {
@@ -69,10 +69,10 @@ func resolveCite(u string) (cite map[string]interface{}, err error) {
 
 				if contents := item.Properties["content"]; len(contents) > 0 {
 					// check if a note
-					if content, ok := contents[0].(map[string]interface{}); ok && content["value"] == props["name"][0] {
+					if content, ok := contents[0].(map[string]any); ok && content["value"] == props["name"][0] {
 						if content["value"] == props["name"][0] {
 							props["content"] = contents
-							props["name"] = []interface{}{"a note"}
+							props["name"] = []any{"a note"}
 						}
 					}
 				}
@@ -80,16 +80,16 @@ func resolveCite(u string) (cite map[string]interface{}, err error) {
 
 			if authors := item.Properties["author"]; len(authors) > 0 {
 				if author, ok := authors[0].(*microformats.Microformat); ok && contains("h-card", author.Type) {
-					props["author"] = []interface{}{
-						map[string]interface{}{
-							"type":       []interface{}{"h-card"},
+					props["author"] = []any{
+						map[string]any{
+							"type":       []any{"h-card"},
 							"properties": author.Properties,
 						},
 					}
 				}
 
-				cite = map[string]interface{}{
-					"type":       []interface{}{"h-cite"},
+				cite = map[string]any{
+					"type":       []any{"h-cite"},
 					"properties": props,
 				}
 				return
@@ -125,24 +125,24 @@ func resolveCite(u string) (cite map[string]interface{}, err error) {
 	}
 
 	if ogMeta.ok && ogMeta.title != "" {
-		props := map[string][]interface{}{
+		props := map[string][]any{
 			"name": {ogMeta.title},
 			"url":  {ogMeta.url},
 		}
 
 		if ogMeta.site_name != "" {
-			props["author"] = []interface{}{
-				map[string]interface{}{
-					"type": []interface{}{"h-card"},
-					"properties": map[string][]interface{}{
+			props["author"] = []any{
+				map[string]any{
+					"type": []any{"h-card"},
+					"properties": map[string][]any{
 						"name": {ogMeta.site_name},
 					},
 				},
 			}
 		}
 
-		cite = map[string]interface{}{
-			"type":       []interface{}{"h-cite"},
+		cite = map[string]any{
+			"type":       []any{"h-cite"},
 			"properties": props,
 		}
 		return
@@ -153,9 +153,9 @@ func resolveCite(u string) (cite map[string]interface{}, err error) {
 	})
 
 	if len(titles) > 0 {
-		cite = map[string]interface{}{
-			"type": []interface{}{"h-cite"},
-			"properties": map[string][]interface{}{
+		cite = map[string]any{
+			"type": []any{"h-cite"},
+			"properties": map[string][]any{
 				"url":  {u},
 				"name": {htmlutil.TextOf(titles[0])},
 			},
