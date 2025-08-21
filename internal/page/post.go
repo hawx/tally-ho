@@ -65,7 +65,8 @@ func Post(data PostData) lmth.Node {
 			Meta(lmth.Attr{"property": "og:url", "content": templateGet(data.Entry, "url")}),
 		),
 		Body(lmth.Attr{"class": "no-hero"},
-			header(),
+			nav(),
+			buttons(true),
 			Main(lmth.Attr{},
 				Article(lmth.Attr{"class": "h-entry " + templateGet(meta, "hx-kind")},
 					lmth.Join(

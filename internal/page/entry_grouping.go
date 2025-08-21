@@ -9,7 +9,7 @@ func entryGrouping(grouping GroupedPosts) lmth.Node {
 	if grouping.Type == "like" {
 		likedPosts := []lmth.Node{lmth.Text("liked ")}
 
-		for _, post := range grouping.Posts {
+		for i, post := range grouping.Posts {
 			name := templateGet(post, "like-of.properties.name")
 			if name == "" {
 				name = templateGet(post, "like-of.properties.url")
@@ -30,6 +30,7 @@ func entryGrouping(grouping GroupedPosts) lmth.Node {
 				A(lmth.Attr{"class": "u-author h-card hidden", "href": templateGet(post, "author.properties.url")},
 					lmth.Text(templateGet(post, "author.properties.name")),
 				),
+				lmth.Toggle(i < len(grouping.Posts)-1, lmth.Text(", ")),
 			))
 		}
 

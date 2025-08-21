@@ -39,6 +39,7 @@ func List(data ListData) lmth.Node {
 		crumbs = append(crumbs, "category", "", data.Category, "/category/"+data.Category)
 	}
 
+	var bottomButtons lmth.Node
 	if data.OlderThan == "NOMORE" {
 		bodyNodes = append(bodyNodes, P(lmth.Attr{},
 			lmth.Text("👏 You have reached the end. Try going back to the "),
@@ -50,23 +51,27 @@ func List(data ListData) lmth.Node {
 			bodyNodes = append(bodyNodes, entryGrouping(grouping))
 		}
 
-		bodyNodes = append(bodyNodes, Nav(lmth.Attr{"class": "arrows"},
+		bottomButtons = Div(lmth.Attr{"class": "buttons"},
 			lmth.Toggle(data.OlderThan != "",
 				A(lmth.Attr{"class": "older", "href": "?before=" + data.OlderThan},
-					lmth.Text("Older"),
+					lmth.Text("← "),
+					Span(lmth.Attr{}, lmth.Text("Older")),
 				)),
 			lmth.Toggle(data.ShowLatest, A(lmth.Attr{"class": "latest", "href": "/"},
-				lmth.Text("Latest"),
-			))))
+				Span(lmth.Attr{}, lmth.Text("Latest")),
+				lmth.Text(" ⇥"),
+			)))
 	}
 
 	return Html(lmth.Attr{"lang": "en"},
 		pageHead(data.Title),
 		Body(lmth.Attr{"class": "no-hero"},
-			header(),
+			nav(),
+			buttons(false),
 			Main(lmth.Attr{},
 				bodyNodes...,
 			),
+			bottomButtons,
 		),
 		pageFooter(crumbs...),
 	)
@@ -89,29 +94,6 @@ func pageHead(title string, nodes ...lmth.Node) lmth.Node {
 
 func pageFooter(crumbs ...string) lmth.Node {
 	return Footer(lmth.Attr{},
-		Nav(lmth.Attr{},
-			Ul(lmth.Attr{},
-				Li(lmth.Attr{},
-					A(lmth.Attr{"href": "https://hawx.me/"}, lmth.Text("home")),
-				),
-				Li(lmth.Attr{},
-					A(lmth.Attr{"href": "https://me.hawx.me/"}, lmth.Text("blog")),
-				),
-				lmth.Map2(func(i int, _ string) lmth.Node {
-					if i%2 == 1 {
-						return lmth.Text("")
-					}
-
-					if crumbs[i+1] == "" {
-						return Li(lmth.Attr{}, lmth.Text(crumbs[i]))
-					}
-
-					return Li(lmth.Attr{},
-						A(lmth.Attr{"href": crumbs[i+1]}, lmth.Text(crumbs[i])),
-					)
-				}, crumbs),
-			),
-		),
-		P(lmth.Attr{"class": "copyright"}, lmth.Text("© 2024 Joshua Hawxwell.")),
+		Span(lmth.Attr{"class": "copyright"}, lmth.Text("© 2022–25 Joshua Hawxwell.")),
 	)
 }
