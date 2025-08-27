@@ -23,16 +23,28 @@ var citeable = map[string]string{
 // safe to call this when updating a post, so it should NOT overwrite any
 // existing data.
 func (b *Blog) massage(data map[string][]any) {
-	uid := uuid.New().String()
-
-	relativeURL, _ := url.Parse("/entry/" + uid)
-	location := b.config.BaseURL.ResolveReference(relativeURL).String()
-
 	if len(data["uid"]) == 0 {
+		uid := uuid.New().String()
 		data["uid"] = []any{uid}
 	}
 	if len(data["url"]) == 0 {
+		relativeURL, _ := url.Parse("/entry/" + data["uid"][0].(string))
+		location := b.config.BaseURL.ResolveReference(relativeURL).String()
+
 		data["url"] = []any{location}
+	}
+
+	// hx-url is a special directive to publish the content as a page at the given
+	// relative URL.
+	if len(data["hx-url"]) == 1 {
+		relativeURL, _ := url.Parse(data["hx-url"][0].(string))
+		location := b.config.BaseURL.ResolveReference(relativeURL).String()
+
+		data["url"] = []any{location}
+		data["uid"] = []any{location}
+
+		// mark as deleted so they don't show up anywhere else
+		data["hx-deleted"] = []any{time.Time{}.Format(time.RFC3339)}
 	}
 
 	if len(data["published"]) == 0 {
@@ -53,7 +65,7 @@ func (b *Blog) massage(data map[string][]any) {
 
 			cite, err := b.resolveCite(s)
 			if err != nil {
-				b.logger.Warn("resolve cite", slog.Any("err", err))
+				slog.Warn("resolve cite", slog.Any("err", err))
 				continue
 			}
 
@@ -75,7 +87,7 @@ func (b *Blog) massage(data map[string][]any) {
 				if u[0] == '@' {
 					person, err := b.resolveCard(u[1:])
 					if err != nil {
-						b.logger.Warn("massage resolve person", slog.Any("err", err))
+						slog.Warn("massage resolve person", slog.Any("err", err))
 					}
 					if person != nil {
 						if me, ok := person["me"].([]string); ok {

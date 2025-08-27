@@ -25,13 +25,13 @@ func (b *Blog) hubPublish() {
 	for _, c := range changed {
 		u, err := url.Parse(c)
 		if err != nil {
-			b.logger.Warn("hub publish parse url", slog.String("url", c), slog.Any("err", err))
+			slog.Warn("hub publish parse url", slog.String("url", c), slog.Any("err", err))
 			continue
 		}
 
 		err = b.hubPublisher.Publish(b.config.BaseURL.ResolveReference(u).String())
 		if err != nil {
-			b.logger.Warn("hub publish", slog.String("url", c), slog.Any("err", err))
+			slog.Warn("hub publish", slog.String("url", c), slog.Any("err", err))
 		}
 	}
 }

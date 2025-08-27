@@ -194,7 +194,7 @@ func githubAutoLinkContent(data map[string][]interface{}) (string, bool) {
 		ReplaceAllStringFunc(content, func(u string) string {
 			if found, ok := people[u[1:]]; ok {
 				for _, u := range found {
-					if username, ok := twitterParsePersonURL(u); ok {
+					if username, ok := githubParsePersonURL(u); ok {
 						return "@" + username
 					}
 				}

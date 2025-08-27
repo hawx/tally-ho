@@ -17,7 +17,7 @@ type PostData struct {
 	Mentions []numbersix.Group
 }
 
-func Post(data PostData) lmth.Node {
+func Post(ctx Context, data PostData) lmth.Node {
 	meta := data.Posts.Meta
 
 	syndication := func() lmth.Node {
@@ -65,7 +65,7 @@ func Post(data PostData) lmth.Node {
 			Meta(lmth.Attr{"property": "og:url", "content": templateGet(data.Entry, "url")}),
 		),
 		Body(lmth.Attr{"class": "no-hero"},
-			nav(),
+			nav(ctx),
 			buttons(true),
 			Main(lmth.Attr{},
 				Article(lmth.Attr{"class": "h-entry " + templateGet(meta, "hx-kind")},
@@ -129,7 +129,7 @@ func Post(data PostData) lmth.Node {
 				),
 			),
 		),
-		pageFooter(templateTruncate(DecideTitle(data.Entry), 30), templateGet(data.Entry, "url")),
+		pageFooter(ctx),
 	)
 }
 
@@ -179,10 +179,6 @@ func templateHumanDateTime(m map[string][]any, key string) string {
 }
 
 func templateSyndicationName(u string) string {
-	if strings.HasPrefix(u, "https://twitter.com/") {
-		return "Twitter"
-	}
-
 	if strings.HasPrefix(u, "https://www.flickr.com/") {
 		return "Flickr"
 	}

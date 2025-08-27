@@ -13,7 +13,7 @@ type DayData struct {
 	Items []numbersix.Group
 }
 
-func Day(data DayData) lmth.Node {
+func Day(ctx Context, data DayData) lmth.Node {
 	formattedTime := data.Ymd
 
 	t, err := time.Parse(time.DateOnly, data.Ymd)
@@ -38,6 +38,6 @@ func Day(data DayData) lmth.Node {
 				}, data.Items),
 			),
 		),
-		pageFooter("likes", "", formattedTime, "/likes/"+data.Ymd),
+		pageFooter(ctx),
 	)
 }

@@ -7,7 +7,7 @@ import (
 
 func (b *Blog) Update(
 	url string,
-	replace, add, delete map[string][]interface{},
+	replace, add, delete map[string][]any,
 	deleteAll []string,
 ) error {
 	oldData, err := b.Entry(url)
@@ -15,7 +15,7 @@ func (b *Blog) Update(
 		return err
 	}
 
-	replace["updated"] = []interface{}{time.Now().UTC().Format(time.RFC3339)}
+	replace["updated"] = []any{time.Now().UTC().Format(time.RFC3339)}
 
 	id, ok := oldData["uid"][0].(string)
 	if !ok {
@@ -55,8 +55,11 @@ func (b *Blog) Update(
 		return err
 	}
 
-	go b.sendUpdateWebmentions(url, oldData, newData)
-	go b.hubPublish()
+	// don't send updates for published pages (although maybe I'll change this in the future)
+	if len(newData["hx-url"]) == 0 {
+		go b.sendUpdateWebmentions(url, oldData, newData)
+		go b.hubPublish()
+	}
 
 	return nil
 }

@@ -16,14 +16,14 @@ func (b *Blog) syndicate(location string, data map[string][]any) {
 			if syndicator, ok := b.syndicators[syndicateTo.(string)]; ok {
 				syndicatedLocation, err := syndicator.Create(data)
 				if err != nil {
-					b.logger.Error("create syndication", slog.String("to", syndicator.Name()), slog.Any("uid", data["uid"][0]), slog.Any("err", err))
+					slog.Error("create syndication", slog.String("to", syndicator.Name()), slog.Any("uid", data["uid"][0]), slog.Any("err", err))
 					continue
 				}
 
 				if err := b.Update(location, empty, map[string][]any{
 					"syndication": {syndicatedLocation},
 				}, empty, []string{}); err != nil {
-					b.logger.Error("confirming syndication", slog.String("to", syndicator.Name()), slog.Any("uid", data["uid"][0]), slog.Any("err", err))
+					slog.Error("confirming syndication", slog.String("to", syndicator.Name()), slog.Any("uid", data["uid"][0]), slog.Any("err", err))
 				}
 			}
 		}

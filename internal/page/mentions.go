@@ -14,7 +14,7 @@ type MentionsData struct {
 	ShowLatest bool
 }
 
-func Mentions(data MentionsData) lmth.Node {
+func Mentions(ctx Context, data MentionsData) lmth.Node {
 	var mentionsNode lmth.Node
 	if data.OlderThan == "NOMORE" {
 		mentionsNode = P(lmth.Attr{},
@@ -81,6 +81,6 @@ func Mentions(data MentionsData) lmth.Node {
 				),
 			),
 		),
-		pageFooter(),
+		pageFooter(ctx),
 	)
 }

@@ -2,6 +2,7 @@ package blog
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -16,21 +17,16 @@ import (
 )
 
 type Config struct {
-	Me          string
-	Name        string
-	Title       string
-	Description string
-	BaseURL     *url.URL
-	MediaURL    *url.URL
-	DbPath      string
-	MediaDir    string
-	HubURL      string
+	Me       string
+	BaseURL  *url.URL
+	MediaURL *url.URL
+	HubURL   string
 }
 
 type Blog struct {
-	logger        *slog.Logger
 	local         bool
 	config        Config
+	pageCtx       page.Context
 	closer        io.Closer
 	entries       *numbersix.DB
 	mentions      *numbersix.DB
@@ -43,6 +39,7 @@ type Blog struct {
 func New(
 	logger *slog.Logger,
 	config Config,
+	pageCtx page.Context,
 	db *sql.DB,
 	hubPublisher HubPublisher,
 	silos []any,
@@ -81,9 +78,9 @@ func New(
 	}
 
 	return &Blog{
-		logger:        logger,
 		local:         local,
 		config:        config,
+		pageCtx:       pageCtx,
 		closer:        db,
 		entries:       entries,
 		mentions:      mentions,
@@ -117,11 +114,33 @@ func (b *Blog) Handler() http.Handler {
 
 	mux := route.New()
 	mux.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
-		b.logger.Error("page error", slog.String("url", r.URL.Path), slog.Any("err", err))
+		if errors.Is(err, ErrNotFound) {
+			slog.Error("not found", slog.String("url", r.URL.Path), slog.Any("err", err))
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+
+		slog.Error("page error", slog.String("url", r.URL.Path), slog.Any("err", err))
 		http.Error(w, "something unexpected happened", http.StatusInternalServerError)
 	}
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) error {
+	mux.HandleFunc("/*anything", func(w http.ResponseWriter, r *http.Request) error {
+		relativeURL, _ := url.Parse(r.URL.Path)
+		location := b.config.BaseURL.ResolveReference(relativeURL).String()
+
+		entry, err := b.Entry(location)
+		if err != nil {
+			return err
+		}
+
+		if _, err := page.HxPage(b.pageCtx, entry).WriteTo(w); err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	mux.HandleFunc("/posts", func(w http.ResponseWriter, r *http.Request) error {
 		showLatest := true
 
 		before, err := time.Parse(time.RFC3339, r.FormValue("before"))
@@ -145,8 +164,7 @@ func (b *Blog) Handler() http.Handler {
 		w.Header().Add("Link", `<`+indexURL+`>; rel="self"`)
 		w.Header().Add("Link", `<`+b.config.HubURL+`>; rel="hub"`)
 
-		if _, err := page.List(page.ListData{
-			Title:        b.config.Title,
+		if _, err := page.List(b.pageCtx, page.ListData{
 			GroupedPosts: groupLikes(posts),
 			OlderThan:    olderThan,
 			ShowLatest:   showLatest,
@@ -180,8 +198,7 @@ func (b *Blog) Handler() http.Handler {
 			olderThan = "NOMORE"
 		}
 
-		if _, err := page.List(page.ListData{
-			Title:        b.config.Title,
+		if _, err := page.List(b.pageCtx, page.ListData{
 			GroupedPosts: groupLikes(posts),
 			OlderThan:    olderThan,
 			ShowLatest:   showLatest,
@@ -216,8 +233,7 @@ func (b *Blog) Handler() http.Handler {
 			olderThan = "NOMORE"
 		}
 
-		if _, err := page.List(page.ListData{
-			Title:        b.config.Title,
+		if _, err := page.List(b.pageCtx, page.ListData{
 			GroupedPosts: groupLikes(posts),
 			OlderThan:    olderThan,
 			ShowLatest:   showLatest,
@@ -248,7 +264,7 @@ func (b *Blog) Handler() http.Handler {
 			return fmt.Errorf("mentions for entry: %w", err)
 		}
 
-		if _, err := page.Post(page.PostData{
+		if _, err := page.Post(b.pageCtx, page.PostData{
 			Entry: entry,
 			Posts: GroupedPosts{
 				Type: "entry",
@@ -270,7 +286,7 @@ func (b *Blog) Handler() http.Handler {
 			return err
 		}
 
-		if _, err := page.Day(page.DayData{
+		if _, err := page.Day(b.pageCtx, page.DayData{
 			Ymd:   ymd,
 			Items: likes,
 		}).WriteTo(w); err != nil {
@@ -301,7 +317,7 @@ func (b *Blog) Handler() http.Handler {
 			olderThan = "NOMORE"
 		}
 
-		if _, err := page.Mentions(page.MentionsData{
+		if _, err := page.Mentions(b.pageCtx, page.MentionsData{
 			Title:      "mentions",
 			Items:      mentions,
 			OlderThan:  olderThan,
@@ -374,9 +390,9 @@ func (b *Blog) Handler() http.Handler {
 
 func (b *Blog) feed() (*feeds.Feed, error) {
 	feed := &feeds.Feed{
-		Title:   b.config.Title,
+		Title:   b.pageCtx.BlogTitle,
 		Link:    &feeds.Link{Href: b.config.BaseURL.String()},
-		Author:  &feeds.Author{Name: b.config.Name},
+		Author:  &feeds.Author{Name: b.pageCtx.Name},
 		Created: time.Now(),
 	}
 

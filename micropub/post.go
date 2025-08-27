@@ -122,12 +122,23 @@ func (h *micropubPostHandler) handleJSON(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *micropubPostHandler) handleForm(w http.ResponseWriter, r *http.Request) {
-	data := map[string][]any{}
-
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "could not parse form: "+err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	if r.FormValue("action") == "delete" {
+		h.delete(w, r, r.FormValue("url"))
+		return
+	}
+
+	if r.FormValue("action") == "undelete" {
+		h.undelete(w, r, r.FormValue("url"))
+		return
+	}
+
+	data := map[string][]any{}
+
 	for key, values := range r.Form {
 		if reservedKey(key) {
 			continue
@@ -145,16 +156,6 @@ func (h *micropubPostHandler) handleForm(w http.ResponseWriter, r *http.Request)
 				data[key] = []any{values[0]}
 			}
 		}
-	}
-
-	if r.FormValue("action") == "delete" {
-		h.delete(w, r, r.FormValue("url"))
-		return
-	}
-
-	if r.FormValue("action") == "undelete" {
-		h.undelete(w, r, r.FormValue("url"))
-		return
 	}
 
 	h.create(w, r, data)
@@ -261,14 +262,17 @@ func (h *micropubPostHandler) create(w http.ResponseWriter, r *http.Request, dat
 
 func (h *micropubPostHandler) delete(w http.ResponseWriter, r *http.Request, url string) {
 	if !auth.HasScope(w, r, "delete") {
+		slog.Warn("request missing scope for delete", slog.Any("url", url))
 		return
 	}
 
 	if err := h.db.Delete(url); err != nil {
+		slog.Error("delete", slog.Any("url", url), slog.Any("err", err))
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	slog.Info("deleted", slog.Any("url", url))
 	w.WriteHeader(http.StatusNoContent)
 }
 

@@ -2,34 +2,39 @@ package blog
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"hawx.me/code/numbersix"
 )
 
-var empty = map[string][]interface{}{}
+var (
+	ErrNotFound = errors.New("not found")
 
-func (b *Blog) Entry(url string) (data map[string][]interface{}, err error) {
+	empty = map[string][]any{}
+)
+
+func (b *Blog) Entry(url string) (data map[string][]any, err error) {
 	triples, err := b.entries.List(numbersix.Where("url", url))
 	if err != nil {
 		return
 	}
 	groups := numbersix.Grouped(triples)
 	if len(groups) == 0 {
-		return data, errors.New("no data for url: " + url)
+		return data, fmt.Errorf("no data for %s: %w", url, ErrNotFound)
 	}
 
 	return b.withAuthor(groups[0].Properties), nil
 }
 
-func (b *Blog) EntryByUID(uid string) (data map[string][]interface{}, err error) {
+func (b *Blog) EntryByUID(uid string) (data map[string][]any, err error) {
 	triples, err := b.entries.List(numbersix.Where("uid", uid))
 	if err != nil {
 		return
 	}
 	groups := numbersix.Grouped(triples)
 	if len(groups) == 0 {
-		return data, errors.New("no data for uid: " + uid)
+		return data, fmt.Errorf("no data for %s: %w", uid, ErrNotFound)
 	}
 
 	return b.withAuthor(groups[0].Properties), nil
@@ -69,7 +74,7 @@ func (b *Blog) Undelete(url string) error {
 	return b.entries.DeletePredicate(id, "hx-deleted")
 }
 
-func (b *Blog) Mention(source string, data map[string][]interface{}) error {
+func (b *Blog) Mention(source string, data map[string][]any) error {
 	// TODO: add ability to block by host or url
 	if err := b.mentions.DeleteSubject(source); err != nil {
 		return err
@@ -163,16 +168,16 @@ func (b *Blog) LikesOn(ymd string) (groups []numbersix.Group, err error) {
 	return b.groupedWithAuthors(numbersix.Grouped(triples)), nil
 }
 
-func (b *Blog) withAuthor(m map[string][]interface{}) map[string][]interface{} {
+func (b *Blog) withAuthor(m map[string][]any) map[string][]any {
 	if _, ok := m["author"]; ok {
 		return m
 	}
 
-	m["author"] = []interface{}{
-		map[string]interface{}{
-			"types": []interface{}{"h-card"},
-			"properties": map[string][]interface{}{
-				"name": {b.config.Name},
+	m["author"] = []any{
+		map[string]any{
+			"types": []any{"h-card"},
+			"properties": map[string][]any{
+				"name": {b.pageCtx.Name},
 				"url":  {b.config.Me},
 			},
 		},

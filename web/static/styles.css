@@ -113,6 +113,7 @@ header ul a:hover { color: var(--darkred); }
 }
 
 /*** main -------------------------------- */
+main { min-height: 66vh; }
 main > *:first-child { margin-top: 0 !important; }
 
 .buttons {
@@ -239,6 +240,7 @@ pre {
     border-bottom: 1px dashed var(--silver1);
     padding: 1lh 0;
     overflow-x: auto;
+    width: calc(100vw - 10ch);
 }
 
 .meta {
@@ -289,3 +291,5 @@ article.like .h-entry .u-url {
 article.like .h-entry .u-url:hover {
     text-decoration: underline;
 }
+
+h2.p-name a { text-decoration: none; }

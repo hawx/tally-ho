@@ -16,7 +16,7 @@ func (b *Blog) resolveCard(u string) (map[string]any, error) {
 	for _, personer := range b.cardResolvers {
 		person, err := personer.ResolveCard(u)
 		if err != nil {
-			b.logger.Error("resolve card", slog.String("url", u), slog.Any("err", err))
+			slog.Error("resolve card", slog.String("url", u), slog.Any("err", err))
 			return nil, nil
 		}
 

@@ -17,6 +17,7 @@ import (
 	"hawx.me/code/serve"
 	"hawx.me/code/tally-ho/auth"
 	"hawx.me/code/tally-ho/blog"
+	"hawx.me/code/tally-ho/internal/page"
 	"hawx.me/code/tally-ho/media"
 	"hawx.me/code/tally-ho/micropub"
 	"hawx.me/code/tally-ho/silos"
@@ -36,14 +37,12 @@ func usage() {
 }
 
 type config struct {
-	Me          string
-	Name        string
-	Title       string
-	Description string
-	BaseURL     string
-	MediaURL    string
+	Me       string
+	Context  page.Context
+	BaseURL  string
+	MediaURL string
 
-	Flickr, Twitter struct {
+	Flickr struct {
 		ConsumerKey       string
 		ConsumerSecret    string
 		AccessToken       string
@@ -53,6 +52,11 @@ type config struct {
 	Github struct {
 		AccessToken string
 	}
+}
+
+type configLink struct {
+	Name string
+	URL  string
 }
 
 func main() {
@@ -102,24 +106,6 @@ func main() {
 	var blogSilos []any
 	var micropubSyndicateTo []micropub.SyndicateTo
 
-	if conf.Twitter.ConsumerKey != "" {
-		twitter, err := silos.Twitter(silos.TwitterOptions{
-			ConsumerKey:       conf.Twitter.ConsumerKey,
-			ConsumerSecret:    conf.Twitter.ConsumerSecret,
-			AccessToken:       conf.Twitter.AccessToken,
-			AccessTokenSecret: conf.Twitter.AccessTokenSecret,
-		}, fw)
-		if err != nil {
-			logger.Warn("twitter", slog.Any("err", err))
-		} else {
-			blogSilos = append(blogSilos, twitter)
-			micropubSyndicateTo = append(micropubSyndicateTo, micropub.SyndicateTo{
-				UID:  twitter.UID(),
-				Name: twitter.Name(),
-			})
-		}
-	}
-
 	if conf.Flickr.ConsumerKey != "" {
 		flickr, err := silos.Flickr(silos.FlickrOptions{
 			ConsumerKey:       conf.Flickr.ConsumerKey,
@@ -165,15 +151,11 @@ func main() {
 	websubhub := websub.New(baseURL.ResolveReference(hubEndpointURL).String(), hubStore)
 
 	b, err := blog.New(logger, blog.Config{
-		Me:          conf.Me,
-		Name:        conf.Name,
-		Title:       conf.Title,
-		Description: conf.Description,
-		BaseURL:     baseURL,
-		MediaURL:    mediaURL,
-		MediaDir:    *mediaDir,
-		HubURL:      baseURL.ResolveReference(hubEndpointURL).String(),
-	}, db, websubhub, blogSilos)
+		Me:       conf.Me,
+		BaseURL:  baseURL,
+		MediaURL: mediaURL,
+		HubURL:   baseURL.ResolveReference(hubEndpointURL).String(),
+	}, conf.Context, db, websubhub, blogSilos)
 	if err != nil {
 		logger.Error("problem initialising blog", slog.Any("err", err))
 		return

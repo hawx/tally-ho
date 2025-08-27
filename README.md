@@ -27,12 +27,6 @@ running you will need to:
     mediaURL = "http://media.john.example.com/"
 
     # each of these blocks can be left out if you don't want to use them
-    [twitter]
-    consumerKey = "..."
-    consumerSecret = "..."
-    accessToken = "..."
-    accessTokenSecret = "..."
-
     [flickr]
     consumerKey = "..."
     consumerSecret = "..."
@@ -76,8 +70,8 @@ It will be listening on <http://localhost:8080>, this can be changed by passing
 corresponding `.socket` definition.
 
 To get webmentions for social media posts I recommend setting up
-<https://brid.gy/>, as `tally-ho` only allows syndicating to
-Twitter/Flickr/GitHub and not gathering responses (yet).
+<https://brid.gy/>, as `tally-ho` only allows syndicating to Flickr/GitHub and
+not gathering responses (yet).
 
 See [`./misc`](misc) for examples of config files for nginx and systemd.
 
@@ -114,18 +108,6 @@ Possibly up-to-date feature list:
   * [ ] `post-status`
 
 - Syndication:
-  * Twitter
-    * Create
-        * [x] Notes
-        * [x] Posts
-        * [x] Photos
-        * [ ] Videos
-        * [x] Likes
-        * [x] Replies
-        * [x] Reposts (url only)
-    * [ ] Retrieve likes
-    * [ ] Retrieve replies
-    * [ ] Retrieve retweets
   * Flickr
     * Create
       * [ ] Photos

@@ -5,24 +5,20 @@ import (
 	. "hawx.me/code/lmth/elements"
 )
 
-func nav() lmth.Node {
-	return Nav(lmth.Attr{},
-		A(lmth.Attr{"class": "home", "href": "https://hawx.me/"}, lmth.Text("~hawx")),
-		A(lmth.Attr{"href": "/"}, lmth.Text("blog")),
-		A(lmth.Attr{"href": "https://hawx.me/code"}, lmth.Text("code")),
-		A(lmth.Attr{"href": "https://hawx.me/talks"}, lmth.Text("talks")),
-		A(lmth.Attr{"href": "https://ihkh.hawx.me/"}, lmth.Text("ihkh")),
-		A(lmth.Attr{"href": "https://river.hawx.me/"}, lmth.Text("river")),
-		A(lmth.Attr{"href": "https://garden.hawx.me/"}, lmth.Text("garden")),
-		A(lmth.Attr{"href": "https://trobble.hawx.me/"}, lmth.Text("trobble")),
-		A(lmth.Attr{"href": "https://hawx.me/media-diet"}, lmth.Text("media diet")),
-	)
+func nav(ctx Context) lmth.Node {
+	links := make([]lmth.Node, len(ctx.Links)+1)
+	links[0] = A(lmth.Attr{"class": "home", "href": ctx.URL}, lmth.Text(ctx.Name))
+	for i, link := range ctx.Links {
+		links[i+1] = A(lmth.Attr{"href": link.URL}, lmth.Text(link.Name))
+	}
+
+	return Nav(lmth.Attr{}, links...)
 }
 
 func buttons(goBack bool) lmth.Node {
 	backLink := Span(lmth.Attr{})
 	if goBack {
-		backLink = A(lmth.Attr{"href": "/"}, lmth.Text("↑ Back to blog"))
+		backLink = A(lmth.Attr{"href": "/posts"}, lmth.Text("↑ Back to posts"))
 	}
 
 	return Div(lmth.Attr{"class": "buttons"},

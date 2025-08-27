@@ -22,7 +22,7 @@ func (b *Blog) resolveCite(u string) (map[string]any, error) {
 	for _, citer := range b.citeResolvers {
 		cite, err := citer.ResolveCite(u)
 		if err != nil {
-			b.logger.Error("resolve cite", slog.String("url", u), slog.Any("err", err))
+			slog.Error("resolve cite", slog.String("url", u), slog.Any("err", err))
 			return nil, nil
 		}
 

@@ -6,7 +6,6 @@ import (
 )
 
 type ListData struct {
-	Title        string
 	GroupedPosts []GroupedPosts
 	OlderThan    string
 	ShowLatest   bool
@@ -20,23 +19,20 @@ type GroupedPosts struct {
 	Meta  map[string][]any
 }
 
-func List(data ListData) lmth.Node {
+func List(ctx Context, data ListData) lmth.Node {
 	var bodyNodes []lmth.Node
-	var crumbs []string
 
 	if data.Kind != "" {
 		bodyNodes = append(bodyNodes, P(lmth.Attr{"class": "page"},
 			lmth.Text("kind "),
 			Strong(lmth.Attr{}, lmth.Text(data.Kind)),
 		))
-		crumbs = append(crumbs, "kind", "", data.Kind, "/kind/"+data.Kind)
 	}
 	if data.Category != "" {
 		bodyNodes = append(bodyNodes, P(lmth.Attr{"class": "page"},
 			lmth.Text("category "),
 			Strong(lmth.Attr{}, lmth.Text(data.Category)),
 		))
-		crumbs = append(crumbs, "category", "", data.Category, "/category/"+data.Category)
 	}
 
 	var bottomButtons lmth.Node
@@ -64,16 +60,16 @@ func List(data ListData) lmth.Node {
 	}
 
 	return Html(lmth.Attr{"lang": "en"},
-		pageHead(data.Title),
+		pageHead(ctx.BlogTitle),
 		Body(lmth.Attr{"class": "no-hero"},
-			nav(),
+			nav(ctx),
 			buttons(false),
 			Main(lmth.Attr{},
 				bodyNodes...,
 			),
 			bottomButtons,
 		),
-		pageFooter(crumbs...),
+		pageFooter(ctx),
 	)
 }
 
@@ -92,8 +88,8 @@ func pageHead(title string, nodes ...lmth.Node) lmth.Node {
 	return Head(lmth.Attr{}, append(def, nodes...)...)
 }
 
-func pageFooter(crumbs ...string) lmth.Node {
+func pageFooter(ctx Context) lmth.Node {
 	return Footer(lmth.Attr{},
-		Span(lmth.Attr{"class": "copyright"}, lmth.Text("© 2022–25 Joshua Hawxwell.")),
+		Span(lmth.Attr{"class": "copyright"}, lmth.Text(ctx.Copyright)),
 	)
 }
