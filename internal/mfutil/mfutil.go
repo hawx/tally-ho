@@ -4,7 +4,7 @@ import (
 	"strings"
 )
 
-func Get(value interface{}, keys ...string) interface{} {
+func Get(value any, keys ...string) any {
 	for _, key := range keys {
 		if v, ok := SafeGet(value, key); ok {
 			return v
@@ -14,7 +14,7 @@ func Get(value interface{}, keys ...string) interface{} {
 	return nil
 }
 
-func GetAll(value interface{}, keys ...string) []interface{} {
+func GetAll(value any, keys ...string) []any {
 	for _, key := range keys {
 		if v, ok := SafeGetAll(value, key); ok {
 			return v
@@ -24,15 +24,15 @@ func GetAll(value interface{}, keys ...string) []interface{} {
 	return nil
 }
 
-func Has(value interface{}, key string) bool {
+func Has(value any, key string) bool {
 	_, ok := SafeGet(value, key)
 
 	return ok
 }
 
-func SafeGet(value interface{}, key string) (interface{}, bool) {
+func SafeGet(value any, key string) (any, bool) {
 	// if an array get the first value
-	if typed, ok := value.([]interface{}); ok {
+	if typed, ok := value.([]any); ok {
 		if len(typed) > 0 {
 			return SafeGet(typed[0], key)
 		}
@@ -47,7 +47,7 @@ func SafeGet(value interface{}, key string) (interface{}, bool) {
 
 	parts := strings.SplitN(key, ".", 2)
 
-	if typed, ok := value.(map[string][]interface{}); ok {
+	if typed, ok := value.(map[string][]any); ok {
 		next, ok := typed[parts[0]]
 
 		if !ok || len(next) == 0 {
@@ -61,7 +61,7 @@ func SafeGet(value interface{}, key string) (interface{}, bool) {
 		return SafeGet(next[0], "")
 	}
 
-	if typed, ok := value.(map[string]interface{}); ok {
+	if typed, ok := value.(map[string]any); ok {
 		next, ok := typed[parts[0]]
 
 		if !ok {
@@ -78,8 +78,8 @@ func SafeGet(value interface{}, key string) (interface{}, bool) {
 	return nil, false
 }
 
-func SafeGetAll(value interface{}, key string) ([]interface{}, bool) {
-	if typed, ok := value.([]interface{}); ok {
+func SafeGetAll(value any, key string) ([]any, bool) {
+	if typed, ok := value.([]any); ok {
 		if key == "" {
 			return typed, true
 		}
@@ -93,7 +93,7 @@ func SafeGetAll(value interface{}, key string) ([]interface{}, bool) {
 
 	parts := strings.SplitN(key, ".", 2)
 
-	if typed, ok := value.(map[string][]interface{}); ok {
+	if typed, ok := value.(map[string][]any); ok {
 		next, ok := typed[parts[0]]
 
 		if !ok || len(next) == 0 {
@@ -107,7 +107,7 @@ func SafeGetAll(value interface{}, key string) ([]interface{}, bool) {
 		return SafeGetAll(next, "")
 	}
 
-	if typed, ok := value.(map[string]interface{}); ok {
+	if typed, ok := value.(map[string]any); ok {
 		next, ok := typed[parts[0]]
 
 		if !ok {

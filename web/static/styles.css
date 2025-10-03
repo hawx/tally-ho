@@ -157,9 +157,8 @@ article + article {
 }
 
 article img:first-child {
-    margin-left: -2ch;
-    max-width: calc(100vw - 5ch);
-    max-height: 100vh;
+    max-width: 80vw;
+    max-height: 80vh;
 }
 
 
@@ -259,6 +258,13 @@ pre {
 
 .meta.expanded {
     margin-block-start: 2lh;
+}
+
+.meta ol {
+    list-style: none;
+    margin: .5lh 0;
+    padding: .5lh 2ch;
+    border-left: 1ch solid var(--silver0);
 }
 
 article img {

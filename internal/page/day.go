@@ -22,14 +22,11 @@ func Day(ctx Context, data DayData) lmth.Node {
 	}
 
 	return Html(lmth.Attr{"lang": "en"},
-		pageHead("likes for "+formattedTime),
-		Body(lmth.Attr{"class": "no-hero"},
-			header(),
+		postsHead("likes for "+formattedTime),
+		Body(lmth.Attr{},
+			nav(ctx),
+			buttons(buttonsLikesFor(formattedTime)),
 			Main(lmth.Attr{},
-				P(lmth.Attr{"class": "page"},
-					lmth.Text("likes for "),
-					Strong(lmth.Attr{}, lmth.Text(formattedTime)),
-				),
 				lmth.Map(func(group numbersix.Group) lmth.Node {
 					return Article(lmth.Attr{"class": "h-entry " + templateGet(group.Properties, "hx-kind")},
 						entry(group.Properties),

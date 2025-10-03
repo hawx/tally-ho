@@ -2,9 +2,11 @@ package blog
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -17,10 +19,12 @@ import (
 )
 
 type Config struct {
-	Me       string
-	BaseURL  *url.URL
-	MediaURL *url.URL
-	HubURL   string
+	Me                    string
+	BaseURL               *url.URL
+	MediaURL              *url.URL
+	HubURL                string
+	AuthorizationEndpoint string
+	TokenEndpoint         string
 }
 
 type Blog struct {
@@ -124,6 +128,15 @@ func (b *Blog) Handler() http.Handler {
 		http.Error(w, "something unexpected happened", http.StatusInternalServerError)
 	}
 
+	mux.HandleFunc("/.well-known/oauth-authorization-server.json", func(w http.ResponseWriter, r *http.Request) error {
+		return json.NewEncoder(w).Encode(map[string]any{
+			"issuer":                           b.config.Me,
+			"authorization_endpoint":           b.config.AuthorizationEndpoint,
+			"token_endpoint":                   b.config.TokenEndpoint,
+			"code_challenge_methods_supported": []string{"S256"},
+		})
+	})
+
 	mux.HandleFunc("/*anything", func(w http.ResponseWriter, r *http.Request) error {
 		relativeURL, _ := url.Parse(r.URL.Path)
 		location := b.config.BaseURL.ResolveReference(relativeURL).String()
@@ -132,6 +145,15 @@ func (b *Blog) Handler() http.Handler {
 		if err != nil {
 			return err
 		}
+
+		if r.URL.Path == "/" {
+			entry["hx-link"] = append(entry["hx-link"], map[string]any{
+				"rel":  "indieauth-metadata",
+				"href": "/.well-known/oauth-authorization-server.json",
+			})
+		}
+
+		log.Println(location, entry)
 
 		if _, err := page.HxPage(b.pageCtx, entry).WriteTo(w); err != nil {
 			return err
@@ -390,7 +412,7 @@ func (b *Blog) Handler() http.Handler {
 
 func (b *Blog) feed() (*feeds.Feed, error) {
 	feed := &feeds.Feed{
-		Title:   b.pageCtx.BlogTitle,
+		Title:   b.pageCtx.Name + " posts",
 		Link:    &feeds.Link{Href: b.config.BaseURL.String()},
 		Author:  &feeds.Author{Name: b.pageCtx.Name},
 		Created: time.Now(),

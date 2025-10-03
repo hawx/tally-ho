@@ -26,8 +26,19 @@ func HxPage(ctx Context, entry map[string][]any) lmth.Node {
 		}
 	}
 
+	var links []lmth.Node
+	if vals := mfutil.GetAll(entry, "hx-link"); ok {
+		for _, val := range vals {
+			if rel, ok := mfutil.Get(val, "rel").(string); ok {
+				if href, ok := mfutil.Get(val, "href").(string); ok {
+					links = append(links, Link(lmth.Attr{"rel": rel, "href": href}))
+				}
+			}
+		}
+	}
+
 	return Html(lmth.Attr{"lang": "en"},
-		pageHead(name),
+		pageHead(name, links...),
 		Body(lmth.Attr{},
 			nav(ctx),
 			hero,

@@ -2,8 +2,12 @@
 
 A micropub speaking blog.
 
+Although this allows some customisation, it isn't really being built in that
+manner. So please fork if you want to use for your own site, as I will probably
+change it completely when I get bored of how it works.
 
-## usage
+
+## Usage
 
 This is an almost all-in-one solution for running an "IndieWeb" blog. To get
 running you will need to:
@@ -17,14 +21,21 @@ running you will need to:
 
     ```
     me = "https://john.example.com/"
-    name = "John Doe"
-    title = "John Doe's blog"
-    description = "My great blog"
 
     # the URL tally-ho will be accessed from
-    baseURL = "http://blog.john.example.com/"
+    baseURL = "https://john.example.com"
     # the URL the media directory will be accessed from
-    mediaURL = "http://media.john.example.com/"
+    mediaURL = "https://media.john.example.com"
+
+    [context]
+    name = "John"
+    author = "John Doe"
+    copyright = "© 2025 John D. Doe."
+    links = [
+        { name = "posts", url = "/posts" },
+        { name = "info", url = "/info" },
+        { name = "etc", url = "/etc" },
+    ]
 
     # each of these blocks can be left out if you don't want to use them
     [flickr]
@@ -50,10 +61,6 @@ running you will need to:
     ```
 
 1. Copy the [`./web`](web) directory somewhere
-
-1. Edit the contents of
-   [`web/templates/foooter.gotmpl`](web/templates/footer.gotmpl) to not have my
-   details, and potentially change the css or templates to be more your style
 
 Then you are ready to run it:
 

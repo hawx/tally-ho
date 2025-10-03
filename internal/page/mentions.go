@@ -1,6 +1,8 @@
 package page
 
 import (
+	"log"
+
 	"hawx.me/code/lmth"
 	. "hawx.me/code/lmth/elements"
 	"hawx.me/code/numbersix"
@@ -15,68 +17,72 @@ type MentionsData struct {
 }
 
 func Mentions(ctx Context, data MentionsData) lmth.Node {
-	var mentionsNode lmth.Node
+	var bodyNodes lmth.Node
+
 	if data.OlderThan == "NOMORE" {
-		mentionsNode = P(lmth.Attr{},
+		bodyNodes = P(lmth.Attr{},
 			lmth.Text("👏 You have reached the end. Try going back to the "),
-			A(lmth.Attr{"class": "latest", "href": "/"},
+			A(lmth.Attr{"class": "latest", "href": "/mentions"},
 				lmth.Text("Latest"),
 			),
 			lmth.Text("."),
 		)
 	} else {
-		mentionsNode = Ul(lmth.Attr{"class": "mentions"},
-			lmth.Map(func(item numbersix.Group) lmth.Node {
-				name := " mentioned by "
-				if mfutil.Has(item.Properties, "in-reply-to") {
-					name = " reply from "
-				} else if mfutil.Has(item.Properties, "repost-of") {
-					name = " reposted by "
-				} else if mfutil.Has(item.Properties, "like-of") {
-					name = " liked by "
-				}
+		bodyNodes = lmth.Map(func(item numbersix.Group) lmth.Node {
+			name := " mentioned "
+			if mfutil.Has(item.Properties, "in-reply-to") {
+				name = " replied to "
+			} else if mfutil.Has(item.Properties, "repost-of") {
+				name = " reposted "
+			} else if mfutil.Has(item.Properties, "like-of") {
+				name = " liked "
+			}
 
-				subject := item.Subject
-				if mfutil.Has(item.Properties, "author") {
-					if mfutil.Has(item.Properties, "author.properties.name") {
-						subject = templateGet(item.Properties, "author.properties.name")
-					} else {
-						subject = templateGet(item.Properties, "author.properties.url")
-					}
+			subject := item.Subject
+			if mfutil.Has(item.Properties, "author") {
+				if mfutil.Has(item.Properties, "author.properties.name") {
+					subject = templateGet(item.Properties, "author.properties.name")
+				} else {
+					subject = templateGet(item.Properties, "author.properties.url")
 				}
+			}
 
-				return Li(lmth.Attr{},
-					A(lmth.Attr{"class": "target", "href": templateGet(item.Properties, "hx-target")},
-						lmth.Text(templateGet(item.Properties, "hx-target")),
-					),
-					lmth.Text(name),
+			log.Println(item)
+
+			return Article(lmth.Attr{"class": "mention"},
+				H2(lmth.Attr{"class": "p-summary"},
 					A(lmth.Attr{"href": item.Subject},
 						lmth.Text(subject),
 					),
-				)
-			}, data.Items),
-		)
+					lmth.Text(name),
+					A(lmth.Attr{"class": "target", "href": templateGet(item.Properties, "hx-target")},
+						lmth.Text(templateGet(item.Properties, "hx-target")),
+					),
+				),
+				entryMeta(item.Properties),
+			)
+		}, data.Items)
 	}
 
 	return Html(lmth.Attr{"lang": "en"},
-		pageHead(data.Title),
-		Body(lmth.Attr{"class": "no-hero"},
-			header(),
-			P(lmth.Attr{"class": "page"},
-				lmth.Text("mentions"),
-			),
+		postsHead(data.Title),
+		Body(lmth.Attr{},
+			nav(ctx),
+			buttons(Span(lmth.Attr{"class": "page"}, lmth.Text("mentions"))),
 			Main(lmth.Attr{},
-				mentionsNode,
+				bodyNodes,
 			),
-			Nav(lmth.Attr{"class": "arrows"},
+			Nav(lmth.Attr{"class": "buttons"},
 				lmth.Toggle(data.OlderThan != "",
 					A(lmth.Attr{"class": "older", "href": "?before=" + data.OlderThan},
-						lmth.Text("Older"),
+						lmth.Text("← "),
+						Span(lmth.Attr{}, lmth.Text("Older")),
 					),
 				),
 				lmth.Toggle(data.ShowLatest,
 					A(lmth.Attr{"class": "latest", "href": "/mentions"},
-						lmth.Text("Latest"),
+						Span(lmth.Attr{}, lmth.Text("Latest")),
+						lmth.Text(" ⇥"),
 					),
 				),
 			),

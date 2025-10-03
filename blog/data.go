@@ -177,7 +177,7 @@ func (b *Blog) withAuthor(m map[string][]any) map[string][]any {
 		map[string]any{
 			"types": []any{"h-card"},
 			"properties": map[string][]any{
-				"name": {b.pageCtx.Name},
+				"name": {b.pageCtx.Author},
 				"url":  {b.config.Me},
 			},
 		},

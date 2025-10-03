@@ -59,14 +59,14 @@ func Post(ctx Context, data PostData) lmth.Node {
 	}
 
 	return Html(lmth.Attr{"lang": "en", "prefix": "og: http://ogp.me/ns#"},
-		pageHead(templateTruncate(DecideTitle(data.Entry), 70),
+		postsHead(templateTruncate(DecideTitle(data.Entry), 70),
 			Meta(lmth.Attr{"property": "og:type", "content": "website"}),
 			Meta(lmth.Attr{"property": "og:title", "content": DecideTitle(data.Entry)}),
 			Meta(lmth.Attr{"property": "og:url", "content": templateGet(data.Entry, "url")}),
 		),
-		Body(lmth.Attr{"class": "no-hero"},
+		Body(lmth.Attr{},
 			nav(ctx),
-			buttons(true),
+			buttons(buttonsBackToPosts()),
 			Main(lmth.Attr{},
 				Article(lmth.Attr{"class": "h-entry " + templateGet(meta, "hx-kind")},
 					lmth.Join(
@@ -79,8 +79,11 @@ func Post(ctx Context, data PostData) lmth.Node {
 								lmth.Text(" "),
 								publishedUpdated(meta),
 							),
-							A(lmth.Attr{"class": "u-author h-card hidden", "href": templateGet(meta, "author.properties.url")},
-								lmth.Text(templateGet(meta, "author.properties.name")),
+							Div(lmth.Attr{},
+								lmth.Text("by "),
+								A(lmth.Attr{"class": "u-author h-card", "href": templateGet(meta, "author.properties.url")},
+									lmth.Text(templateGet(meta, "author.properties.name")),
+								),
 							),
 							lmth.Toggle(mfutil.Has(meta, "hx-client-id"),
 								Div(lmth.Attr{},
@@ -95,34 +98,34 @@ func Post(ctx Context, data PostData) lmth.Node {
 						Details(lmth.Attr{"class": "meta"},
 							Summary(lmth.Attr{},
 								lmth.Text(fmt.Sprintf("Interactions (%d)", len(data.Mentions))),
-								Ol(lmth.Attr{"class": "inner"},
-									lmth.Map(func(mention numbersix.Group) lmth.Node {
-										name := "mentioned by"
-										if mfutil.Has(mention.Properties, "in-reply-to") {
-											name = "reply from"
-										} else if mfutil.Has(mention.Properties, "repost-of") {
-											name = "reposted by"
-										} else if mfutil.Has(mention.Properties, "like-of") {
-											name = "liked by"
-										}
+							),
+							Ol(lmth.Attr{},
+								lmth.Map(func(mention numbersix.Group) lmth.Node {
+									name := "mentioned by "
+									if mfutil.Has(mention.Properties, "in-reply-to") {
+										name = "reply from "
+									} else if mfutil.Has(mention.Properties, "repost-of") {
+										name = "reposted by "
+									} else if mfutil.Has(mention.Properties, "like-of") {
+										name = "liked by "
+									}
 
-										subject := mention.Subject
-										if mfutil.Has(mention.Properties, "author") {
-											if mfutil.Has(mention.Properties, "author.properties.name") {
-												subject = templateGet(mention.Properties, "author.properties.name")
-											} else {
-												subject = templateGet(mention.Properties, "author.properties.url")
-											}
+									subject := mention.Subject
+									if mfutil.Has(mention.Properties, "author") {
+										if mfutil.Has(mention.Properties, "author.properties.name") {
+											subject = templateGet(mention.Properties, "author.properties.name")
+										} else {
+											subject = templateGet(mention.Properties, "author.properties.url")
 										}
+									}
 
-										return Li(lmth.Attr{},
-											lmth.Text(name),
-											A(lmth.Attr{"href": mention.Subject},
-												lmth.Text(subject),
-											),
-										)
-									}, data.Mentions),
-								),
+									return Li(lmth.Attr{},
+										lmth.Text(name),
+										A(lmth.Attr{"href": mention.Subject},
+											lmth.Text(subject),
+										),
+									)
+								}, data.Mentions),
 							),
 						),
 					),
