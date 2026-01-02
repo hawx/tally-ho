@@ -1,8 +1,6 @@
 package page
 
 import (
-	"log"
-
 	"hawx.me/code/lmth"
 	. "hawx.me/code/lmth/elements"
 	"hawx.me/code/numbersix"
@@ -46,8 +44,6 @@ func Mentions(ctx Context, data MentionsData) lmth.Node {
 					subject = templateGet(item.Properties, "author.properties.url")
 				}
 			}
-
-			log.Println(item)
 
 			return Article(lmth.Attr{"class": "mention"},
 				H2(lmth.Attr{"class": "p-summary"},

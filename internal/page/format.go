@@ -1,7 +1,6 @@
 package page
 
 import (
-	"log"
 	"time"
 
 	"hawx.me/code/tally-ho/internal/mfutil"
@@ -54,7 +53,6 @@ func DecideTitle(m map[string][]any) string {
 		return formatReadStatus(templateGet(m, "read-status")) + " " +
 			conv[string](mfutil.Get(m, "read-of.properties.name"))
 	case "drank":
-		log.Println(mfutil.Get(m, "drank"))
 		return "drank " + conv[string](mfutil.Get(m, "drank.properties.name"))
 	case "checkin":
 		return "checked in to " + conv[string](mfutil.Get(m, "checkin.properties.name"))
