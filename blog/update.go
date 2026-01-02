@@ -55,11 +55,8 @@ func (b *Blog) Update(
 		return err
 	}
 
-	// don't send updates for published pages (although maybe I'll change this in the future)
-	if len(newData["hx-url"]) == 0 {
-		go b.sendUpdateWebmentions(url, oldData, newData)
-		go b.hubPublish()
-	}
+	go b.sendUpdateWebmentions(url, oldData, newData)
+	go b.hubPublish()
 
 	return nil
 }

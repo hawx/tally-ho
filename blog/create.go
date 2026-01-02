@@ -20,14 +20,8 @@ func (b *Blog) Create(data map[string][]any) (string, error) {
 		return location, err
 	}
 
-	if len(data["hx-url"]) == 0 {
-		if len(triples) > 0 {
-			return location, errors.New("post with uid already exists")
-		}
-	} else {
-		if err := b.entries.DeleteSubject(uid); err != nil {
-			return location, err
-		}
+	if len(triples) > 0 {
+		return location, errors.New("post with uid already exists")
 	}
 
 	if err := b.entries.SetProperties(uid, data); err != nil {
@@ -36,12 +30,9 @@ func (b *Blog) Create(data map[string][]any) (string, error) {
 
 	slog.Info("set entry properties", slog.String("uid", uid), slog.String("url", location))
 
-	// don't send updates for published pages (although maybe I'll change this in the future)
-	if len(data["hx-url"]) == 0 {
-		go b.syndicate(location, data)
-		go b.sendWebmentions(location, data)
-		go b.hubPublish()
-	}
+	go b.syndicate(location, data)
+	go b.sendWebmentions(location, data)
+	go b.hubPublish()
 
 	return location, nil
 }

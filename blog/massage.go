@@ -34,19 +34,6 @@ func (b *Blog) massage(data map[string][]any) {
 		data["url"] = []any{location}
 	}
 
-	// hx-url is a special directive to publish the content as a page at the given
-	// relative URL.
-	if len(data["hx-url"]) == 1 {
-		relativeURL, _ := url.Parse(data["hx-url"][0].(string))
-		location := b.config.BaseURL.ResolveReference(relativeURL).String()
-
-		data["url"] = []any{location}
-		data["uid"] = []any{location}
-
-		// mark as deleted so they don't show up anywhere else
-		data["hx-deleted"] = []any{time.Time{}.Format(time.RFC3339)}
-	}
-
 	if len(data["published"]) == 0 {
 		data["published"] = []any{time.Now().UTC().Format(time.RFC3339)}
 	} else {

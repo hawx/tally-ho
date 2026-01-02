@@ -2,11 +2,9 @@ package blog
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -19,12 +17,10 @@ import (
 )
 
 type Config struct {
-	Me                    string
-	BaseURL               *url.URL
-	MediaURL              *url.URL
-	HubURL                string
-	AuthorizationEndpoint string
-	TokenEndpoint         string
+	Me       string
+	BaseURL  *url.URL
+	MediaURL *url.URL
+	HubURL   string
 }
 
 type Blog struct {
@@ -127,40 +123,6 @@ func (b *Blog) Handler() http.Handler {
 		slog.Error("page error", slog.String("url", r.URL.Path), slog.Any("err", err))
 		http.Error(w, "something unexpected happened", http.StatusInternalServerError)
 	}
-
-	mux.HandleFunc("/.well-known/oauth-authorization-server.json", func(w http.ResponseWriter, r *http.Request) error {
-		return json.NewEncoder(w).Encode(map[string]any{
-			"issuer":                           b.config.Me,
-			"authorization_endpoint":           b.config.AuthorizationEndpoint,
-			"token_endpoint":                   b.config.TokenEndpoint,
-			"code_challenge_methods_supported": []string{"S256"},
-		})
-	})
-
-	mux.HandleFunc("/*anything", func(w http.ResponseWriter, r *http.Request) error {
-		relativeURL, _ := url.Parse(r.URL.Path)
-		location := b.config.BaseURL.ResolveReference(relativeURL).String()
-
-		entry, err := b.Entry(location)
-		if err != nil {
-			return err
-		}
-
-		if r.URL.Path == "/" {
-			entry["hx-link"] = append(entry["hx-link"], map[string]any{
-				"rel":  "indieauth-metadata",
-				"href": "/.well-known/oauth-authorization-server.json",
-			})
-		}
-
-		log.Println(location, entry)
-
-		if _, err := page.HxPage(b.pageCtx, entry).WriteTo(w); err != nil {
-			return err
-		}
-
-		return nil
-	})
 
 	mux.HandleFunc("/posts", func(w http.ResponseWriter, r *http.Request) error {
 		showLatest := true

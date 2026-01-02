@@ -37,11 +37,9 @@ func usage() {
 }
 
 type config struct {
-	Me                    string
-	BaseURL               string
-	MediaURL              string
-	AuthorizationEndpoint string
-	TokenEndpoint         string
+	Me       string
+	BaseURL  string
+	MediaURL string
 
 	Context page.Context
 
@@ -154,12 +152,10 @@ func main() {
 	websubhub := websub.New(baseURL.ResolveReference(hubEndpointURL).String(), hubStore)
 
 	b, err := blog.New(logger, blog.Config{
-		Me:                    conf.Me,
-		BaseURL:               baseURL,
-		MediaURL:              mediaURL,
-		AuthorizationEndpoint: conf.AuthorizationEndpoint,
-		TokenEndpoint:         conf.TokenEndpoint,
-		HubURL:                baseURL.ResolveReference(hubEndpointURL).String(),
+		Me:       conf.Me,
+		BaseURL:  baseURL,
+		MediaURL: mediaURL,
+		HubURL:   baseURL.ResolveReference(hubEndpointURL).String(),
 	}, conf.Context, db, websubhub, blogSilos)
 	if err != nil {
 		logger.Error("problem initialising blog", slog.Any("err", err))
