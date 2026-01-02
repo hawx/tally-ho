@@ -22,7 +22,7 @@ func Day(ctx Context, data DayData) lmth.Node {
 	}
 
 	return Html(lmth.Attr{"lang": "en"},
-		postsHead("likes for "+formattedTime),
+		postsHead(ctx, "likes for "+formattedTime),
 		Body(lmth.Attr{},
 			nav(ctx),
 			buttons(buttonsLikesFor(formattedTime)),

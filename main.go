@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	// register sqlite3 for database/sql
 	_ "github.com/mattn/go-sqlite3"
@@ -37,12 +38,18 @@ func usage() {
 }
 
 type config struct {
-	Me       string
-	BaseURL  string
+	// Me is the URL to your (website containing a) h-card
+	Me string
+	// BaseURL is the URL this will be hosted from, it can contain a path
+	BaseURL string
+	// MediaURL is the URL the media-dir will be hosted from
 	MediaURL string
 
+	// Context contains data specifying details shown in the site
 	Context page.Context
 
+	// Flickr is an optional section containing details of an OAuth application
+	// you have maybe set-up. It allows tally-ho to post your posts to flickr
 	Flickr struct {
 		ConsumerKey       string
 		ConsumerSecret    string
@@ -50,14 +57,11 @@ type config struct {
 		AccessTokenSecret string
 	}
 
+	// Github is an optional section containing details of an OAuth application
+	// you have maybe set-up. It allows tally-ho to post your posts to github
 	Github struct {
 		AccessToken string
 	}
-}
-
-type configLink struct {
-	Name string
-	URL  string
 }
 
 func main() {
@@ -146,8 +150,8 @@ func main() {
 		return
 	}
 
-	mediaEndpointURL, _ := url.Parse("/-/media")
-	hubEndpointURL, _ := url.Parse("/-/hub")
+	mediaEndpointURL, _ := url.Parse("-/media")
+	hubEndpointURL, _ := url.Parse("-/hub")
 
 	websubhub := websub.New(baseURL.ResolveReference(hubEndpointURL).String(), hubStore)
 
@@ -156,29 +160,32 @@ func main() {
 		BaseURL:  baseURL,
 		MediaURL: mediaURL,
 		HubURL:   baseURL.ResolveReference(hubEndpointURL).String(),
-	}, conf.Context, db, websubhub, blogSilos)
+	}, conf.Context.WithPath(baseURL.Path), db, websubhub, blogSilos)
 	if err != nil {
 		logger.Error("problem initialising blog", slog.Any("err", err))
 		return
 	}
 	defer b.Close()
 
-	http.Handle("/", b.Handler())
+	mux := http.NewServeMux()
 
-	http.Handle("/public/",
+	mux.Handle("/", b.Handler())
+
+	mux.Handle("/public/",
 		http.StripPrefix("/public/",
 			http.FileServer(
 				http.Dir(filepath.Join(*webPath, "static")))))
 
-	http.Handle("/-/micropub", micropub.Endpoint(
+	mux.Handle("/-/micropub", micropub.Endpoint(
 		b,
 		conf.Me,
 		baseURL.ResolveReference(mediaEndpointURL).String(),
 		micropubSyndicateTo,
 		fw))
-	http.Handle("/-/webmention", webmention.Endpoint(b))
-	http.Handle("/-/media", auth.Only(conf.Me, media.Endpoint(fw, auth.HasScope)))
-	http.Handle("/-/hub", websubhub)
+	mux.Handle("/-/webmention", webmention.Endpoint(b))
+	mux.Handle("/-/media", auth.Only(conf.Me, media.Endpoint(fw, auth.HasScope)))
+	mux.Handle("/-/hub", websubhub)
 
-	serve.Serve(*port, *socket, http.DefaultServeMux)
+	serve.Serve(*port, *socket,
+		http.StripPrefix(strings.TrimSuffix(baseURL.Path, "/"), mux))
 }

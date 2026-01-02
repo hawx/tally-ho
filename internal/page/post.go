@@ -49,7 +49,7 @@ func Post(ctx Context, data PostData) lmth.Node {
 			lmth.Text("filed under "),
 			lmth.Map2(func(i int, category any) lmth.Node {
 				return lmth.Join(
-					A(lmth.Attr{"class": "p-category", "href": "/category/" + category.(string)},
+					A(lmth.Attr{"class": "p-category", "href": ctx.Path("category/" + category.(string))},
 						lmth.Text(category.(string)),
 					),
 					lmth.Toggle(i != len(cat)-1, lmth.Text(", ")),
@@ -59,21 +59,21 @@ func Post(ctx Context, data PostData) lmth.Node {
 	}
 
 	return Html(lmth.Attr{"lang": "en", "prefix": "og: http://ogp.me/ns#"},
-		postsHead(templateTruncate(DecideTitle(data.Entry), 70),
+		postsHead(ctx, templateTruncate(DecideTitle(data.Entry), 70),
 			Meta(lmth.Attr{"property": "og:type", "content": "website"}),
 			Meta(lmth.Attr{"property": "og:title", "content": DecideTitle(data.Entry)}),
 			Meta(lmth.Attr{"property": "og:url", "content": templateGet(data.Entry, "url")}),
 		),
 		Body(lmth.Attr{},
 			nav(ctx),
-			buttons(buttonsBackToPosts()),
+			buttons(buttonsBackToPosts(ctx)),
 			Main(lmth.Attr{},
 				Article(lmth.Attr{"class": "h-entry " + templateGet(meta, "hx-kind")},
 					lmth.Join(
 						entry(data.Posts.Meta),
 						Div(lmth.Attr{"class": "expanded meta"},
 							Div(lmth.Attr{},
-								A(lmth.Attr{"href": "/kind/" + templateGet(meta, "hx-kind")},
+								A(lmth.Attr{"href": ctx.Path("kind/" + templateGet(meta, "hx-kind"))},
 									lmth.Text(templateGet(meta, "hx-kind")),
 								),
 								lmth.Text(" "),

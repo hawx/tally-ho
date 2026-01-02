@@ -40,7 +40,7 @@ func List(ctx Context, data ListData) lmth.Node {
 	if data.OlderThan == "NOMORE" {
 		bodyNodes = append(bodyNodes, P(lmth.Attr{},
 			lmth.Text("👏 You have reached the end. Try going back to the "),
-			A(lmth.Attr{"class": "latest", "href": "/posts"}, lmth.Text("Latest")),
+			A(lmth.Attr{"class": "latest", "href": ctx.Path("")}, lmth.Text("Latest")),
 			lmth.Text("."),
 		))
 	} else {
@@ -54,14 +54,14 @@ func List(ctx Context, data ListData) lmth.Node {
 					lmth.Text("← "),
 					Span(lmth.Attr{}, lmth.Text("Older")),
 				)),
-			lmth.Toggle(data.ShowLatest, A(lmth.Attr{"class": "latest", "href": "/posts"},
+			lmth.Toggle(data.ShowLatest, A(lmth.Attr{"class": "latest", "href": ctx.Path("")},
 				Span(lmth.Attr{}, lmth.Text("Latest")),
 				lmth.Text(" ⇥"),
 			)))
 	}
 
 	return Html(lmth.Attr{"lang": "en"},
-		postsHead(ctx.Name+" posts"),
+		postsHead(ctx, ctx.Name+" posts"),
 		Body(lmth.Attr{},
 			nav(ctx),
 			buttons(buttonsLeft),
@@ -74,23 +74,23 @@ func List(ctx Context, data ListData) lmth.Node {
 	)
 }
 
-func postsHead(title string, nodes ...lmth.Node) lmth.Node {
+func postsHead(ctx Context, title string, nodes ...lmth.Node) lmth.Node {
 	def := []lmth.Node{
-		Link(lmth.Attr{"rel": "webmention", "href": "/-/webmention"}),
-		Link(lmth.Attr{"rel": "alternative", "href": "/feed/atom", "type": "application/atom+xml"}),
-		Link(lmth.Attr{"rel": "alternative", "href": "/feed/jsonfee", "type": "application/json"}),
-		Link(lmth.Attr{"rel": "alternative", "href": "/feed/rss", "type": "application/rss+xml"}),
+		Link(lmth.Attr{"rel": "webmention", "href": ctx.Path("-/webmention")}),
+		Link(lmth.Attr{"rel": "alternative", "href": ctx.Path("feed/atom"), "type": "application/atom+xml"}),
+		Link(lmth.Attr{"rel": "alternative", "href": ctx.Path("feed/jsonfee"), "type": "application/json"}),
+		Link(lmth.Attr{"rel": "alternative", "href": ctx.Path("feed/rss"), "type": "application/rss+xml"}),
 	}
 
-	return pageHead(title, append(def, nodes...)...)
+	return pageHead(ctx, title, append(def, nodes...)...)
 }
 
-func pageHead(title string, nodes ...lmth.Node) lmth.Node {
+func pageHead(ctx Context, title string, nodes ...lmth.Node) lmth.Node {
 	def := []lmth.Node{
 		Meta(lmth.Attr{"charset": "utf-8"}),
 		Title(lmth.Attr{}, lmth.Text(title)),
 		Meta(lmth.Attr{"content": "width=device-width, initial-scale=1", "name": "viewport"}),
-		Link(lmth.Attr{"rel": "stylesheet", "href": "/public/styles.css", "type": "text/css"}),
+		Link(lmth.Attr{"rel": "stylesheet", "href": ctx.Path("public/styles.css"), "type": "text/css"}),
 	}
 
 	return Head(lmth.Attr{}, append(def, nodes...)...)

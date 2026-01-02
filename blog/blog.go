@@ -107,10 +107,10 @@ func (b *Blog) absoluteURL(p string) string {
 
 func (b *Blog) Handler() http.Handler {
 	baseURL := b.config.BaseURL
-	indexURL := b.absoluteURL("/")
-	feedAtomURL := b.absoluteURL("/feed/atom")
-	feedJsonfeedURL := b.absoluteURL("/feed/jsonfeed")
-	feedRssURL := b.absoluteURL("/feed/rss")
+	indexURL := b.absoluteURL("")
+	feedAtomURL := b.absoluteURL("feed/atom")
+	feedJsonfeedURL := b.absoluteURL("feed/jsonfeed")
+	feedRssURL := b.absoluteURL("feed/rss")
 
 	mux := route.New()
 	mux.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
@@ -124,7 +124,7 @@ func (b *Blog) Handler() http.Handler {
 		http.Error(w, "something unexpected happened", http.StatusInternalServerError)
 	}
 
-	mux.HandleFunc("/posts", func(w http.ResponseWriter, r *http.Request) error {
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) error {
 		showLatest := true
 
 		before, err := time.Parse(time.RFC3339, r.FormValue("before"))
@@ -149,7 +149,7 @@ func (b *Blog) Handler() http.Handler {
 		w.Header().Add("Link", `<`+b.config.HubURL+`>; rel="hub"`)
 
 		if _, err := page.List(b.pageCtx, page.ListData{
-			GroupedPosts: groupLikes(posts),
+			GroupedPosts: groupLikes(b.pageCtx, posts),
 			OlderThan:    olderThan,
 			ShowLatest:   showLatest,
 		}).WriteTo(w); err != nil {
@@ -183,7 +183,7 @@ func (b *Blog) Handler() http.Handler {
 		}
 
 		if _, err := page.List(b.pageCtx, page.ListData{
-			GroupedPosts: groupLikes(posts),
+			GroupedPosts: groupLikes(b.pageCtx, posts),
 			OlderThan:    olderThan,
 			ShowLatest:   showLatest,
 			Kind:         vars["kind"],
@@ -218,7 +218,7 @@ func (b *Blog) Handler() http.Handler {
 		}
 
 		if _, err := page.List(b.pageCtx, page.ListData{
-			GroupedPosts: groupLikes(posts),
+			GroupedPosts: groupLikes(b.pageCtx, posts),
 			OlderThan:    olderThan,
 			ShowLatest:   showLatest,
 			Kind:         "",

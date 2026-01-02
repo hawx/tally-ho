@@ -28,7 +28,7 @@ func (b *Blog) massage(data map[string][]any) {
 		data["uid"] = []any{uid}
 	}
 	if len(data["url"]) == 0 {
-		relativeURL, _ := url.Parse("/entry/" + data["uid"][0].(string))
+		relativeURL, _ := url.Parse("entry/" + data["uid"][0].(string))
 		location := b.config.BaseURL.ResolveReference(relativeURL).String()
 
 		data["url"] = []any{location}

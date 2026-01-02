@@ -10,11 +10,11 @@ import (
 
 type GroupedPosts = page.GroupedPosts
 
-func groupLikes(posts []numbersix.Group) []GroupedPosts {
+func groupLikes(ctx page.Context, posts []numbersix.Group) []GroupedPosts {
 	var groupedPosts []GroupedPosts
 
 	var today string
-	var todaysLikes []map[string][]interface{}
+	var todaysLikes []map[string][]any
 
 	sort.Slice(posts, func(i, j int) bool {
 		return posts[i].Properties["published"][0].(string) < posts[j].Properties["published"][0].(string)
@@ -30,14 +30,14 @@ func groupLikes(posts []numbersix.Group) []GroupedPosts {
 					groupedPosts = append(groupedPosts, GroupedPosts{
 						Type:  "like",
 						Posts: todaysLikes,
-						Meta: map[string][]interface{}{
-							"url":       {"/likes/" + today},
+						Meta: map[string][]any{
+							"url":       {ctx.Path("likes/" + today)},
 							"published": {today + "T12:00:00Z"},
 						},
 					})
 				}
 
-				todaysLikes = []map[string][]interface{}{post.Properties}
+				todaysLikes = []map[string][]any{post.Properties}
 				today = likeDate
 			}
 		} else {
@@ -52,8 +52,8 @@ func groupLikes(posts []numbersix.Group) []GroupedPosts {
 		groupedPosts = append(groupedPosts, GroupedPosts{
 			Type:  "like",
 			Posts: todaysLikes,
-			Meta: map[string][]interface{}{
-				"url":       {"/likes/" + today},
+			Meta: map[string][]any{
+				"url":       {ctx.Path("likes/" + today)},
 				"published": {today + "T12:00:00Z"},
 			},
 		})

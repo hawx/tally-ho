@@ -13,10 +13,10 @@ type HubPublisher interface {
 func (b *Blog) hubPublish() {
 	// for now just publish the main things that will always change
 	changed := []string{
-		"/",
-		"/feed/atom",
-		"/feed/jsonfeed",
-		"/feed/rss",
+		b.pageCtx.Path(""),
+		b.pageCtx.Path("feed/atom"),
+		b.pageCtx.Path("feed/jsonfeed"),
+		b.pageCtx.Path("feed/rss"),
 	}
 
 	// ensure that the entry exists

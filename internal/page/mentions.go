@@ -22,7 +22,7 @@ func Mentions(ctx Context, data MentionsData) lmth.Node {
 	if data.OlderThan == "NOMORE" {
 		bodyNodes = P(lmth.Attr{},
 			lmth.Text("👏 You have reached the end. Try going back to the "),
-			A(lmth.Attr{"class": "latest", "href": "/mentions"},
+			A(lmth.Attr{"class": "latest", "href": ctx.Path("mentions")},
 				lmth.Text("Latest"),
 			),
 			lmth.Text("."),
@@ -65,7 +65,7 @@ func Mentions(ctx Context, data MentionsData) lmth.Node {
 	}
 
 	return Html(lmth.Attr{"lang": "en"},
-		postsHead(data.Title),
+		postsHead(ctx, data.Title),
 		Body(lmth.Attr{},
 			nav(ctx),
 			buttons(Span(lmth.Attr{"class": "page"}, lmth.Text("mentions"))),
@@ -80,7 +80,7 @@ func Mentions(ctx Context, data MentionsData) lmth.Node {
 					),
 				),
 				lmth.Toggle(data.ShowLatest,
-					A(lmth.Attr{"class": "latest", "href": "/mentions"},
+					A(lmth.Attr{"class": "latest", "href": ctx.Path("mentions")},
 						Span(lmth.Attr{}, lmth.Text("Latest")),
 						lmth.Text(" ⇥"),
 					),
