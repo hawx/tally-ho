@@ -93,6 +93,10 @@ func pageHead(ctx Context, title string, nodes ...lmth.Node) lmth.Node {
 		Link(lmth.Attr{"rel": "stylesheet", "href": ctx.Path("public/styles.css"), "type": "text/css"}),
 	}
 
+	if ctx.Styles != "" {
+		def = append(def, Link(lmth.Attr{"rel": "stylesheet", "href": ctx.Styles, "type": "text/css"}))
+	}
+
 	return Head(lmth.Attr{}, append(def, nodes...)...)
 }
 

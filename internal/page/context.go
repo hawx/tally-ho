@@ -11,6 +11,8 @@ type Context struct {
 	Links []ContextLink
 	// Copyright is shown in the footer.
 	Copyright string
+	// Styles is a link to an external stylesheet.
+	Styles string
 }
 
 type ContextLink struct {
