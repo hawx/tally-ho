@@ -95,37 +95,39 @@ func Post(ctx Context, data PostData) lmth.Node {
 							syndication(),
 							category(),
 						),
-						Details(lmth.Attr{"class": "meta"},
-							Summary(lmth.Attr{},
-								lmth.Text(fmt.Sprintf("Interactions (%d)", len(data.Mentions))),
-							),
-							Ol(lmth.Attr{},
-								lmth.Map(func(mention numbersix.Group) lmth.Node {
-									name := "mentioned by "
-									if mfutil.Has(mention.Properties, "in-reply-to") {
-										name = "reply from "
-									} else if mfutil.Has(mention.Properties, "repost-of") {
-										name = "reposted by "
-									} else if mfutil.Has(mention.Properties, "like-of") {
-										name = "liked by "
-									}
-
-									subject := mention.Subject
-									if mfutil.Has(mention.Properties, "author") {
-										if mfutil.Has(mention.Properties, "author.properties.name") {
-											subject = templateGet(mention.Properties, "author.properties.name")
-										} else {
-											subject = templateGet(mention.Properties, "author.properties.url")
+						lmth.Toggle(len(data.Mentions) > 0,
+							Details(lmth.Attr{"class": "meta"},
+								Summary(lmth.Attr{},
+									lmth.Text(fmt.Sprintf("Interactions (%d)", len(data.Mentions))),
+								),
+								Ol(lmth.Attr{},
+									lmth.Map(func(mention numbersix.Group) lmth.Node {
+										name := "mentioned by "
+										if mfutil.Has(mention.Properties, "in-reply-to") {
+											name = "reply from "
+										} else if mfutil.Has(mention.Properties, "repost-of") {
+											name = "reposted by "
+										} else if mfutil.Has(mention.Properties, "like-of") {
+											name = "liked by "
 										}
-									}
 
-									return Li(lmth.Attr{},
-										lmth.Text(name),
-										A(lmth.Attr{"href": mention.Subject},
-											lmth.Text(subject),
-										),
-									)
-								}, data.Mentions),
+										subject := mention.Subject
+										if mfutil.Has(mention.Properties, "author") {
+											if mfutil.Has(mention.Properties, "author.properties.name") {
+												subject = templateGet(mention.Properties, "author.properties.name")
+											} else {
+												subject = templateGet(mention.Properties, "author.properties.url")
+											}
+										}
+
+										return Li(lmth.Attr{},
+											lmth.Text(name),
+											A(lmth.Attr{"href": mention.Subject},
+												lmth.Text(subject),
+											),
+										)
+									}, data.Mentions),
+								),
 							),
 						),
 					),
