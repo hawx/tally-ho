@@ -31,7 +31,7 @@ article img {
 
 .hidden { display: none; }
 
-.h-cite {
+div.h-cite {
     margin: 1lh 0;
     padding: 2ch;
     border: 1px solid var(--silver1);
@@ -39,7 +39,7 @@ article img {
     box-shadow: .5ch .2lh 0 var(--silver1);
 }
 
-.h-cite .p-author {
+div.h-cite .p-author {
     margin: 0 0 var(--rhythm) 0;
 }
 
