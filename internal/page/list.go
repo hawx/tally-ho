@@ -90,7 +90,7 @@ func pageHead(ctx Context, title string, nodes ...lmth.Node) lmth.Node {
 		Meta(lmth.Attr{"charset": "utf-8"}),
 		Title(lmth.Attr{}, lmth.Text(title)),
 		Meta(lmth.Attr{"content": "width=device-width, initial-scale=1", "name": "viewport"}),
-		Link(lmth.Attr{"rel": "stylesheet", "href": ctx.Path("public/styles.css"), "type": "text/css"}),
+		Link(lmth.Attr{"rel": "stylesheet", "href": ctx.Path("public/styles.css?v2"), "type": "text/css"}),
 	}
 
 	if ctx.Styles != "" {
