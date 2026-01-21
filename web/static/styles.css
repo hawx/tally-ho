@@ -46,7 +46,7 @@ div.h-cite .p-author {
 .p-summary, article.like > h2 { font-size: 100%; }
 
 article.like .h-entry .u-url {
-    color: black;
+    color: var(--black);
     text-decoration: none;
     font-weight: normal;
 }
