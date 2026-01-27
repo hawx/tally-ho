@@ -101,7 +101,10 @@ func pageHead(ctx Context, title string, nodes ...lmth.Node) lmth.Node {
 }
 
 func pageFooter(ctx Context) lmth.Node {
-	return Footer(lmth.Attr{},
-		Span(lmth.Attr{"class": "copyright"}, lmth.Text(ctx.Copyright)),
+	return lmth.Join(
+		Div(lmth.Attr{"id": "shoe"}),
+		Footer(lmth.Attr{},
+			Span(lmth.Attr{"class": "copyright"}, lmth.Text(ctx.Copyright)),
+		),
 	)
 }
