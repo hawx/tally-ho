@@ -5,6 +5,8 @@ type Context struct {
 
 	// Name for the whole site, I'm using it like a nickname but it could be anything.
 	Name string
+	// URL to go to when clicking name
+	Home string
 	// Author is the name to be listed alongside entries as the publisher.
 	Author string
 	// Links are displayed in the header as a nice grid.

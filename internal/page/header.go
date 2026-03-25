@@ -8,7 +8,7 @@ import (
 func nav(ctx Context) lmth.Node {
 	links := make([]lmth.Node, len(ctx.Links)+1)
 	links[0] = Span(lmth.Attr{"class": "home"},
-		A(lmth.Attr{"href": ctx.Path("")}, lmth.Text(ctx.Name)))
+		A(lmth.Attr{"href": ctx.Home}, lmth.Text(ctx.Name)))
 	for i, link := range ctx.Links {
 		links[i+1] = Span(lmth.Attr{},
 			A(lmth.Attr{"href": link.URL}, lmth.Text(link.Name)))
